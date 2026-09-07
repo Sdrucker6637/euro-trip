@@ -539,10 +539,30 @@ function wireBookingButtons(container){
   });
 }
 
-// ---- Booking access: a compact "View Booking" + screenshot modal shared
-// by every bookable item (stays, flights, train legs). Screenshots are
-// stored locally as a resized data URL, keyed per item, so each booking
-// keeps its own image independent of the others.
+// ---- Booking access: an "Open Booking" link + screenshot modal shared by
+// every bookable item (stays, flights, train legs).
+//
+// "Open Booking" is always a plain https:// link to the provider's real
+// domain, never a guessed custom URL scheme (e.g. "hostelworld://") - no
+// documented/verifiable one exists for Hostelworld, United, or Eurail, and
+// a made-up scheme just fails silently. A normal https link is also the
+// *correct* iOS mechanism here: when a provider has Universal Links
+// configured for that domain (standard practice for apps at this scale)
+// and the app is installed, iOS opens the app directly; otherwise it opens
+// the website. That's "try the app, fall back to the web" with no extra
+// code needed - it's what tapping the link already does on a phone.
+//
+// The default link is computed per item type (see stayBookingInfo, the
+// segment's own `book` field, etc.), but every item can override it with
+// an exact confirmation/reservation URL when one exists - closer to a real
+// deep link than a generic homepage/search page.
+//
+// The screenshot is entirely separate: a locally-stored, resized image
+// that works with zero connectivity, independent of whether any link
+// above resolves at all.
+function bookingShotKey(itemKey){ return 'booking-shot:'+itemKey; }
+function bookingUrlKey(itemKey){ return 'booking-url:'+itemKey; }
+
 const BOOKING_SHOT_MAX_DIM = 1600;
 function resizeImageFile(file){
   return new Promise((resolve, reject)=>{
@@ -578,11 +598,22 @@ async function openImageLarge(dataUrl){
   }
 }
 
-function paintBookingModalBody(key, bookingUrl, bookingLabel, shot){
+function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override){
   const bodyEl = document.getElementById('booking-modal-body');
+  const url = (override && override.url) || defaultUrl || '';
+  const label = (override && override.label) || defaultLabel || '';
+
   bodyEl.innerHTML = `
-    ${bookingUrl ? `<a class="pill-link book" href="${escapeHtml(bookingUrl)}" target="_blank">VIEW BOOKING${bookingLabel ? ' · '+escapeHtml(bookingLabel) : ''} ↗</a>` : ''}
-    <h2 style="${bookingUrl ? '' : 'margin-top:0;'}">SCREENSHOT</h2>
+    <h2 style="margin-top:0;">OPEN BOOKING</h2>
+    <p style="font-size:11.5px;color:var(--paper-ink-secondary,var(--muted));margin-bottom:8px;">${url ? `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.` : 'No booking link set yet.'}</p>
+    ${url ? `<a class="pill-link book" href="${escapeHtml(url)}" target="_blank">OPEN BOOKING${label ? ' · '+escapeHtml(label) : ''} ↗</a>` : ''}
+    <div>
+      <button class="stop-map" type="button" id="booking-edit-link-btn" style="margin-top:${url?'10px':'0'};">${override ? '✎ EDIT LINK' : '+ ADD EXACT BOOKING LINK'}</button>
+    </div>
+    <div id="booking-edit-link-slot"></div>
+
+    <h2>BOOKING SCREENSHOT · OFFLINE FALLBACK</h2>
+    <p style="font-size:11.5px;color:var(--muted);margin-bottom:8px;">Works with no signal - keep this saved even if the link above does too.</p>
     <div id="booking-shot-area">
       ${shot ? `<img src="${shot}" class="booking-shot-img" alt="Saved booking screenshot" title="Tap to view full size">` : `<div class="nearby-empty">No screenshot saved yet - add one so it's ready to show when you arrive.</div>`}
     </div>
@@ -591,6 +622,7 @@ function paintBookingModalBody(key, bookingUrl, bookingLabel, shot){
       ${shot ? `<button class="booking-shot-remove" type="button" id="booking-shot-remove">REMOVE</button>` : ''}
     </div>
   `;
+
   const shotImg = bodyEl.querySelector('.booking-shot-img');
   if(shotImg) shotImg.addEventListener('click', ()=>openImageLarge(shot));
   bodyEl.querySelector('#booking-shot-input').addEventListener('change', async (e)=>{
@@ -599,16 +631,49 @@ function paintBookingModalBody(key, bookingUrl, bookingLabel, shot){
     document.getElementById('booking-shot-area').innerHTML = '<div class="nearby-empty">Saving…</div>';
     try {
       const dataUrl = await resizeImageFile(file);
-      await store.set(key, dataUrl);
-      paintBookingModalBody(key, bookingUrl, bookingLabel, dataUrl);
+      await store.set(bookingShotKey(itemKey), dataUrl);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override);
     } catch(err){
-      paintBookingModalBody(key, bookingUrl, bookingLabel, shot);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override);
     }
   });
-  const removeBtn = bodyEl.querySelector('#booking-shot-remove');
-  if(removeBtn) removeBtn.addEventListener('click', async ()=>{
-    await store.set(key, '');
-    paintBookingModalBody(key, bookingUrl, bookingLabel, null);
+  const removeShotBtn = bodyEl.querySelector('#booking-shot-remove');
+  if(removeShotBtn) removeShotBtn.addEventListener('click', async ()=>{
+    await store.set(bookingShotKey(itemKey), '');
+    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override);
+  });
+
+  bodyEl.querySelector('#booking-edit-link-btn').addEventListener('click', (e)=>{
+    const btn = e.currentTarget;
+    const slot = document.getElementById('booking-edit-link-slot');
+    const form = document.createElement('div');
+    form.className = 'add-stop-form';
+    form.style.margin = '10px 0';
+    form.innerHTML = `
+      <input type="text" class="f-booking-provider" placeholder="Provider (e.g. Booking.com, Marriott, United)" value="${escapeHtml(label)}">
+      <input type="text" class="f-booking-url" placeholder="https://... exact booking/confirmation link" value="${escapeHtml(url)}">
+      <div class="add-stop-actions">
+        <button class="cancel" type="button">CANCEL</button>
+        <button class="confirm" type="button">SAVE</button>
+      </div>
+    `;
+    slot.appendChild(form);
+    btn.style.display = 'none';
+    form.querySelector('.f-booking-url').focus();
+    form.querySelector('.cancel').addEventListener('click', ()=>{ form.remove(); btn.style.display = ''; });
+    form.querySelector('.confirm').addEventListener('click', async ()=>{
+      let newUrl = form.querySelector('.f-booking-url').value.trim();
+      const newLabel = form.querySelector('.f-booking-provider').value.trim();
+      if(newUrl && !/^https?:\/\//i.test(newUrl)) newUrl = 'https://'+newUrl;
+      if(newUrl){
+        await store.set(bookingUrlKey(itemKey), JSON.stringify({url: newUrl, label: newLabel}));
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel});
+      } else {
+        // Empty URL clears the override and reverts to the computed default.
+        await store.set(bookingUrlKey(itemKey), '');
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null);
+      }
+    });
   });
 }
 
@@ -616,12 +681,16 @@ async function openBookingModal({key, title, bookingUrl, bookingLabel}){
   document.getElementById('booking-modal-title').textContent = title;
   document.getElementById('booking-modal-body').innerHTML = '<div class="nearby-empty">Loading…</div>';
   document.getElementById('booking-modal').classList.add('open');
-  let shot = null;
+  let shot = null, override = null;
   try {
-    const r = await store.get(key);
+    const r = await store.get(bookingShotKey(key));
     shot = (r && r.value) ? r.value : null;
   } catch(e){ /* no saved screenshot */ }
-  paintBookingModalBody(key, bookingUrl, bookingLabel, shot);
+  try {
+    const r = await store.get(bookingUrlKey(key));
+    override = (r && r.value) ? JSON.parse(r.value) : null;
+  } catch(e){ /* no saved link override */ }
+  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override);
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
@@ -1228,7 +1297,7 @@ function renderTransport(){
               <a class="pill-link primary" href="${appSearchUrl('Eurail Rail Planner')}" target="_blank">🚆 EURAIL APP ↗</a>
               ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
-              <button class="icon-btn" type="button" data-act="booking" data-key="booking-shot:train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
+              <button class="icon-btn" type="button" data-act="booking" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>
@@ -1578,7 +1647,7 @@ function renderItinerary(){
           </div>
           <div class="stop-actions">
             <button class="stop-map secondary directions-toggle" type="button">🧭 DIRECTIONS ▾</button>
-            ${s.booking ? `<button class="stop-map" type="button" data-act="booking" data-key="booking-shot:stop:${slugify(s.name)}" data-title="${escapeHtml(s.name)}" data-url="${escapeHtml(s.booking.url||'')}" data-label="${escapeHtml(s.booking.label||'')}">🎫 BOOKING</button>` : ''}
+            ${s.booking ? `<button class="stop-map" type="button" data-act="booking" data-key="stop:${slugify(s.name)}" data-title="${escapeHtml(s.name)}" data-url="${escapeHtml(s.booking.url||'')}" data-label="${escapeHtml(s.booking.label||'')}">🎫 BOOKING</button>` : ''}
             <div class="directions-menu" hidden>
               <a class="stop-map secondary" href="${directionsUrl(stay.place,s.place)}" target="_blank">FROM STAY</a>
               <a class="stop-map secondary" href="${directionsUrl(s.place,stay.place)}" target="_blank">TO STAY</a>
@@ -1603,7 +1672,7 @@ function renderItinerary(){
             <a class="stay-name${flashKey==='stay:'+d.id?' flash-save':''}" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
           </div>
           <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button class="icon-edit-btn" type="button" data-act="booking" data-key="booking-shot:stay:${slugify(stay.name)}" data-title="${escapeHtml(stay.name)}" data-url="${escapeHtml(stayBooking.url)}" data-label="${escapeHtml(stayBooking.label)}" title="Booking / screenshot" aria-label="Booking details for ${escapeHtml(stay.name)}">🎫</button>
+            <button class="icon-edit-btn" type="button" data-act="booking" data-key="stay:${slugify(stay.name)}" data-title="${escapeHtml(stay.name)}" data-url="${escapeHtml(stayBooking.url)}" data-label="${escapeHtml(stayBooking.label)}" title="Booking / screenshot" aria-label="Booking details for ${escapeHtml(stay.name)}">🎫</button>
             <button class="icon-edit-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
           </div>
         </div>

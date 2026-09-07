@@ -144,6 +144,10 @@
   .ctrl-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
   .add-stop-btn{width:100%;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--amber);background:none;border:1px dashed var(--amber);border-radius:8px;padding:10px;margin-top:10px;cursor:pointer;}
+  .stay-length-row{display:flex;gap:8px;margin-top:10px;}
+  .stay-len-btn{flex:1;font-family:var(--font-mono);font-size:10px;font-weight:600;padding:9px 6px;border-radius:8px;cursor:pointer;border:1px solid var(--line);background:none;color:var(--muted);}
+  .stay-len-btn.add{color:var(--amber);border-color:var(--amber);}
+  .stay-len-btn:disabled{opacity:.35;cursor:not-allowed;}
   .add-stop-form{margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);}
   .add-stop-form input,.add-stop-form textarea{width:100%;font-family:var(--font-body);font-size:13px;padding:8px 9px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:#EDE7D9;margin-bottom:8px;}
   .add-stop-form textarea{resize:none;height:44px;}
@@ -393,114 +397,207 @@ const LOCAL_TRANSPORT = [
 ];
 
 const ITINERARY = [
-  {date:'Fri Oct 9',city:'Amsterdam',title:'Arrive, settle in',
+  {id:'d1',date:'Fri Oct 9',city:'Amsterdam',title:'Arrive, settle in',
    arrivalPlace:'Newark Liberty International Airport, Newark, NJ',
    stops:[
      {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol'}
    ],
    stay:{name:'DoubleTree by Hilton Amsterdam Centraal',type:'Hotel · 1 night',place:'DoubleTree by Hilton Amsterdam Centraal Station'}},
-  {date:'Sat Oct 10',city:'Amsterdam',title:'Countryside day',
+  {id:'d2',date:'Sat Oct 10',city:'Amsterdam',title:'Countryside day',
    stops:[
      {name:'Zaanse Schans',desc:'Working Dutch windmills and cheese/clog workshops in an open-air village.',place:'Zaanse Schans, Zaandam, Netherlands'},
      {name:'Albert Cuyp Markt',desc:"Amsterdam's biggest street market - stroopwafels, herring, clothes stalls.",place:'Albert Cuyp Markt, Amsterdam'}
    ],
    stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
-  {date:'Sun Oct 11',city:'Amsterdam',title:'City day, then Eurostar to Paris',
+  {id:'d3',date:'Sun Oct 11',city:'Amsterdam',title:'City day, then Eurostar to Paris',
    stops:[
      {name:'Jordaan & Negen Straatjes',desc:'Boutique-lined canal streets, the most charming shopping quarter.',place:'Negen Straatjes, Amsterdam'}
    ],
    stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
-  {date:'Mon Oct 12',city:'Paris',title:'Eiffel Tower + Seine cruise',
+  {id:'d4',date:'Mon Oct 12',city:'Paris',title:'Eiffel Tower + Seine cruise',
    arrivalPlace:'Paris Gare du Nord, Paris',
    stops:[
      {name:'Eiffel Tower',desc:"Paris's icon - go up for skyline views or admire from the Champ de Mars.",place:'Eiffel Tower, Paris'},
      {name:'Seine river cruise',desc:'Evening boat ride past Notre-Dame and the illuminated riverbanks.',place:'Seine River Cruise Pier, Paris'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
-  {date:'Tue Oct 13',city:'Paris',title:'Versailles day trip',
+  {id:'d5',date:'Tue Oct 13',city:'Paris',title:'Versailles day trip',
    stops:[
      {name:'Palace of Versailles',desc:"Louis XIV's opulent palace and gardens, a short train ride out.",place:'Palace of Versailles, Versailles, France'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
-  {date:'Wed Oct 14',city:'Paris',title:'Latin Quarter, then train to Switzerland',
+  {id:'d6',date:'Wed Oct 14',city:'Paris',title:'Latin Quarter, then train to Switzerland',
    stops:[
      {name:'Latin Quarter + Notre-Dame',desc:'Historic student quarter and the newly restored Gothic cathedral.',place:'Notre-Dame Cathedral, Paris'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
-  {date:'Thu Oct 15',city:'Interlaken',title:'Arrive, relax',
+  {id:'d7',date:'Thu Oct 15',city:'Interlaken',title:'Arrive, relax',
    arrivalPlace:'Interlaken Ost, Interlaken, Switzerland',
    stops:[],
    stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
-  {date:'Fri Oct 16',city:'Interlaken',title:'Nature day, then train to Vienna',
+  {id:'d8',date:'Fri Oct 16',city:'Interlaken',title:'Nature day, then train to Vienna',
    stops:[
      {name:'Grindelwald Terminal',desc:'Modern cable-car hub launching trips into the Jungfrau region.',place:'Grindelwald Terminal, Grindelwald, Switzerland'},
      {name:'Männlichen',desc:'Ridge-top viewpoint with panoramic views of the Eiger and Jungfrau.',place:'Männlichen, Switzerland'},
      {name:'Kleine Scheidegg',desc:"Alpine pass and classic photo spot below the Eiger's north face.",place:'Kleine Scheidegg, Switzerland'}
    ],
    stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
-  {date:'Sat Oct 17',city:'Vienna',title:'Schönbrunn + MuseumsQuartier',
+  {id:'d9',date:'Sat Oct 17',city:'Vienna',title:'Schönbrunn + MuseumsQuartier',
    arrivalPlace:'Vienna Hauptbahnhof, Vienna',
    stops:[
      {name:'Schönbrunn Palace',desc:"The Habsburgs' summer palace, with sprawling formal gardens.",place:'Schönbrunn Palace, Vienna'},
      {name:'MuseumsQuartier + Albertina',desc:"Vienna's museum district and a major graphic art / Monet collection.",place:'Albertina Museum, Vienna'}
    ],
    stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {date:'Sun Oct 18',city:'Vienna',title:'Freud Museum + coffeehouses',
+  {id:'d10',date:'Sun Oct 18',city:'Vienna',title:'Freud Museum + coffeehouses',
    stops:[
      {name:'Sigmund Freud Museum',desc:"Freud's former home and office, now a museum on his life and work.",place:'Sigmund Freud Museum, Vienna'}
    ],
    stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {date:'Mon Oct 19',city:'Vienna',title:'Naschmarkt, then train to Budapest',
+  {id:'d11',date:'Mon Oct 19',city:'Vienna',title:'Naschmarkt, then train to Budapest',
    stops:[
      {name:'Naschmarkt',desc:"Vienna's long-running food market, good for a lunch crawl.",place:'Naschmarkt, Vienna'},
      {name:'Belvedere Palace',desc:"Baroque palace holding Klimt's The Kiss and other Austrian art.",place:'Belvedere Palace, Vienna'},
      {name:'Stephansdom',desc:"Vienna's Gothic cathedral with a famous tiled roof, right in the center.",place:'Stephansdom, Vienna'}
    ],
    stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {date:'Tue Oct 20',city:'Budapest',title:'Buda Castle',
+  {id:'d12',date:'Tue Oct 20',city:'Budapest',title:'Buda Castle',
    arrivalPlace:'Budapest Keleti, Budapest',
    stops:[
      {name:"Fisherman's Bastion + Buda Castle",desc:'Neo-Gothic terraces and the old royal castle, sweeping Danube views.',place:"Fisherman's Bastion, Budapest"}
    ],
    stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
-  {date:'Wed Oct 21',city:'Budapest',title:'Thermal baths + Parliament',
+  {id:'d13',date:'Wed Oct 21',city:'Budapest',title:'Thermal baths + Parliament',
    stops:[
      {name:'Széchenyi Thermal Bath',desc:'Grand outdoor and indoor thermal pools, a Budapest institution.',place:'Széchenyi Thermal Bath, Budapest'},
      {name:'Hungarian Parliament',desc:'Riverside neo-Gothic landmark - view from outside or book a tour.',place:'Hungarian Parliament Building, Budapest'}
    ],
    stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
-  {date:'Thu Oct 22',city:'Budapest',title:'Central Market Hall',
+  {id:'d14',date:'Thu Oct 22',city:'Budapest',title:'Central Market Hall',
    stops:[
      {name:'Central Market Hall',desc:"Budapest's largest indoor market, paprika and produce stalls galore.",place:'Central Market Hall, Budapest'}
    ],
    stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
-  {date:'Fri Oct 23',city:'Budapest',title:'Travel to Rome',
+  {id:'d15',date:'Fri Oct 23',city:'Budapest',title:'Travel to Rome',
    stops:[],
    stay:{name:'ÖBB Nightjet sleeper',type:'On board · overnight',place:'Vienna Hauptbahnhof, Vienna'}},
-  {date:'Sat Oct 24',city:'Rome',title:'Colosseum + Roman Forum',
+  {id:'d16',date:'Sat Oct 24',city:'Rome',title:'Colosseum + Roman Forum',
    arrivalPlace:'Roma Termini, Rome',
    stops:[
      {name:'Colosseum + Roman Forum',desc:"Ancient Rome's arena and the ruins of its political heart.",place:'Colosseum, Rome'}
    ],
    stay:{name:'The RomeHello',type:'Hostel · 2 nights',place:'The RomeHello, Rome'}},
-  {date:'Sun Oct 25',city:'Rome',title:'Vatican, Pantheon, Trevi',
+  {id:'d17',date:'Sun Oct 25',city:'Rome',title:'Vatican, Pantheon, Trevi',
    stops:[
      {name:"St Peter's Basilica",desc:"The Vatican's grand basilica, with Michelangelo's dome and Pietà.",place:"St Peter's Basilica, Vatican City"},
      {name:'Pantheon',desc:'Best-preserved Roman temple, famous for its oculus-lit dome.',place:'Pantheon, Rome'},
      {name:'Trevi Fountain',desc:"Rome's most famous fountain - toss a coin for good luck.",place:'Trevi Fountain, Rome'}
    ],
    stay:{name:'The RomeHello',type:'Hostel · 2 nights',place:'The RomeHello, Rome'}},
-  {date:'Mon Oct 26',city:'Rome',title:'Trastevere, final night',
+  {id:'d18',date:'Mon Oct 26',city:'Rome',title:'Trastevere, final night',
    stops:[
      {name:'Trastevere',desc:'Cobblestoned neighborhood full of trattorias - final Italian meal.',place:'Trastevere, Rome'}
    ],
    stay:{name:'Yes Hotel Rome',type:'Hotel · last night',place:'Yes Hotel Rome'}},
-  {date:'Tue Oct 27',city:'Rome',title:'Fly home',
+  {id:'d19',date:'Tue Oct 27',city:'Rome',title:'Fly home',
    stops:[
      {name:'Flight UA 41 (United)',desc:'Departs Rome Fiumicino 10:30am for Newark (EWR).',place:'Rome Fiumicino Airport'}
    ],
    stay:{name:'Yes Hotel Rome',type:'Leave ~7am for Fiumicino',place:'Yes Hotel Rome'}},
 ];
+
+// Trip start date used to compute displayed dates after days are
+// added/removed from a city's stay (see buildEffectiveDays below).
+const TRIP_START = new Date(2026,9,9);
+
+function formatItineraryDate(date){
+  const wd = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][date.getDay()];
+  const mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][date.getMonth()];
+  return `${wd} ${mo} ${date.getDate()}`;
+}
+
+// Groups the base ITINERARY into contiguous per-city runs.
+function cityBlocks(){
+  const blocks = [];
+  for(const d of ITINERARY){
+    const last = blocks[blocks.length-1];
+    if(last && last.city === d.city) last.days.push(d);
+    else blocks.push({city:d.city, days:[d]});
+  }
+  return blocks;
+}
+
+// Rewrites a trailing run of days sharing one exact "N night(s)" label so
+// the count matches how many days are now in that run - but only when
+// every day in the run already carries the identical label (e.g. Rome's
+// last two days intentionally read differently and are left alone).
+function recomputeNightsLabel(blockDays){
+  if(!blockDays.length) return blockDays;
+  const last = blockDays[blockDays.length-1];
+  const lastType = last.stay.type;
+  if(!/\d+\s*nights?/i.test(lastType)) return blockDays;
+  let runLen = 0;
+  for(let i=blockDays.length-1;i>=0;i--){
+    if(blockDays[i].stay.name !== last.stay.name || blockDays[i].stay.type !== lastType) break;
+    runLen++;
+  }
+  if(runLen===0) return blockDays;
+  const newType = lastType.replace(/\d+\s*nights?/i, runLen+' night'+(runLen===1?'':'s'));
+  if(newType === lastType) return blockDays;
+  for(let i=blockDays.length-1, left=runLen; left>0; i--, left--){
+    blockDays[i] = {...blockDays[i], stay:{...blockDays[i].stay, type:newType}};
+  }
+  return blockDays;
+}
+
+// Persisted per-city day-count adjustments made via the "+ ADD DAY" /
+// "- SHORTEN STAY" controls (keyed by city, since each city is one
+// contiguous block in this itinerary).
+let cityDeltaState = {};
+async function loadCityDeltas(){
+  const cities = [...new Set(ITINERARY.map(d=>d.city))];
+  for(const city of cities){
+    try {
+      const r = await store.get('city-delta:'+city);
+      cityDeltaState[city] = r && r.value ? (parseInt(r.value,10)||0) : 0;
+    } catch(e){ cityDeltaState[city] = 0; }
+  }
+}
+function persistCityDelta(city){
+  store.set('city-delta:'+city, String(cityDeltaState[city]||0));
+}
+
+// Builds the day list actually rendered: the base ITINERARY days plus/minus
+// any per-city adjustments, with dates recomputed sequentially from
+// TRIP_START so a change to one city cascades to every later day.
+function buildEffectiveDays(){
+  const days = [];
+  for(const block of cityBlocks()){
+    const delta = cityDeltaState[block.city] || 0;
+    let blockDays;
+    if(delta > 0){
+      const lastDay = block.days[block.days.length-1];
+      const extras = [];
+      for(let k=1;k<=delta;k++){
+        extras.push({id:`${block.city}-extra-${k}`, city:block.city, title:`Free day in ${block.city}`,
+          arrivalPlace:null, stops:[], stay:lastDay.stay, isVirtual:true});
+      }
+      blockDays = [...block.days.map(d=>({...d})), ...extras];
+    } else if(delta < 0){
+      blockDays = block.days.slice(0, Math.max(1, block.days.length + delta)).map(d=>({...d}));
+    } else {
+      blockDays = block.days.map(d=>({...d}));
+    }
+    blockDays = recomputeNightsLabel(blockDays);
+    blockDays[blockDays.length-1] = {...blockDays[blockDays.length-1], isLastOfBlock:true};
+    for(const bd of blockDays) bd.cityBlockLength = blockDays.length;
+    days.push(...blockDays);
+  }
+  days.forEach((d,i)=>{
+    d.date = formatItineraryDate(new Date(TRIP_START.getFullYear(), TRIP_START.getMonth(), TRIP_START.getDate()+i));
+  });
+  return days;
+}
 
 const CHECKLIST_ITEMS = ['Phone','Wallet','Keys','AirPods','Chargers','Toiletries','Backpack','Travel bag','Camera','Passport','Earplugs','Shoes','Locks'];
 
@@ -707,9 +804,8 @@ async function fetchNearby(lat, lon, kind){
 function wireNearbyButtons(el){
   el.querySelectorAll('.nearby-btn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
-      const date = btn.dataset.date, type = btn.dataset.type, place = btn.dataset.place;
-      const city = ITINERARY.find(x=>x.date===date).city;
-      const resultsEl = document.getElementById('nearby-'+date);
+      const id = btn.dataset.id, type = btn.dataset.type, place = btn.dataset.place, city = btn.dataset.city;
+      const resultsEl = document.getElementById('nearby-'+id);
       const siblingBtns = btn.parentElement.querySelectorAll('.nearby-btn');
       siblingBtns.forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
@@ -728,16 +824,17 @@ function wireNearbyButtons(el){
             </div>
             <div class="nearby-item-actions">
               <a class="stop-map secondary" href="${placeUrl(it.name+', '+city)}" target="_blank">MAP</a>
-              <button class="stop-map nearby-add-btn" data-date="${date}" data-idx="${idx}">+ ADD</button>
+              <button class="stop-map nearby-add-btn" data-id="${id}" data-idx="${idx}">+ ADD</button>
             </div>
           </div>
         `).join('');
         resultsEl.querySelectorAll('.nearby-add-btn').forEach(addBtn=>{
           addBtn.addEventListener('click', ()=>{
             const it = items[+addBtn.dataset.idx];
-            dayStopsState[date].push({name: it.name, desc: it.desc, place: `${it.lat},${it.lon}`});
-            persistDay(date);
-            openDays.add(date);
+            dayStopsState[id] = dayStopsState[id] || [];
+            dayStopsState[id].push({name: it.name, desc: it.desc, place: `${it.lat},${it.lon}`});
+            persistDay(id);
+            openDays.add(id);
             renderItinerary();
           });
         });
@@ -754,32 +851,38 @@ let dayStayState = {};
 let openDays = new Set();
 
 async function loadItineraryState(){
-  for (const d of ITINERARY) {
+  await loadCityDeltas();
+  for (const d of buildEffectiveDays()) {
     try {
-      const r = await store.get('stops:'+d.date);
-      dayStopsState[d.date] = (r && r.value) ? JSON.parse(r.value) : JSON.parse(JSON.stringify(d.stops));
-    } catch(e) { dayStopsState[d.date] = JSON.parse(JSON.stringify(d.stops)); }
+      const r = await store.get('stops:'+d.id);
+      dayStopsState[d.id] = (r && r.value) ? JSON.parse(r.value) : JSON.parse(JSON.stringify(d.stops));
+    } catch(e) { dayStopsState[d.id] = JSON.parse(JSON.stringify(d.stops)); }
 
     try {
-      const r = await store.get('title:'+d.date);
-      dayTitleState[d.date] = (r && r.value) ? r.value : d.title;
-    } catch(e) { dayTitleState[d.date] = d.title; }
+      const r = await store.get('title:'+d.id);
+      dayTitleState[d.id] = (r && r.value) ? r.value : d.title;
+    } catch(e) { dayTitleState[d.id] = d.title; }
 
+    // Only cache an explicit saved override here. Unlike stops/title, a
+    // day's default accommodation label ("Hostel · N nights") is
+    // recomputed live from the current city-stay length on every render
+    // (see buildEffectiveDays) - pre-caching the value seen at load time
+    // would freeze it and hide later add/remove-day changes.
     try {
-      const r = await store.get('stay:'+d.date);
-      dayStayState[d.date] = (r && r.value) ? JSON.parse(r.value) : JSON.parse(JSON.stringify(d.stay));
-    } catch(e) { dayStayState[d.date] = JSON.parse(JSON.stringify(d.stay)); }
+      const r = await store.get('stay:'+d.id);
+      if(r && r.value) dayStayState[d.id] = JSON.parse(r.value);
+    } catch(e) { /* no saved override */ }
   }
 }
 
-function persistDay(date){
-  store.set('stops:'+date, JSON.stringify(dayStopsState[date]));
+function persistDay(id){
+  store.set('stops:'+id, JSON.stringify(dayStopsState[id]));
 }
-function persistTitle(date){
-  store.set('title:'+date, dayTitleState[date]);
+function persistTitle(id){
+  store.set('title:'+id, dayTitleState[id]);
 }
-function persistStay(date){
-  store.set('stay:'+date, JSON.stringify(dayStayState[date]));
+function persistStay(id){
+  store.set('stay:'+id, JSON.stringify(dayStayState[id]));
 }
 
 // Shared Nominatim-backed place search, used both for adding a stop and
@@ -851,12 +954,13 @@ function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlace
 
 function renderItinerary(){
   const el = document.getElementById('panel-itinerary');
+  const days = buildEffectiveDays();
 
-  el.innerHTML = ITINERARY.map((d,i)=>{
-    const stops = dayStopsState[d.date] || [];
-    const stay = dayStayState[d.date] || d.stay;
-    const title = dayTitleState[d.date] || d.title;
-    const prevStay = i>0 ? (dayStayState[ITINERARY[i-1].date] || ITINERARY[i-1].stay) : stay;
+  el.innerHTML = days.map((d,i)=>{
+    const stops = dayStopsState[d.id] || [];
+    const stay = dayStayState[d.id] || d.stay;
+    const title = dayTitleState[d.id] || d.title;
+    const prevStay = i>0 ? (dayStayState[days[i-1].id] || days[i-1].stay) : stay;
     let cursor = d.arrivalPlace || prevStay.place;
 
     const stopsHtml = stops.map((s,si)=>{
@@ -874,38 +978,45 @@ function renderItinerary(){
             <a class="stop-map secondary" href="${directionsUrl(lastStop,s.place)}" target="_blank">FROM LAST STOP</a>
           </div>
           <div class="stop-controls-row">
-            <button class="ctrl-btn" data-act="up" data-date="${d.date}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
-            <button class="ctrl-btn" data-act="down" data-date="${d.date}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
-            <button class="ctrl-btn danger" data-act="remove" data-date="${d.date}" data-idx="${si}">&#10005;</button>
+            <button class="ctrl-btn" data-act="up" data-id="${d.id}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
+            <button class="ctrl-btn" data-act="down" data-id="${d.id}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
+            <button class="ctrl-btn danger" data-act="remove" data-id="${d.id}" data-idx="${si}">&#10005;</button>
           </div>
         </div>
       `;
     }).join('');
 
     const stayHtml = `
-      <div class="stay-row top" data-date="${d.date}">
+      <div class="stay-row top" data-id="${d.id}">
         <div class="stay-head">
           <div style="min-width:0;">
             <div class="stay-label">${escapeHtml(stay.type.toUpperCase())}</div>
             <a class="stay-name" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
           </div>
-          <button class="icon-edit-btn" data-act="edit-stay" data-date="${d.date}" title="Edit accommodation">✎</button>
+          <button class="icon-edit-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
         </div>
       </div>
     `;
 
+    const stayLengthHtml = d.isLastOfBlock ? `
+      <div class="stay-length-row">
+        <button class="stay-len-btn add" data-act="add-day" data-city="${escapeHtml(d.city)}">+ ADD DAY IN ${escapeHtml(d.city.toUpperCase())}</button>
+        <button class="stay-len-btn" data-act="remove-day" data-city="${escapeHtml(d.city)}" ${d.cityBlockLength<=1?'disabled':''}>− SHORTEN STAY</button>
+      </div>
+    ` : '';
+
     return `
-      <div class="day-card ${openDays.has(d.date)?'open':''}" style="border-left-color:${CITY_COLOR[d.city]}" data-date="${d.date}">
+      <div class="day-card ${openDays.has(d.id)?'open':''}" style="border-left-color:${CITY_COLOR[d.city]}" data-id="${d.id}">
         <div class="day-head">
           <div class="stamp-badge" style="color:${CITY_COLOR[d.city]}">
             <span class="mon">${d.date.split(' ')[1].toUpperCase()}</span>
             <span class="day">${d.date.split(' ')[2]}</span>
           </div>
           <div style="flex:1;min-width:0;">
-            <div class="day-date">${d.city}</div>
+            <div class="day-date">${d.city} · ${d.date}</div>
             <div class="day-title-row">
-              <div class="day-title" data-date="${d.date}">${escapeHtml(title)}</div>
-              <button class="icon-edit-btn" data-act="rename-day" data-date="${d.date}" title="Rename day">✎</button>
+              <div class="day-title" data-id="${d.id}">${escapeHtml(title)}</div>
+              <button class="icon-edit-btn" data-act="rename-day" data-id="${d.id}" title="Rename day">✎</button>
             </div>
           </div>
           <span class="day-chevron">&#9660;</span>
@@ -913,12 +1024,13 @@ function renderItinerary(){
         <div class="day-detail">
           ${stayHtml}
           <div class="nearby-row">
-            <button class="nearby-btn" data-type="things" data-place="${stay.place}" data-date="${d.date}"><span class="nearby-btn-icon">🎡</span><span>THINGS TO DO</span></button>
-            <button class="nearby-btn" data-type="food" data-place="${stay.place}" data-date="${d.date}"><span class="nearby-btn-icon">🍽️</span><span>FOOD NEARBY</span></button>
+            <button class="nearby-btn" data-type="things" data-place="${stay.place}" data-id="${d.id}" data-city="${escapeHtml(d.city)}"><span class="nearby-btn-icon">🎡</span><span>THINGS TO DO</span></button>
+            <button class="nearby-btn" data-type="food" data-place="${stay.place}" data-id="${d.id}" data-city="${escapeHtml(d.city)}"><span class="nearby-btn-icon">🍽️</span><span>FOOD NEARBY</span></button>
           </div>
-          <div class="nearby-results" id="nearby-${d.date}"></div>
+          <div class="nearby-results" id="nearby-${d.id}"></div>
           ${stopsHtml}
-          <button class="add-stop-btn" data-date="${d.date}">+ ADD STOP</button>
+          <button class="add-stop-btn" data-id="${d.id}" data-city="${escapeHtml(d.city)}">+ ADD STOP</button>
+          ${stayLengthHtml}
         </div>
       </div>
     `;
@@ -927,8 +1039,8 @@ function renderItinerary(){
   el.querySelectorAll('.day-head').forEach(head=>{
     head.addEventListener('click', ()=>{
       const card = head.closest('.day-card');
-      const date = card.dataset.date;
-      if(openDays.has(date)) openDays.delete(date); else openDays.add(date);
+      const id = card.dataset.id;
+      if(openDays.has(id)) openDays.delete(id); else openDays.add(id);
       card.classList.toggle('open');
     });
   });
@@ -936,13 +1048,13 @@ function renderItinerary(){
   el.querySelectorAll('[data-act="up"],[data-act="down"],[data-act="remove"]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      const date = btn.dataset.date, idx = +btn.dataset.idx, act = btn.dataset.act;
-      const arr = dayStopsState[date];
+      const id = btn.dataset.id, idx = +btn.dataset.idx, act = btn.dataset.act;
+      const arr = dayStopsState[id];
       if(act==='remove'){ arr.splice(idx,1); }
       if(act==='up' && idx>0){ [arr[idx-1],arr[idx]] = [arr[idx],arr[idx-1]]; }
       if(act==='down' && idx<arr.length-1){ [arr[idx+1],arr[idx]] = [arr[idx],arr[idx+1]]; }
-      persistDay(date);
-      openDays.add(date);
+      persistDay(id);
+      openDays.add(id);
       renderItinerary();
     });
   });
@@ -950,12 +1062,12 @@ function renderItinerary(){
   el.querySelectorAll('[data-act="rename-day"]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      const date = btn.dataset.date;
+      const id = btn.dataset.id;
       const titleEl = btn.parentElement.querySelector('.day-title');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'day-title-input';
-      input.value = dayTitleState[date];
+      input.value = dayTitleState[id];
       titleEl.replaceWith(input);
       input.focus();
       input.select();
@@ -964,14 +1076,14 @@ function renderItinerary(){
         if(saved) return;
         saved = true;
         const val = input.value.trim();
-        dayTitleState[date] = val || dayTitleState[date];
-        persistTitle(date);
-        openDays.add(date);
+        dayTitleState[id] = val || dayTitleState[id];
+        persistTitle(id);
+        openDays.add(id);
         renderItinerary();
       };
       input.addEventListener('keydown', (ev)=>{
         if(ev.key==='Enter'){ ev.preventDefault(); save(); }
-        if(ev.key==='Escape'){ ev.preventDefault(); saved = true; openDays.add(date); renderItinerary(); }
+        if(ev.key==='Escape'){ ev.preventDefault(); saved = true; openDays.add(id); renderItinerary(); }
       });
       input.addEventListener('blur', save);
     });
@@ -980,9 +1092,9 @@ function renderItinerary(){
   el.querySelectorAll('[data-act="edit-stay"]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      const date = btn.dataset.date;
-      const city = ITINERARY.find(x=>x.date===date).city;
-      const current = dayStayState[date];
+      const id = btn.dataset.id;
+      const city = btn.dataset.city;
+      const current = dayStayState[id];
       const row = btn.closest('.stay-row');
       const form = createPlaceSearchForm({
         city,
@@ -992,12 +1104,12 @@ function renderItinerary(){
         descPlaceholder: 'Stay type (e.g. Hostel · 2 nights)',
         confirmLabel: 'SAVE',
         onConfirm: ({name, desc, place})=>{
-          dayStayState[date] = {name, type: desc || current.type, place};
-          persistStay(date);
-          openDays.add(date);
+          dayStayState[id] = {name, type: desc || current.type, place};
+          persistStay(id);
+          openDays.add(id);
           renderItinerary();
         },
-        onCancel: ()=>{ openDays.add(date); renderItinerary(); }
+        onCancel: ()=>{ openDays.add(id); renderItinerary(); }
       });
       row.replaceWith(form);
     });
@@ -1006,8 +1118,8 @@ function renderItinerary(){
   el.querySelectorAll('.add-stop-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      const date = btn.dataset.date;
-      const city = ITINERARY.find(x=>x.date===date).city;
+      const id = btn.dataset.id;
+      const city = btn.dataset.city;
       const form = createPlaceSearchForm({
         city,
         namePlaceholder: 'Search a place (e.g. Louvre Museum)',
@@ -1019,14 +1131,26 @@ function renderItinerary(){
           return kind.charAt(0).toUpperCase()+kind.slice(1)+' - '+r.display_name.split(',').slice(1,3).join(',').trim();
         },
         onConfirm: ({name, desc, place})=>{
-          dayStopsState[date].push({name, desc: desc || 'Added stop', place});
-          persistDay(date);
-          openDays.add(date);
+          dayStopsState[id] = dayStopsState[id] || [];
+          dayStopsState[id].push({name, desc: desc || 'Added stop', place});
+          persistDay(id);
+          openDays.add(id);
           renderItinerary();
         },
-        onCancel: ()=>{ openDays.add(date); renderItinerary(); }
+        onCancel: ()=>{ openDays.add(id); renderItinerary(); }
       });
       btn.replaceWith(form);
+    });
+  });
+
+  el.querySelectorAll('[data-act="add-day"],[data-act="remove-day"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const city = btn.dataset.city;
+      const step = btn.dataset.act==='add-day' ? 1 : -1;
+      cityDeltaState[city] = (cityDeltaState[city]||0) + step;
+      persistCityDelta(city);
+      renderItinerary();
     });
   });
 

@@ -10,6 +10,7 @@
 <style>
   :root{
     --bg:#0F1B2D;
+    --bg-deep:#080f1c;
     --surface:#17263D;
     --surface-raised:#1E3049;
     --line:#2E4763;
@@ -70,7 +71,7 @@
   .route-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--bg);position:relative;top:11px;}
   .route-dot:first-child,.route-dot:last-child{width:12px;height:12px;top:9.5px;box-shadow:0 0 0 3px rgba(227,165,66,0.16);}
   .route-plane{position:absolute;top:-3px;transform:translateX(-50%);transition:left 0.3s;font-size:13px;}
-  main{position:relative;z-index:0;flex:1;min-height:0;overflow-y:auto;padding:16px 16px 90px;}
+  main{position:relative;z-index:0;flex:1;min-height:0;overflow-y:auto;padding:16px 16px 90px;background:var(--bg-deep);}
   .panel{display:none;position:relative;z-index:1;}
   .panel.active{display:block;}
 

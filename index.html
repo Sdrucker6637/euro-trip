@@ -19,6 +19,7 @@
     --teal:#4FA89C;
     --green:#7FAE7A;
     --red:#C96A52;
+    --red-deep:#A55743;
     --muted:#8598AD;
     --cream:#EDE7D9;
     --ams:#4FA8A0;
@@ -61,9 +62,12 @@
 
   /* ---- Transport tab: grouped journeys ---- */
   .section-heading{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--muted);margin:4px 0 10px;}
-  .booking-rollup{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--red);margin:-6px 0 12px;}
+  .booking-rollup{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--red);margin:-6px 0 4px;}
   .booking-rollup.all-booked{color:var(--green);}
   .booking-rollup:empty{display:none;}
+  .reserve-rollup{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);margin:0 0 12px;}
+  .reserve-rollup.all-booked{color:var(--green);}
+  .reserve-rollup:empty{display:none;}
   .flight-card{background:var(--paper);color:var(--ink);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.28);padding:14px 16px;}
   .flight-route{font-family:var(--font-mono);font-size:19px;font-weight:600;display:flex;align-items:center;gap:8px;}
   .flight-date{font-size:12.5px;color:#5c5340;margin-top:4px;}
@@ -148,7 +152,7 @@
   .inline-confirm.full-row{margin-top:10px;padding:10px;}
   .inline-confirm-text{flex:1;min-width:100px;}
   .inline-confirm-yes,.inline-confirm-cancel{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--line);background:none;white-space:nowrap;flex-shrink:0;}
-  .inline-confirm-yes{color:#fff;background:var(--red);border-color:var(--red);}
+  .inline-confirm-yes{color:#fff;background:var(--red-deep);border-color:var(--red-deep);}
   .inline-confirm-cancel{color:var(--muted);}
   .ctrl-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
@@ -711,22 +715,39 @@ function renderLocalTransport(){
   el.insertAdjacentHTML('beforeend', html);
 }
 
-function updateBookingRollup(){
-  const rollupEl = document.getElementById('booking-rollup');
-  if(!rollupEl) return;
-  const mustBookIds = JOURNEYS.flatMap(j=>j.segments).filter(s=>s.flag==='red').map(s=>s.id);
-  if(!mustBookIds.length){ rollupEl.textContent = ''; return; }
-  const bookedCount = mustBookIds.filter(id=>{
+function rollupCount(flag){
+  const ids = JOURNEYS.flatMap(j=>j.segments).filter(s=>s.flag===flag).map(s=>s.id);
+  const doneCount = ids.filter(id=>{
     const cb = document.querySelector(`input[data-leg="${id}"]`);
     return cb && cb.checked;
   }).length;
-  rollupEl.textContent = `${bookedCount} of ${mustBookIds.length} must-book legs booked`;
-  rollupEl.classList.toggle('all-booked', bookedCount === mustBookIds.length);
+  return {ids, doneCount};
+}
+
+function updateBookingRollup(){
+  const rollupEl = document.getElementById('booking-rollup');
+  if(rollupEl){
+    const {ids, doneCount} = rollupCount('red');
+    if(!ids.length){ rollupEl.textContent = ''; }
+    else {
+      rollupEl.textContent = `${doneCount} of ${ids.length} must-book legs booked`;
+      rollupEl.classList.toggle('all-booked', doneCount === ids.length);
+    }
+  }
+  const reserveEl = document.getElementById('reserve-rollup');
+  if(reserveEl){
+    const {ids, doneCount} = rollupCount('amber');
+    if(!ids.length){ reserveEl.textContent = ''; }
+    else {
+      reserveEl.textContent = `${doneCount} of ${ids.length} optional reservation${ids.length===1?'':'s'} made`;
+      reserveEl.classList.toggle('all-booked', doneCount === ids.length);
+    }
+  }
 }
 
 function renderTransport(){
   const el = document.getElementById('panel-transport');
-  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div>` + JOURNEYS.map(j => `
+  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div><div class="reserve-rollup" id="reserve-rollup"></div>` + JOURNEYS.map(j => `
     <div class="journey">
       <div class="journey-head">
         <div class="journey-route">${j.fromCode}<span class="journey-arrow">&#8594;</span>${j.toCode}</div>

@@ -1230,11 +1230,16 @@ function buildPackingGroups(){
     byLabel.set(g.label, groupObj);
   }
   for(const it of packingCustomItems){
-    let g = byLabel.get(it.category);
+    // Items added before per-item categories existed were saved as
+    // {id, name} with no `category` - fall back to a named bucket instead
+    // of an undefined group label (which would break rendering for
+    // anyone with pre-existing packing data).
+    const category = it.category || 'Added By You';
+    let g = byLabel.get(category);
     if(!g){
-      g = {label: it.category, items: []};
+      g = {label: category, items: []};
       groups.push(g);
-      byLabel.set(it.category, g);
+      byLabel.set(category, g);
     }
     g.items.push({key: it.id, name: it.name});
   }

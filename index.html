@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europe Trip - Amsterdam to Rome</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1B2D;
+    --surface:#17263D;
+    --surface-raised:#1E3049;
+    --line:#2E4763;
+    --ink:#241F14;
+    --paper:#F3EBD8;
+    --amber:#E3A542;
+    --teal:#4FA89C;
+    --green:#7FAE7A;
+    --red:#C96A52;
+    --muted:#8598AD;
+    --cream:#EDE7D9;
+    --ams:#4FA8A0;
+    --par:#D8735A;
+    --int:#7FA85C;
+    --vie:#9B7FBF;
+    --bud:#D9A441;
+    --rom:#C75C4A;
+    --font-display:'Space Grotesk',sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+    --font-body:'IBM Plex Sans',sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--cream);display:flex;justify-content:center;background-image:radial-gradient(circle at 1px 1px, rgba(227,165,66,0.06) 1px, transparent 0);background-size:22px 22px;}
+  .app{width:100%;max-width:460px;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
+  header{padding:22px 20px 16px;border-bottom:1px solid var(--line);position:relative;}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;color:var(--amber);display:flex;justify-content:space-between;align-items:center;}
+  .eyebrow .stamp{display:inline-flex;align-items:center;gap:5px;}
+  h1{font-family:var(--font-display);font-size:27px;font-weight:600;margin-top:6px;letter-spacing:-0.01em;display:flex;align-items:center;gap:9px;}
+  .subline{font-size:13px;color:var(--muted);margin-top:2px;}
+  .route-line{position:relative;margin-top:16px;height:34px;}
+  .route-track{position:absolute;top:16px;left:6px;right:6px;height:1px;background-image:linear-gradient(to right, var(--line) 60%, transparent 0%);background-size:8px 1px;background-repeat:repeat-x;}
+  .route-dots{position:relative;display:flex;justify-content:space-between;}
+  .route-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--bg);position:relative;top:11px;}
+  .route-plane{position:absolute;top:-3px;transform:translateX(-50%);transition:left 0.3s;font-size:13px;}
+  main{flex:1;overflow-y:auto;padding:16px 16px 90px;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .info-btn{font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:14px;padding:5px 10px;cursor:pointer;}
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal-card{width:100%;max-width:460px;max-height:82vh;background:var(--surface);border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line);font-family:var(--font-display);font-weight:600;font-size:15px;}
+  .modal-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;}
+  .modal-body{padding:16px 18px;overflow-y:auto;font-size:13px;line-height:1.6;}
+  .modal-body h4{font-family:var(--font-mono);font-size:11px;color:var(--amber);letter-spacing:0.04em;margin:14px 0 6px;}
+  .modal-body h4:first-child{margin-top:0;}
+  .modal-body p{margin-bottom:4px;color:var(--cream);}
+
+  /* ---- Transport tab: grouped journeys ---- */
+  .section-heading{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--muted);margin:4px 0 10px;}
+  .flight-card{background:var(--paper);color:var(--ink);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.28);padding:14px 16px;}
+  .flight-route{font-family:var(--font-mono);font-size:19px;font-weight:600;display:flex;align-items:center;gap:8px;}
+  .flight-date{font-size:12.5px;color:#5c5340;margin-top:4px;}
+  .flight-fields{display:flex;gap:8px;margin-top:12px;}
+  .flight-field{flex:1;}
+  .flight-field label{display:block;font-family:var(--font-mono);font-size:10px;color:#8a806a;margin-bottom:4px;}
+  .flight-field input{width:100%;font-family:var(--font-mono);font-size:13px;padding:8px 9px;border-radius:7px;border:1px solid #c9bd9e;background:#fbf7ec;color:var(--ink);}
+  .flight-links{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
+  .pay-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;margin-top:8px;}
+  .pay-badge.yes{background:#d7ecd4;color:#1f5c2e;}
+  .pay-badge.no{background:#f2d7d0;color:#7a2c1c;}
+  .pay-badge.unknown{background:#f0e6c8;color:#6b5410;}
+  .nearby-row{display:flex;gap:8px;margin-bottom:4px;}
+  .nearby-btn{flex:1;font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:center;padding:10px;border-radius:8px;color:#EDE7D9;background:#3A4568;border:1px solid var(--line);cursor:pointer;}
+  .nearby-btn.active{background:var(--amber);color:var(--ink);border-color:var(--amber);}
+  .nearby-results{margin-bottom:4px;}
+  .nearby-item{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .nearby-item-info{min-width:0;}
+  .nearby-item-name{font-size:13px;font-weight:500;}
+  .nearby-item-desc{font-size:11.5px;color:var(--muted);margin-top:2px;text-transform:capitalize;}
+  .nearby-loading,.nearby-empty{font-size:12px;color:var(--muted);padding:10px 2px;font-style:italic;}
+
+  .journey{background:var(--paper);color:var(--ink);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.35);position:relative;}
+  .journey-head{padding:15px 16px 11px;border-bottom:1px dashed #c9bd9e;position:relative;}
+  .journey-head::before,.journey-head::after{content:'';position:absolute;bottom:-8px;width:16px;height:16px;border-radius:50%;background:var(--bg);}
+  .journey-head::before{left:-8px;}
+  .journey-head::after{right:-8px;}
+  .journey-route{font-family:var(--font-mono);font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .journey-arrow{color:#8a806a;font-size:15px;}
+  .journey-date{font-size:12.5px;color:#5c5340;margin-top:4px;}
+  .segment{padding:13px 16px;display:flex;gap:10px;border-bottom:1px solid #e2d7bd;}
+  .segment:last-child{border-bottom:none;}
+  .seg-flag{width:5px;border-radius:3px;flex-shrink:0;}
+  .seg-flag.red{background:var(--red);}
+  .seg-flag.amber{background:var(--amber);}
+  .seg-flag.green{background:var(--green);}
+  .seg-body{flex:1;min-width:0;}
+  .seg-title{font-family:var(--font-display);font-weight:600;font-size:14.5px;}
+  .seg-meta{font-size:12px;color:#5c5340;margin-top:2px;}
+  .seg-note{font-size:12px;color:#5c5340;margin-top:5px;line-height:1.4;}
+  .seg-links{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
+  .pill-link{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:6px 10px;border-radius:16px;text-decoration:none;color:var(--ink);background:#e2d7bd;}
+  .pill-link.book{background:var(--amber);}
+  .flag-tag{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.02em;padding:2px 8px;border-radius:12px;margin-bottom:5px;}
+  .flag-tag.red{background:var(--red);color:#fff;}
+  .flag-tag.amber{background:var(--amber);color:var(--ink);}
+  .flag-tag.green{background:var(--green);color:var(--ink);}
+  .book-toggle{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;cursor:pointer;user-select:none;margin-top:8px;}
+  .book-toggle input{width:14px;height:14px;accent-color:#2f6b4a;}
+
+  /* ---- Itinerary tab ---- */
+  .day-card{background:var(--surface);border-radius:12px;margin-bottom:12px;overflow:hidden;border-left:4px solid var(--muted);box-shadow:0 3px 10px rgba(0,0,0,0.2);}
+  .day-head{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;cursor:pointer;gap:10px;}
+  .stamp-badge{flex-shrink:0;width:46px;height:46px;border-radius:50%;border:2px dashed currentColor;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:var(--font-mono);line-height:1.05;transform:rotate(-6deg);}
+  .stamp-badge .mon{font-size:8.5px;letter-spacing:0.05em;}
+  .stamp-badge .day{font-size:15px;font-weight:600;}
+  .day-date{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);}
+  .day-title{font-family:var(--font-display);font-size:15px;font-weight:600;margin-top:2px;}
+  .day-chevron{font-size:13px;color:var(--muted);transition:transform 0.2s;flex-shrink:0;margin-left:8px;}
+  .day-card.open .day-chevron{transform:rotate(180deg);}
+  .day-detail{display:none;padding:0 14px 14px;}
+  .day-card.open .day-detail{display:block;}
+  .stop-row{padding:11px 0;border-top:1px solid var(--line);}
+  .stop-info{min-width:0;}
+  .stop-name{font-size:13.5px;font-weight:500;}
+  .stop-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
+  .stop-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;}
+  .stop-map{font-family:var(--font-mono);font-size:10.5px;font-weight:600;border-radius:16px;padding:6px 11px;cursor:pointer;text-decoration:none;white-space:nowrap;background:var(--amber);color:var(--ink);border:1px solid var(--amber);}
+  .stop-map.secondary{background:none;color:var(--amber);}
+  .stop-controls{display:flex;gap:4px;margin-left:auto;}
+  .ctrl-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
+  .add-stop-btn{width:100%;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--amber);background:none;border:1px dashed var(--amber);border-radius:8px;padding:10px;margin-top:10px;cursor:pointer;}
+  .add-stop-form{margin-top:10px;padding:12px;background:var(--bg);border-radius:8px;border:1px solid var(--line);}
+  .add-stop-form input,.add-stop-form textarea{width:100%;font-family:var(--font-body);font-size:13px;padding:8px 9px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:#EDE7D9;margin-bottom:8px;}
+  .add-stop-form textarea{resize:none;height:44px;}
+  .search-results{margin:-4px 0 8px;max-height:160px;overflow-y:auto;border-radius:7px;}
+  .search-item{padding:8px 9px;font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-top:none;cursor:pointer;}
+  .search-item:hover,.search-item:active{background:var(--surface-raised);}
+  .search-item:last-child{border-radius:0 0 7px 7px;}
+  .search-empty{padding:8px 9px;font-size:11.5px;color:var(--muted);font-style:italic;}
+  .search-picked{font-size:11px;color:var(--green);margin:-4px 0 8px;}
+  .add-stop-actions{display:flex;gap:8px;}
+  .add-stop-actions button{flex:1;font-family:var(--font-mono);font-size:11.5px;font-weight:600;border-radius:7px;padding:9px;cursor:pointer;border:none;}
+  .add-stop-actions .confirm{background:var(--amber);color:var(--ink);}
+  .add-stop-actions .cancel{background:var(--line);color:#EDE7D9;}
+  .stay-row{padding:12px 0 0;margin-top:6px;border-top:1px dashed var(--line);}
+  .stay-label{font-family:var(--font-mono);font-size:11px;color:var(--amber);}
+  .stay-name{font-size:12.5px;margin-top:2px;}
+
+  /* ---- Checklist tab ---- */
+  .checklist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .checklist-sub{font-size:12.5px;color:var(--muted);}
+  .reset-btn{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--red);background:none;border:1px solid var(--red);border-radius:16px;padding:7px 12px;cursor:pointer;}
+  .check-item{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:13px 14px;margin-bottom:8px;cursor:pointer;}
+  .check-item input{width:19px;height:19px;accent-color:var(--amber);flex-shrink:0;}
+  .check-item span{font-size:14.5px;}
+  .check-item.checked span{color:var(--muted);text-decoration:line-through;}
+
+  nav{position:fixed;bottom:0;width:100%;max-width:460px;background:var(--surface-raised);border-top:1px solid var(--line);display:flex;padding:8px 6px calc(8px + env(safe-area-inset-bottom));}
+  .tab-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;background:none;border:none;color:var(--muted);font-family:var(--font-mono);font-size:11px;padding:6px 0;cursor:pointer;}
+  .tab-btn.active{color:var(--amber);}
+  .tab-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;}
+  ::-webkit-scrollbar{display:none;}
+</style>
+</head>
+<body>
+
+<div id="err-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#C96A52;color:#fff;font-family:monospace;font-size:12px;padding:10px;z-index:9999;white-space:pre-wrap;"></div>
+<script>
+window.addEventListener('error', function(e){
+  var b = document.getElementById('err-banner');
+  b.style.display = 'block';
+  b.textContent = 'JS ERROR: ' + e.message + ' (line ' + e.lineno + ')';
+});
+window.addEventListener('unhandledrejection', function(e){
+  var b = document.getElementById('err-banner');
+  b.style.display = 'block';
+  b.textContent = 'PROMISE ERROR: ' + e.reason;
+});
+</script>
+<div class="app">
+  <header>
+    <div class="eyebrow">
+      <span class="stamp">✈ EUROPE · 6 COUNTRIES</span>
+      <button id="howto-btn" class="info-btn" aria-label="How to use transport">ⓘ HOW-TO</button>
+    </div>
+    <h1>Amsterdam → Rome</h1>
+    <div class="subline">Oct 9 – 27 · flight home Tue 27th, 10:30am · <span id="countdown">—</span></div>
+    <div class="route-line">
+      <div class="route-track"></div>
+      <div id="route-plane" class="route-plane">✈</div>
+      <div class="route-dots" id="route-dots"></div>
+    </div>
+  </header>
+
+  <div id="howto-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>Getting Around - Quick Guide</span>
+        <button id="howto-close" class="modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <h4>Between countries</h4>
+        <p>Your Eurail pass covers most inter-city legs - just show it on board, no ticket needed. Four legs need a separate paid reservation regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking.</p>
+        <h4>Inside each city</h4>
+        <p><b>Amsterdam & Rome & Budapest:</b> tap your card or Apple Pay directly on trams/metro/buses - no ticket needed.</p>
+        <p><b>Paris:</b> no direct tap yet - add a Navigo Easy pass to Apple Wallet instead.</p>
+        <p><b>Vienna:</b> contactless isn't confirmed - buy through the WienMobil app to be safe.</p>
+        <p><b>Switzerland (Interlaken):</b> no gates at all - it's honor-based. Use the SBB Mobile app (EasyRide) or your Eurail pass.</p>
+        <h4>Apps worth having</h4>
+        <p>Eurostar, SBB Mobile, ÖBB, Nightjet, NS International, WienMobil, BudapestGO, and Moovit/Citymapper for general city navigation.</p>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <section class="panel active" id="panel-transport"></section>
+    <section class="panel" id="panel-itinerary"></section>
+    <section class="panel" id="panel-checklist"></section>
+  </main>
+
+  <nav>
+    <button class="tab-btn active" data-tab="transport">
+      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 19h19M6 19l1.5-9.5a2 2 0 0 1 2-1.7h5a2 2 0 0 1 2 1.7L18 19M9 7.8V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3.3"/></svg>
+      Transport
+    </button>
+    <button class="tab-btn" data-tab="itinerary">
+      <svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="16" rx="2"/><path stroke-linecap="round" d="M3.5 9h17M8 3v3M16 3v3"/></svg>
+      Itinerary
+    </button>
+    <button class="tab-btn" data-tab="checklist">
+      <svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 11.5l2 2 4-4.5M8 16.5h6"/></svg>
+      Checklist
+    </button>
+  </nav>
+</div>
+
+<script>
+const CITY_COLOR = {Amsterdam:'var(--ams)',Paris:'var(--par)',Interlaken:'var(--int)',Vienna:'var(--vie)',Budapest:'var(--bud)',Rome:'var(--rom)'};
+
+// Local, on-device storage - no Claude account or sign-in needed.
+// Saved data lives only in this browser on this device (not synced across devices or people).
+const store = {
+  async get(key){
+    try { const v = localStorage.getItem('triptrack:'+key); return v!==null ? {value:v} : null; }
+    catch(e){ return null; }
+  },
+  async set(key, value){
+    try { localStorage.setItem('triptrack:'+key, value); return {value}; }
+    catch(e){ return null; }
+  }
+};
+
+function mapsUrl(lat,lng){return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;}
+function placeUrl(place){return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;}
+function directionsUrl(from,to){return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`;}
+
+// ---- Grouped journeys (connecting legs shown together) ----
+const JOURNEYS = [
+  {
+    id:'j1', from:'Amsterdam', to:'Paris', fromCode:'AMS', toCode:'PAR', date:'Sun Oct 11',
+    segments:[
+      {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',meta:'Amsterdam Centraal → Paris Gare du Nord · ~3h20m',
+       note:'Mandatory reservation, quota-limited for pass holders. Direct, no transfer.',
+       from:{name:'Amsterdam Centraal',place:'Amsterdam Centraal, Amsterdam'},to:{name:'Paris Gare du Nord',place:'Paris Gare du Nord, Paris'},
+       book:'https://www.eurostar.com/uk-en', app:'Eurostar app'}
+    ]
+  },
+  {
+    id:'j2', from:'Paris', to:'Interlaken', fromCode:'PAR', toCode:'INT', date:'Wed Oct 14', via:'via Basel',
+    segments:[
+      {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',meta:'Paris Gare de Lyon → Basel SBB · ~3h',
+       note:'Mandatory reservation. 90-day window already open.',
+       from:{name:'Paris Gare de Lyon',place:'Paris Gare de Lyon, Paris'},to:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},
+       book:'https://www.tgv-lyria.com/en', app:'TGV Lyria app or SNCF Connect'},
+      {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',meta:'Basel SBB → Interlaken Ost · ~2h',
+       note:'No reservation needed, runs roughly hourly. Same-station transfer.',
+       from:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},to:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},
+       book:'https://www.sbb.ch/en', app:'SBB Mobile'}
+    ]
+  },
+  {
+    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Fri Oct 16', via:'via Zurich',
+    segments:[
+      {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',meta:'Interlaken Ost → Zurich HB · ~2h',
+       note:'No reservation needed.',
+       from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
+       book:'https://www.sbb.ch/en', app:'SBB Mobile'},
+      {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',meta:'Zurich HB → Vienna Hbf · ~8h',
+       note:'Long day - reservation optional but worth it for comfort.',
+       from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
+       book:'https://www.oebb.at/en/', app:'ÖBB app'}
+    ]
+  },
+  {
+    id:'j4', from:'Vienna', to:'Budapest', fromCode:'VIE', toCode:'BUD', date:'Mon Oct 19',
+    segments:[
+      {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',meta:'Vienna Hbf → Budapest Keleti · ~2h40m',
+       note:'Hourly-ish, optional reservation. Direct, no transfer.',
+       from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},
+       book:'https://www.oebb.at/en/', app:'ÖBB app or MÁV app'}
+    ]
+  },
+  {
+    id:'j5', from:'Budapest', to:'Rome', fromCode:'BUD', toCode:'ROM', date:'Fri Oct 23', via:'via Vienna, overnight',
+    segments:[
+      {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',meta:'Budapest Keleti → Vienna Hbf · ~2h40m',
+       note:'Connects to the overnight sleeper in Vienna.',
+       from:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
+       book:'https://www.oebb.at/en/', app:'ÖBB app or MÁV app'},
+      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',meta:'Vienna Hbf → Roma Termini · 19:30–09:30, ~14h',
+       note:'Fewest berths of any leg - historically sells out 60+ days ahead. Book earliest of all.',
+       from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
+       book:'https://www.nightjet.com/en', app:'Nightjet app'}
+    ]
+  }
+];
+
+// ---- Local / intra-city transport ----
+const LOCAL_TRANSPORT = [
+  {city:'Amsterdam', title:'Getting around the city', meta:'GVB trams, buses, metro',
+   note:'Most sights are walkable; a GVB day ticket covers trams/buses/metro for the rest.',
+   link:'https://en.gvb.nl/', app:'GVB app or Google Maps',
+   pay:'yes', payNote:'Tap your card or Apple Pay directly (OVpay) - no ticket needed, works on trams, buses, metro, and 2nd-class trains.'},
+  {city:'Amsterdam', title:'Amsterdam Centraal → Zaanse Schans', meta:'NS Sprinter · ~17min',
+   note:'Hop-on, no reservation. Get off at Koog-Zaandijk or Zaandijk Zaanse Schans, short walk to the windmills.',
+   from:'Amsterdam Centraal, Amsterdam', to:'Zaanse Schans, Zaandam, Netherlands', link:'https://www.ns.nl/en', app:'NS International app',
+   pay:'yes', payNote:'Tap your card or Apple Pay to board - 2nd class only.'},
+
+  {city:'Paris', title:'Getting around the city', meta:'Metro / RATP',
+   note:'Buy a Navigo Easy card or day passes; the metro covers nearly everything.',
+   link:'https://www.ratp.fr/en', app:'Bonjour RATP app or Citymapper',
+   pay:'no', payNote:'No direct tap-to-pay yet - add a Navigo Easy pass to Apple Wallet instead, or buy paper tickets.'},
+  {city:'Paris', title:'Paris → Versailles', meta:'RER C · ~40min',
+   note:'Hop-on, no reservation. Get off at Versailles Château Rive Gauche, short walk to the palace.',
+   from:'Paris, France', to:'Palace of Versailles, Versailles, France', link:'https://www.ratp.fr/en', app:'SNCF Connect or Bonjour RATP',
+   pay:'no', payNote:'Same as city transit - use a Navigo Easy pass in Apple Wallet, not direct card tap.'},
+
+  {city:'Interlaken', title:'Getting around town', meta:'Walkable, plus local buses',
+   note:'Interlaken itself is small and walkable. Regional buses/trains connect to the surrounding villages.',
+   link:'https://www.sbb.ch/en', app:'SBB Mobile',
+   pay:'no', payNote:'Switzerland has no tap gates - it\'s an open, honor-based network. Use the SBB Mobile app\'s EasyRide (check in/out, charges a saved card or Twint automatically), or just ride on your Eurail pass for the legs it covers.'},
+  {city:'Interlaken', title:'Interlaken → Grindelwald / Kleine Scheidegg', meta:'Jungfrau Railways',
+   note:'No reservation needed, but tickets are separate from the Eurail pass (partial discount only).',
+   from:'Interlaken Ost, Interlaken, Switzerland', to:'Kleine Scheidegg, Switzerland', link:'https://www.jungfrau.ch/en-gb/', app:'SBB Mobile',
+   pay:'no', payNote:'No tap-in gates here either - buy through the Jungfrau website/app in advance (Apple Pay works fine there for checkout), or at the station.'},
+
+  {city:'Vienna', title:'Getting around the city', meta:'U-Bahn / Wiener Linien',
+   note:'Fast, frequent subway network - a 24/48/72h ticket is cheapest for a multi-day stay.',
+   link:'https://www.wienerlinien.at/en', app:'WienMobil app',
+   pay:'unknown', payNote:'Contactless tap-to-pay isn\'t confirmed as of writing - buy via the WienMobil app to be safe.'},
+
+  {city:'Budapest', title:'Getting around the city', meta:'BKK metro / tram',
+   note:'M1-M4 metro lines plus trams cover the city well; buy a travel card at any station.',
+   link:'https://bkk.hu/en/', app:'BudapestGO app',
+   pay:'yes', payNote:'Tap your card or Apple Pay at the "Pay&GO" readers - live on all metro lines. Fare caps aren\'t automatic yet, so it\'s pay-per-ride.'},
+
+  {city:'Rome', title:'Getting around the city', meta:'Metro / bus (ATAC)',
+   note:'Two metro lines (A/B) plus buses; many central sights are walkable to each other.',
+   link:'https://www.atac.roma.it/en', app:'Moovit or Google Maps',
+   pay:'yes', payNote:'Tap your card or Apple Pay directly (ATAC Tap&Go) - gives a 100-minute ticket, with a daily cap after 4 taps.'},
+  {city:'Rome', title:'Roma Termini → Vatican / St Peter\'s', meta:'Metro Line A · ~15min',
+   note:'Take Line A to Ottaviano-San Pietro, then a short walk.',
+   from:'Roma Termini, Rome', to:'St Peter\'s Basilica, Vatican City', link:'https://www.atac.roma.it/en', app:'Moovit or Google Maps',
+   pay:'yes', payNote:'Same Tap&Go system - tap in with your card or Apple Pay.'}
+];
+
+const ITINERARY = [
+  {date:'Fri Oct 9',city:'Amsterdam',title:'Arrive, settle in',
+   arrivalPlace:'Newark Liberty International Airport, Newark, NJ',
+   stops:[
+     {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol'}
+   ],
+   stay:{name:'DoubleTree by Hilton Amsterdam Centraal',type:'Hotel · 1 night',place:'DoubleTree by Hilton Amsterdam Centraal Station'}},
+  {date:'Sat Oct 10',city:'Amsterdam',title:'Countryside day',
+   stops:[
+     {name:'Zaanse Schans',desc:'Working Dutch windmills and cheese/clog workshops in an open-air village.',place:'Zaanse Schans, Zaandam, Netherlands'},
+     {name:'Albert Cuyp Markt',desc:"Amsterdam's biggest street market - stroopwafels, herring, clothes stalls.",place:'Albert Cuyp Markt, Amsterdam'}
+   ],
+   stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
+  {date:'Sun Oct 11',city:'Amsterdam',title:'City day, then Eurostar to Paris',
+   stops:[
+     {name:'Jordaan & Negen Straatjes',desc:'Boutique-lined canal streets, the most charming shopping quarter.',place:'Negen Straatjes, Amsterdam'}
+   ],
+   stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
+  {date:'Mon Oct 12',city:'Paris',title:'Eiffel Tower + Seine cruise',
+   arrivalPlace:'Paris Gare du Nord, Paris',
+   stops:[
+     {name:'Eiffel Tower',desc:"Paris's icon - go up for skyline views or admire from the Champ de Mars.",place:'Eiffel Tower, Paris'},
+     {name:'Seine river cruise',desc:'Evening boat ride past Notre-Dame and the illuminated riverbanks.',place:'Seine River Cruise Pier, Paris'}
+   ],
+   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
+  {date:'Tue Oct 13',city:'Paris',title:'Versailles day trip',
+   stops:[
+     {name:'Palace of Versailles',desc:"Louis XIV's opulent palace and gardens, a short train ride out.",place:'Palace of Versailles, Versailles, France'}
+   ],
+   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
+  {date:'Wed Oct 14',city:'Paris',title:'Latin Quarter, then train to Switzerland',
+   stops:[
+     {name:'Latin Quarter + Notre-Dame',desc:'Historic student quarter and the newly restored Gothic cathedral.',place:'Notre-Dame Cathedral, Paris'}
+   ],
+   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
+  {date:'Thu Oct 15',city:'Interlaken',title:'Arrive, relax',
+   arrivalPlace:'Interlaken Ost, Interlaken, Switzerland',
+   stops:[],
+   stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
+  {date:'Fri Oct 16',city:'Interlaken',title:'Nature day, then train to Vienna',
+   stops:[
+     {name:'Grindelwald Terminal',desc:'Modern cable-car hub launching trips into the Jungfrau region.',place:'Grindelwald Terminal, Grindelwald, Switzerland'},
+     {name:'Männlichen',desc:'Ridge-top viewpoint with panoramic views of the Eiger and Jungfrau.',place:'Männlichen, Switzerland'},
+     {name:'Kleine Scheidegg',desc:"Alpine pass and classic photo spot below the Eiger's north face.",place:'Kleine Scheidegg, Switzerland'}
+   ],
+   stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
+  {date:'Sat Oct 17',city:'Vienna',title:'Schönbrunn + MuseumsQuartier',
+   arrivalPlace:'Vienna Hauptbahnhof, Vienna',
+   stops:[
+     {name:'Schönbrunn Palace',desc:"The Habsburgs' summer palace, with sprawling formal gardens.",place:'Schönbrunn Palace, Vienna'},
+     {name:'MuseumsQuartier + Albertina',desc:"Vienna's museum district and a major graphic art / Monet collection.",place:'Albertina Museum, Vienna'}
+   ],
+   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
+  {date:'Sun Oct 18',city:'Vienna',title:'Freud Museum + coffeehouses',
+   stops:[
+     {name:'Sigmund Freud Museum',desc:"Freud's former home and office, now a museum on his life and work.",place:'Sigmund Freud Museum, Vienna'}
+   ],
+   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
+  {date:'Mon Oct 19',city:'Vienna',title:'Naschmarkt, then train to Budapest',
+   stops:[
+     {name:'Naschmarkt',desc:"Vienna's long-running food market, good for a lunch crawl.",place:'Naschmarkt, Vienna'},
+     {name:'Belvedere Palace',desc:"Baroque palace holding Klimt's The Kiss and other Austrian art.",place:'Belvedere Palace, Vienna'},
+     {name:'Stephansdom',desc:"Vienna's Gothic cathedral with a famous tiled roof, right in the center.",place:'Stephansdom, Vienna'}
+   ],
+   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
+  {date:'Tue Oct 20',city:'Budapest',title:'Buda Castle',
+   arrivalPlace:'Budapest Keleti, Budapest',
+   stops:[
+     {name:"Fisherman's Bastion + Buda Castle",desc:'Neo-Gothic terraces and the old royal castle, sweeping Danube views.',place:"Fisherman's Bastion, Budapest"}
+   ],
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
+  {date:'Wed Oct 21',city:'Budapest',title:'Thermal baths + Parliament',
+   stops:[
+     {name:'Széchenyi Thermal Bath',desc:'Grand outdoor and indoor thermal pools, a Budapest institution.',place:'Széchenyi Thermal Bath, Budapest'},
+     {name:'Hungarian Parliament',desc:'Riverside neo-Gothic landmark - view from outside or book a tour.',place:'Hungarian Parliament Building, Budapest'}
+   ],
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
+  {date:'Thu Oct 22',city:'Budapest',title:'Central Market Hall',
+   stops:[
+     {name:'Central Market Hall',desc:"Budapest's largest indoor market, paprika and produce stalls galore.",place:'Central Market Hall, Budapest'}
+   ],
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
+  {date:'Fri Oct 23',city:'Budapest',title:'Travel to Rome',
+   stops:[],
+   stay:{name:'ÖBB Nightjet sleeper',type:'On board · overnight',place:'Vienna Hauptbahnhof, Vienna'}},
+  {date:'Sat Oct 24',city:'Rome',title:'Colosseum + Roman Forum',
+   arrivalPlace:'Roma Termini, Rome',
+   stops:[
+     {name:'Colosseum + Roman Forum',desc:"Ancient Rome's arena and the ruins of its political heart.",place:'Colosseum, Rome'}
+   ],
+   stay:{name:'The RomeHello',type:'Hostel · 2 nights',place:'The RomeHello, Rome'}},
+  {date:'Sun Oct 25',city:'Rome',title:'Vatican, Pantheon, Trevi',
+   stops:[
+     {name:"St Peter's Basilica",desc:"The Vatican's grand basilica, with Michelangelo's dome and Pietà.",place:"St Peter's Basilica, Vatican City"},
+     {name:'Pantheon',desc:'Best-preserved Roman temple, famous for its oculus-lit dome.',place:'Pantheon, Rome'},
+     {name:'Trevi Fountain',desc:"Rome's most famous fountain - toss a coin for good luck.",place:'Trevi Fountain, Rome'}
+   ],
+   stay:{name:'The RomeHello',type:'Hostel · 2 nights',place:'The RomeHello, Rome'}},
+  {date:'Mon Oct 26',city:'Rome',title:'Trastevere, final night',
+   stops:[
+     {name:'Trastevere',desc:'Cobblestoned neighborhood full of trattorias - final Italian meal.',place:'Trastevere, Rome'}
+   ],
+   stay:{name:'Yes Hotel Rome',type:'Hotel · last night',place:'Yes Hotel Rome'}},
+  {date:'Tue Oct 27',city:'Rome',title:'Fly home',
+   stops:[
+     {name:'Flight UA 41 (United)',desc:'Departs Rome Fiumicino 10:30am for Newark (EWR).',place:'Rome Fiumicino Airport'}
+   ],
+   stay:{name:'Yes Hotel Rome',type:'Leave ~7am for Fiumicino',place:'Yes Hotel Rome'}},
+];
+
+const CHECKLIST_ITEMS = ['Phone','Wallet','Keys','AirPods','Chargers','Toiletries','Backpack','Travel bag','Camera','Passport','Earplugs','Shoes','Locks'];
+
+function renderChecklist(){
+  const el = document.getElementById('panel-checklist');
+  el.innerHTML = `
+    <div class="checklist-head">
+      <div class="checklist-sub">Check before you leave each place</div>
+      <button class="reset-btn" id="reset-checklist">RESET</button>
+    </div>
+    ${CHECKLIST_ITEMS.map((item,i)=>`
+      <div class="check-item" data-idx="${i}">
+        <input type="checkbox" id="chk-${i}">
+        <span>${item}</span>
+      </div>
+    `).join('')}
+  `;
+
+  el.querySelectorAll('.check-item').forEach(row=>{
+    const cb = row.querySelector('input');
+    const key = 'packing:'+row.dataset.idx;
+    store.get(key).then(r=>{
+      if(r && r.value==='1'){ cb.checked = true; row.classList.add('checked'); }
+    }).catch(()=>{});
+    row.addEventListener('click', (e)=>{
+      if(e.target !== cb) cb.checked = !cb.checked;
+      row.classList.toggle('checked', cb.checked);
+      store.set(key, cb.checked ? '1':'0');
+    });
+  });
+
+  document.getElementById('reset-checklist').addEventListener('click', ()=>{
+    el.querySelectorAll('.check-item').forEach(row=>{
+      const cb = row.querySelector('input');
+      cb.checked = false;
+      row.classList.remove('checked');
+      store.set('packing:'+row.dataset.idx, '0');
+    });
+  });
+}
+
+function renderLocalTransport(){
+  const el = document.getElementById('panel-transport');
+  const cities = ['Amsterdam','Paris','Interlaken','Vienna','Budapest','Rome'];
+  const html = `
+    <div class="section-heading" style="margin-top:6px;">GETTING AROUND</div>
+    ${cities.map(city=>{
+      const items = LOCAL_TRANSPORT.filter(t=>t.city===city);
+      if(!items.length) return '';
+      return `
+        <div class="city-heading" style="font-family:var(--font-display);font-size:14px;font-weight:600;margin:14px 0 8px;display:flex;align-items:center;gap:8px;">
+          <span style="width:9px;height:9px;border-radius:50%;background:${CITY_COLOR[city]};display:inline-block;"></span>${city}
+        </div>
+        ${items.map(t=>`
+          <div class="flight-card">
+            <div class="flight-date" style="font-family:var(--font-display);font-weight:600;font-size:14.5px;color:var(--ink);">${t.title}</div>
+            <div class="flight-date">${t.meta}</div>
+            <div class="seg-note" style="margin-top:6px;">${t.note}</div>
+            ${t.app ? `<div class="seg-note" style="color:#8a6d3b;font-weight:600;">📱 ${t.app}</div>` : ''}
+            ${t.pay ? `<div class="pay-badge ${t.pay}">${t.pay==='yes'?'✓ APPLE PAY / TAP WORKS':t.pay==='no'?'✗ NO DIRECT TAP':'⚠ UNCONFIRMED'}</div><div class="seg-note">${t.payNote}</div>` : ''}
+            <div class="flight-links">
+              ${t.from ? `<a class="pill-link" href="${placeUrl(t.from)}" target="_blank">📍 ${t.from.split(',')[0]}</a>` : ''}
+              ${t.to ? `<a class="pill-link" href="${placeUrl(t.to)}" target="_blank">📍 ${t.to.split(',')[0]}</a>` : ''}
+              ${t.from && t.to ? `<a class="pill-link" href="${directionsUrl(t.from,t.to)}" target="_blank">🧭 ROUTE</a>` : ''}
+              <a class="pill-link book" href="${t.link}" target="_blank">INFO ↗</a>
+            </div>
+          </div>
+        `).join('')}
+      `;
+    }).join('')}
+  `;
+  el.insertAdjacentHTML('beforeend', html);
+}
+
+function renderTransport(){
+  const el = document.getElementById('panel-transport');
+  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div>` + JOURNEYS.map(j => `
+    <div class="journey">
+      <div class="journey-head">
+        <div class="journey-route">${j.fromCode}<span class="journey-arrow">&#8594;</span>${j.toCode}</div>
+        <div class="journey-date">${j.from} to ${j.to}${j.via ? ' · '+j.via : ''} · ${j.date}</div>
+      </div>
+      ${j.segments.map(s => `
+        <div class="segment">
+          <div class="seg-flag ${s.flag}"></div>
+          <div class="seg-body">
+            <span class="flag-tag ${s.flag}">${s.flagLabel}</span>
+            <div class="seg-title">${s.title}</div>
+            <div class="seg-meta">${s.meta}</div>
+            <div class="seg-note">${s.note}</div>
+            ${s.app ? `<div class="seg-note" style="color:#8a6d3b;font-weight:600;">📱 ${s.app}</div>` : ''}
+            <div class="seg-links">
+              <a class="pill-link" href="${placeUrl(s.from.place)}" target="_blank">📍 ${s.from.name}</a>
+              <a class="pill-link" href="${placeUrl(s.to.place)}" target="_blank">📍 ${s.to.name}</a>
+              <a class="pill-link" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank">🧭 ROUTE</a>
+              <a class="pill-link book" href="${s.book}" target="_blank">BOOK ↗</a>
+            </div>
+            <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+
+  el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
+    const key = 'booked:'+cb.dataset.leg;
+    store.get(key).then(r=>{ if(r && r.value==='1') cb.checked = true; }).catch(()=>{});
+    cb.addEventListener('change', ()=>{ store.set(key, cb.checked ? '1':'0'); });
+  });
+
+  renderLocalTransport();
+}
+
+const geocodeCache = {};
+async function geocodePlace(place){
+  if(geocodeCache[place]) return geocodeCache[place];
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(place)}`);
+    const data = await res.json();
+    if(data[0]){
+      const coords = {lat:+data[0].lat, lon:+data[0].lon};
+      geocodeCache[place] = coords;
+      return coords;
+    }
+  } catch(e){}
+  return null;
+}
+
+async function fetchNearby(lat, lon, kind){
+  const tags = kind==='food'
+    ? `node["amenity"="restaurant"](around:800,${lat},${lon});node["amenity"="cafe"](around:800,${lat},${lon});`
+    : `node["tourism"~"attraction|museum|viewpoint|gallery|artwork"](around:1000,${lat},${lon});node["leisure"="park"](around:1000,${lat},${lon});`;
+  const query = `[out:json][timeout:15];(${tags});out body 8;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body: query});
+  const data = await res.json();
+  return (data.elements||[])
+    .filter(e=>e.tags && e.tags.name)
+    .slice(0,5)
+    .map(e=>({
+      name: e.tags.name,
+      desc: e.tags.cuisine ? e.tags.cuisine.replace(/_/g,' ')+' restaurant' : (e.tags.tourism || e.tags.amenity || e.tags.leisure || '').replace(/_/g,' '),
+      lat: e.lat, lon: e.lon
+    }));
+}
+
+function wireNearbyButtons(el){
+  el.querySelectorAll('.nearby-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const date = btn.dataset.date, type = btn.dataset.type, place = btn.dataset.place;
+      const resultsEl = document.getElementById('nearby-'+date);
+      const siblingBtns = btn.parentElement.querySelectorAll('.nearby-btn');
+      siblingBtns.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      resultsEl.innerHTML = '<div class="nearby-loading">Finding nearby spots…</div>';
+      try {
+        const coords = await geocodePlace(place);
+        if(!coords){ resultsEl.innerHTML = '<div class="nearby-empty">Could not locate this place.</div>'; return; }
+        const items = await fetchNearby(coords.lat, coords.lon, type);
+        if(!items.length){ resultsEl.innerHTML = '<div class="nearby-empty">Nothing found nearby - try Google Maps directly.</div>'; return; }
+        resultsEl.innerHTML = items.map(it=>`
+          <div class="nearby-item">
+            <div class="nearby-item-info">
+              <div class="nearby-item-name">${it.name}</div>
+              <div class="nearby-item-desc">${it.desc||'-'}</div>
+            </div>
+            <a class="stop-map" href="${mapsUrl(it.lat,it.lon)}" target="_blank">MAP</a>
+          </div>
+        `).join('');
+      } catch(e){
+        resultsEl.innerHTML = '<div class="nearby-empty">Search unavailable right now - try again in a moment.</div>';
+      }
+    });
+  });
+}
+
+let dayStopsState = {};
+let openDays = new Set();
+
+async function loadItineraryState(){
+  for (const d of ITINERARY) {
+    const key = 'stops:'+d.date;
+    let loaded = null;
+    if (true) {
+      try {
+        const r = await store.get(key);
+        if (r && r.value) loaded = JSON.parse(r.value);
+      } catch(e) { /* no saved edits yet, or storage unavailable */ }
+    }
+    dayStopsState[d.date] = loaded || JSON.parse(JSON.stringify(d.stops));
+  }
+}
+
+function persistDay(date){
+  store.set('stops:'+date, JSON.stringify(dayStopsState[date]));
+}
+
+function renderItinerary(){
+  const el = document.getElementById('panel-itinerary');
+
+  el.innerHTML = ITINERARY.map((d,i)=>{
+    const stops = dayStopsState[d.date] || [];
+    let cursor = d.arrivalPlace || (i>0 ? ITINERARY[i-1].stay.place : d.stay.place);
+
+    const stopsHtml = stops.map((s,si)=>{
+      const from = cursor;
+      cursor = s.place;
+      return `
+        <div class="stop-row">
+          <div class="stop-info">
+            <div class="stop-name">${s.name}</div>
+            <div class="stop-desc">${s.desc}</div>
+          </div>
+          <div class="stop-actions">
+            <a class="stop-map secondary" href="${directionsUrl(from,s.place)}" target="_blank">FROM LAST STOP</a>
+            <a class="stop-map" href="${placeUrl(s.place)}" target="_blank">VIEW PLACE</a>
+            <div class="stop-controls">
+              <button class="ctrl-btn" data-act="up" data-date="${d.date}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
+              <button class="ctrl-btn" data-act="down" data-date="${d.date}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
+              <button class="ctrl-btn danger" data-act="remove" data-date="${d.date}" data-idx="${si}">&#10005;</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const stayFrom = cursor;
+    const stayHtml = `
+      <div class="stay-row">
+        <div class="stay-label">${d.stay.type.toUpperCase()}</div>
+        <div class="stay-name">${d.stay.name}</div>
+        <div class="stop-actions">
+          <a class="stop-map secondary" href="${directionsUrl(stayFrom,d.stay.place)}" target="_blank">FROM LAST STOP</a>
+          <a class="stop-map" href="${placeUrl(d.stay.place)}" target="_blank">VIEW PLACE</a>
+        </div>
+      </div>
+    `;
+
+    return `
+      <div class="day-card ${openDays.has(d.date)?'open':''}" style="border-left-color:${CITY_COLOR[d.city]}" data-date="${d.date}">
+        <div class="day-head">
+          <div class="stamp-badge" style="color:${CITY_COLOR[d.city]}">
+            <span class="mon">${d.date.split(' ')[1].toUpperCase()}</span>
+            <span class="day">${d.date.split(' ')[2]}</span>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="day-date">${d.city}</div>
+            <div class="day-title">${d.title}</div>
+          </div>
+          <span class="day-chevron">&#9660;</span>
+        </div>
+        <div class="day-detail">
+          <div class="nearby-row">
+            <button class="nearby-btn" data-type="things" data-place="${d.stay.place}" data-date="${d.date}">🎡 THINGS TO DO NEARBY</button>
+            <button class="nearby-btn" data-type="food" data-place="${d.stay.place}" data-date="${d.date}">🍽️ FOOD NEARBY</button>
+          </div>
+          <div class="nearby-results" id="nearby-${d.date}"></div>
+          ${stopsHtml}${stayHtml}
+          <button class="add-stop-btn" data-date="${d.date}">+ ADD STOP</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  el.querySelectorAll('.day-head').forEach(head=>{
+    head.addEventListener('click', ()=>{
+      const card = head.closest('.day-card');
+      const date = card.dataset.date;
+      if(openDays.has(date)) openDays.delete(date); else openDays.add(date);
+      card.classList.toggle('open');
+    });
+  });
+
+  el.querySelectorAll('[data-act]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const date = btn.dataset.date, idx = +btn.dataset.idx, act = btn.dataset.act;
+      const arr = dayStopsState[date];
+      if(act==='remove'){ arr.splice(idx,1); }
+      if(act==='up' && idx>0){ [arr[idx-1],arr[idx]] = [arr[idx],arr[idx-1]]; }
+      if(act==='down' && idx<arr.length-1){ [arr[idx+1],arr[idx]] = [arr[idx],arr[idx+1]]; }
+      persistDay(date);
+      openDays.add(date);
+      renderItinerary();
+    });
+  });
+
+  el.querySelectorAll('.add-stop-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const date = btn.dataset.date;
+      const city = ITINERARY.find(x=>x.date===date).city;
+      const form = document.createElement('div');
+      form.className = 'add-stop-form';
+      form.innerHTML = `
+        <input type="text" placeholder="Search a place (e.g. Louvre Museum)" class="f-name" autocomplete="off">
+        <div class="search-results"></div>
+        <textarea placeholder="One-line description (optional)"></textarea>
+        <div class="add-stop-actions">
+          <button class="cancel">CANCEL</button>
+          <button class="confirm">ADD TO DAY</button>
+        </div>
+      `;
+      btn.replaceWith(form);
+
+      const nameInput = form.querySelector('.f-name');
+      const resultsEl = form.querySelector('.search-results');
+      let selectedPlace = null;
+      let debounceTimer;
+
+      nameInput.addEventListener('input', ()=>{
+        selectedPlace = null;
+        clearTimeout(debounceTimer);
+        const q = nameInput.value.trim();
+        if(q.length < 3){ resultsEl.innerHTML = ''; return; }
+        resultsEl.innerHTML = '<div class="search-empty">Searching…</div>';
+        debounceTimer = setTimeout(async ()=>{
+          try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q+', '+city)}`);
+            const data = await res.json();
+            if(!data.length){
+              resultsEl.innerHTML = '<div class="search-empty">No matches - will use what you typed</div>';
+              return;
+            }
+            resultsEl.innerHTML = data.map((r,i)=>`<div class="search-item" data-idx="${i}">${r.display_name}</div>`).join('');
+            resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
+              el2.addEventListener('click', ()=>{
+                const r = data[i];
+                selectedPlace = `${r.lat},${r.lon}`;
+                nameInput.value = r.display_name.split(',')[0];
+                const kind = (r.type||r.class||'').replace(/_/g,' ');
+                const descField = form.querySelector('textarea');
+                if(!descField.value.trim() && kind){
+                  descField.value = kind.charAt(0).toUpperCase()+kind.slice(1)+' - '+r.display_name.split(',').slice(1,3).join(',').trim();
+                }
+                resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${r.display_name}</div>`;
+              });
+            });
+          } catch(err){
+            resultsEl.innerHTML = '<div class="search-empty">Search unavailable right now - will use what you typed</div>';
+          }
+        }, 450);
+      });
+
+      form.querySelector('.cancel').addEventListener('click', ()=>{ openDays.add(date); renderItinerary(); });
+      form.querySelector('.confirm').addEventListener('click', ()=>{
+        const name = nameInput.value.trim();
+        const desc = form.querySelector('textarea').value.trim();
+        if(!name) return;
+        // Use the matched place if one was picked, otherwise fall back to "name, city"
+        const place = selectedPlace || `${name}, ${city}`;
+        dayStopsState[date].push({name, desc: desc || 'Added stop', place});
+        persistDay(date);
+        openDays.add(date);
+        renderItinerary();
+      });
+    });
+  });
+
+  wireNearbyButtons(el);
+}
+
+function switchTab(tab){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tab).classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tab));
+}
+document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)));
+
+function renderRouteLine(){
+  const cityStarts = [
+    {city:'Amsterdam', date:new Date('2026-10-09')},
+    {city:'Paris', date:new Date('2026-10-12')},
+    {city:'Interlaken', date:new Date('2026-10-15')},
+    {city:'Vienna', date:new Date('2026-10-17')},
+    {city:'Budapest', date:new Date('2026-10-20')},
+    {city:'Rome', date:new Date('2026-10-24')}
+  ];
+  const dotsEl = document.getElementById('route-dots');
+  dotsEl.innerHTML = cityStarts.map(c=>`<div class="route-dot" style="background:${CITY_COLOR[c.city]}" title="${c.city}"></div>`).join('');
+
+  const now = new Date();
+  const start = cityStarts[0].date, end = new Date('2026-10-27');
+  let pct;
+  if(now <= start) pct = 0;
+  else if(now >= end) pct = 100;
+  else pct = ((now-start)/(end-start))*100;
+  document.getElementById('route-plane').style.left = pct+'%';
+}
+
+function updateCountdown(){
+  const now = new Date();
+  const start = new Date('2026-10-09T00:00:00');
+  const end = new Date('2026-10-27T00:00:00');
+  const el = document.getElementById('countdown');
+  const days = Math.ceil((start-now)/86400000);
+  if(now < start) el.textContent = days+' DAYS OUT';
+  else if(now <= end) el.textContent = 'ON THE ROAD';
+  else el.textContent = 'TRIP COMPLETE';
+}
+
+document.getElementById('howto-btn').addEventListener('click', ()=>{
+  document.getElementById('howto-modal').classList.add('open');
+});
+document.getElementById('howto-close').addEventListener('click', ()=>{
+  document.getElementById('howto-modal').classList.remove('open');
+});
+document.getElementById('howto-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'howto-modal') e.target.classList.remove('open');
+});
+
+async function init(){
+  renderTransport();
+  await loadItineraryState();
+  renderItinerary();
+  renderChecklist();
+  renderRouteLine();
+  updateCountdown();
+}
+init().catch(e=>{
+  const b = document.getElementById('err-banner');
+  b.style.display = 'block';
+  b.textContent = 'INIT ERROR: ' + e.message;
+});
+</script>
+</body>
+</html>

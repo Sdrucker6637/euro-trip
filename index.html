@@ -61,6 +61,9 @@
 
   /* ---- Transport tab: grouped journeys ---- */
   .section-heading{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--muted);margin:4px 0 10px;}
+  .booking-rollup{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--red);margin:-6px 0 12px;}
+  .booking-rollup.all-booked{color:var(--green);}
+  .booking-rollup:empty{display:none;}
   .flight-card{background:var(--paper);color:var(--ink);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.28);padding:14px 16px;}
   .flight-route{font-family:var(--font-mono);font-size:19px;font-weight:600;display:flex;align-items:center;gap:8px;}
   .flight-date{font-size:12.5px;color:#5c5340;margin-top:4px;}
@@ -140,7 +143,13 @@
   .stop-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;row-gap:6px;}
   .stop-map{font-family:var(--font-mono);font-size:10px;font-weight:600;border-radius:16px;padding:6px 10px;cursor:pointer;text-decoration:none;white-space:nowrap;background:var(--amber);color:var(--ink);border:1px solid var(--amber);}
   .stop-map.secondary{background:none;color:var(--amber);}
-  .stop-controls-row{display:flex;justify-content:flex-end;gap:4px;margin-top:6px;}
+  .stop-controls-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-top:6px;}
+  .inline-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:var(--font-mono);font-size:10.5px;color:var(--cream);padding:6px 8px;border-radius:8px;background:rgba(201,106,82,0.12);border:1px solid var(--red);}
+  .inline-confirm.full-row{margin-top:10px;padding:10px;}
+  .inline-confirm-text{flex:1;min-width:100px;}
+  .inline-confirm-yes,.inline-confirm-cancel{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:6px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--line);background:none;white-space:nowrap;flex-shrink:0;}
+  .inline-confirm-yes{color:#fff;background:var(--red);border-color:var(--red);}
+  .inline-confirm-cancel{color:var(--muted);}
   .ctrl-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
   .add-stop-btn{width:100%;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--amber);background:none;border:1px dashed var(--amber);border-radius:8px;padding:10px;margin-top:10px;cursor:pointer;}
@@ -182,21 +191,37 @@
   .tab-btn.active{color:var(--amber);}
   .tab-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;}
   ::-webkit-scrollbar{display:none;}
+
+  .err-banner{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(201,106,82,0.16);backdrop-filter:blur(6px);border-bottom:1px solid var(--red);color:var(--cream);font-family:var(--font-body);font-size:12.5px;line-height:1.4;padding:10px 14px;}
+  .err-banner-dismiss{flex-shrink:0;background:none;border:none;color:var(--cream);font-size:13px;cursor:pointer;padding:4px;}
 </style>
 </head>
 <body>
 
-<div id="err-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#C96A52;color:#fff;font-family:monospace;font-size:12px;padding:10px;z-index:9999;white-space:pre-wrap;"></div>
+<div id="err-banner" class="err-banner" role="alert" style="display:none;">
+  <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and checklist are safe - try reloading the page.</span>
+  <button id="err-banner-dismiss" class="err-banner-dismiss" aria-label="Dismiss">&#10005;</button>
+</div>
 <script>
-window.addEventListener('error', function(e){
+// The real error still goes to the console for debugging; the banner only
+// ever shows the traveler a plain, reassuring message, never a stack trace.
+function showErrBanner(){
   var b = document.getElementById('err-banner');
-  b.style.display = 'block';
-  b.textContent = 'JS ERROR: ' + e.message + ' (line ' + e.lineno + ')';
+  b.style.display = 'flex';
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var dismiss = document.getElementById('err-banner-dismiss');
+  if (dismiss) dismiss.addEventListener('click', function(){
+    document.getElementById('err-banner').style.display = 'none';
+  });
+});
+window.addEventListener('error', function(e){
+  console.error('JS ERROR:', e.message, 'line', e.lineno);
+  showErrBanner();
 });
 window.addEventListener('unhandledrejection', function(e){
-  var b = document.getElementById('err-banner');
-  b.style.display = 'block';
-  b.textContent = 'PROMISE ERROR: ' + e.reason;
+  console.error('PROMISE ERROR:', e.reason);
+  showErrBanner();
 });
 </script>
 <div class="app">
@@ -284,6 +309,22 @@ function appSearchUrl(appName){
 
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Swaps a destructive control for an inline "are you sure" confirm, in
+// place, instead of deleting on the first tap. Cancel just re-renders the
+// itinerary (the confirm is never persisted state, so nothing to undo).
+function confirmInline(target, message, onConfirm, extraClass){
+  const wrap = document.createElement('div');
+  wrap.className = 'inline-confirm' + (extraClass ? ' '+extraClass : '');
+  wrap.innerHTML = `
+    <span class="inline-confirm-text">${escapeHtml(message)}</span>
+    <button class="inline-confirm-yes">REMOVE</button>
+    <button class="inline-confirm-cancel">CANCEL</button>
+  `;
+  target.replaceWith(wrap);
+  wrap.querySelector('.inline-confirm-yes').addEventListener('click', (e)=>{ e.stopPropagation(); onConfirm(); });
+  wrap.querySelector('.inline-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); renderItinerary(); });
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
@@ -670,9 +711,22 @@ function renderLocalTransport(){
   el.insertAdjacentHTML('beforeend', html);
 }
 
+function updateBookingRollup(){
+  const rollupEl = document.getElementById('booking-rollup');
+  if(!rollupEl) return;
+  const mustBookIds = JOURNEYS.flatMap(j=>j.segments).filter(s=>s.flag==='red').map(s=>s.id);
+  if(!mustBookIds.length){ rollupEl.textContent = ''; return; }
+  const bookedCount = mustBookIds.filter(id=>{
+    const cb = document.querySelector(`input[data-leg="${id}"]`);
+    return cb && cb.checked;
+  }).length;
+  rollupEl.textContent = `${bookedCount} of ${mustBookIds.length} must-book legs booked`;
+  rollupEl.classList.toggle('all-booked', bookedCount === mustBookIds.length);
+}
+
 function renderTransport(){
   const el = document.getElementById('panel-transport');
-  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div>` + JOURNEYS.map(j => `
+  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div>` + JOURNEYS.map(j => `
     <div class="journey">
       <div class="journey-head">
         <div class="journey-route">${j.fromCode}<span class="journey-arrow">&#8594;</span>${j.toCode}</div>
@@ -700,9 +754,10 @@ function renderTransport(){
 
   el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     const key = 'booked:'+cb.dataset.leg;
-    store.get(key).then(r=>{ if(r && r.value==='1') cb.checked = true; }).catch(()=>{});
-    cb.addEventListener('change', ()=>{ store.set(key, cb.checked ? '1':'0'); });
+    store.get(key).then(r=>{ if(r && r.value==='1') cb.checked = true; updateBookingRollup(); }).catch(()=>{ updateBookingRollup(); });
+    cb.addEventListener('change', ()=>{ store.set(key, cb.checked ? '1':'0'); updateBookingRollup(); });
   });
+  updateBookingRollup();
 
   renderLocalTransport();
 }
@@ -1001,7 +1056,7 @@ function renderItinerary(){
     const stayLengthHtml = d.isLastOfBlock ? `
       <div class="stay-length-row">
         <button class="stay-len-btn add" data-act="add-day" data-city="${escapeHtml(d.city)}">+ ADD DAY IN ${escapeHtml(d.city.toUpperCase())}</button>
-        <button class="stay-len-btn" data-act="remove-day" data-city="${escapeHtml(d.city)}" ${d.cityBlockLength<=1?'disabled':''}>− SHORTEN STAY</button>
+        <button class="stay-len-btn" data-act="remove-day" data-id="${d.id}" data-city="${escapeHtml(d.city)}" ${d.cityBlockLength<=1?'disabled':''}>− SHORTEN STAY</button>
       </div>
     ` : '';
 
@@ -1049,8 +1104,16 @@ function renderItinerary(){
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       const id = btn.dataset.id, idx = +btn.dataset.idx, act = btn.dataset.act;
+      if(act==='remove'){
+        confirmInline(btn, 'Remove this stop?', ()=>{
+          dayStopsState[id].splice(idx,1);
+          persistDay(id);
+          openDays.add(id);
+          renderItinerary();
+        });
+        return;
+      }
       const arr = dayStopsState[id];
-      if(act==='remove'){ arr.splice(idx,1); }
       if(act==='up' && idx>0){ [arr[idx-1],arr[idx]] = [arr[idx],arr[idx-1]]; }
       if(act==='down' && idx<arr.length-1){ [arr[idx+1],arr[idx]] = [arr[idx],arr[idx+1]]; }
       persistDay(id);
@@ -1143,14 +1206,33 @@ function renderItinerary(){
     });
   });
 
-  el.querySelectorAll('[data-act="add-day"],[data-act="remove-day"]').forEach(btn=>{
+  el.querySelectorAll('[data-act="add-day"]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       const city = btn.dataset.city;
-      const step = btn.dataset.act==='add-day' ? 1 : -1;
-      cityDeltaState[city] = (cityDeltaState[city]||0) + step;
+      cityDeltaState[city] = (cityDeltaState[city]||0) + 1;
       persistCityDelta(city);
       renderItinerary();
+    });
+  });
+
+  el.querySelectorAll('[data-act="remove-day"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const city = btn.dataset.city, dayId = btn.dataset.id;
+      const doRemove = ()=>{
+        cityDeltaState[city] = (cityDeltaState[city]||0) - 1;
+        persistCityDelta(city);
+        renderItinerary();
+      };
+      const stops = dayStopsState[dayId] || [];
+      const hasContent = stops.length > 0 || dayTitleState[dayId] !== undefined || dayStayState[dayId] !== undefined;
+      if(hasContent){
+        const stopNote = stops.length ? ` and its ${stops.length} stop${stops.length===1?'':'s'}` : '';
+        confirmInline(btn.closest('.stay-length-row'), `Remove this day${stopNote}?`, doRemove, 'full-row');
+      } else {
+        doRemove();
+      }
     });
   });
 
@@ -1215,9 +1297,8 @@ async function init(){
   updateCountdown();
 }
 init().catch(e=>{
-  const b = document.getElementById('err-banner');
-  b.style.display = 'block';
-  b.textContent = 'INIT ERROR: ' + e.message;
+  console.error('INIT ERROR:', e);
+  showErrBanner();
 });
 </script>
 </body>

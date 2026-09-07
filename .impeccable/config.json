@@ -1,0 +1,128 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "space grotesk",
+        "createdAt": "2026-09-07T14:53:29.804Z",
+        "reason": "Confirmed core to the reviewed Night Train Passport identity (DESIGN.md); kept deliberately across two critique rounds."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(0,0,0,0.6)",
+        "createdAt": "2026-09-07T14:56:55.129Z",
+        "reason": "Modal scrim; documented in DESIGN.md Colors > Standard Exceptions."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "#fff",
+        "createdAt": "2026-09-07T14:56:55.141Z",
+        "reason": "White text on solid red flag-tag for guaranteed contrast; documented in DESIGN.md Colors > Standard Exceptions."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "3px",
+        "createdAt": "2026-09-07T14:56:55.153Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "5px",
+        "createdAt": "2026-09-07T14:56:55.164Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "6px",
+        "createdAt": "2026-09-07T14:56:55.174Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "8px",
+        "createdAt": "2026-09-07T14:56:55.184Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "9px",
+        "createdAt": "2026-09-07T14:56:55.195Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "10px",
+        "createdAt": "2026-09-07T14:56:55.205Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "14px",
+        "createdAt": "2026-09-07T14:56:55.216Z",
+        "reason": "Micro-radius on a small compact control, proportional to its own size; documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "8.5px",
+        "createdAt": "2026-09-07T14:56:55.227Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "9.5px",
+        "createdAt": "2026-09-07T14:56:55.237Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "10px",
+        "createdAt": "2026-09-07T14:56:55.247Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "12px",
+        "createdAt": "2026-09-07T14:56:55.257Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "12.5px",
+        "createdAt": "2026-09-07T14:56:55.268Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "16px",
+        "createdAt": "2026-09-07T14:56:55.278Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "19px",
+        "createdAt": "2026-09-07T14:56:55.289Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "20px",
+        "createdAt": "2026-09-07T14:56:55.300Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "21px",
+        "createdAt": "2026-09-07T14:56:55.311Z",
+        "reason": "Within the documented extended type range (paper-card meta text, stamp badge, modal title, or route-code display size); documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "4px",
+        "createdAt": "2026-09-07T15:02:52.082Z",
+        "reason": "Focus-ring outline corner softening; within the documented 3-10px micro-radius range in DESIGN.md Shapes."
+      }
+    ]
+  }
+}

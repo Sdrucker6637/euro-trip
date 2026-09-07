@@ -22,6 +22,16 @@
     --red-deep:#A55743;
     --muted:#8598AD;
     --cream:#EDE7D9;
+    --paper-ink-secondary:#5C5340;
+    --paper-ink-faint:#8A806A;
+    --paper-line:#C9BD9E;
+    --pill-neutral:#E2D7BD;
+    --status-confirmed-text:#1F5C2E;
+    --status-confirmed-bg:#D7ECD4;
+    --status-no-text:#7A2C1C;
+    --status-no-bg:#F2D7D0;
+    --status-unclear-text:#6B5410;
+    --status-unclear-bg:#F0E6C8;
     --ams:#4FA8A0;
     --par:#D8735A;
     --int:#7FA85C;
@@ -36,7 +46,7 @@
   body{font-family:var(--font-body);background:var(--bg);color:var(--cream);display:flex;justify-content:center;background-image:radial-gradient(circle at 1px 1px, rgba(227,165,66,0.06) 1px, transparent 0);background-size:22px 22px;}
   .app{width:100%;max-width:460px;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
   header{padding:22px 20px 16px;border-bottom:1px solid var(--line);position:relative;}
-  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;color:var(--amber);display:flex;justify-content:space-between;align-items:center;}
+  .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--amber);display:flex;justify-content:space-between;align-items:center;}
   .eyebrow .stamp{display:inline-flex;align-items:center;gap:5px;}
   h1{font-family:var(--font-display);font-size:27px;font-weight:600;margin-top:6px;letter-spacing:-0.01em;display:flex;align-items:center;gap:9px;}
   .subline{font-size:13px;color:var(--muted);margin-top:2px;}
@@ -49,15 +59,15 @@
   .panel{display:none;}
   .panel.active{display:block;}
 
-  .info-btn{font-family:var(--font-mono);font-size:10.5px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:14px;padding:5px 10px;cursor:pointer;}
+  .info-btn{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--muted);background:none;border:1px solid var(--line);border-radius:14px;padding:5px 10px;cursor:pointer;}
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;align-items:flex-end;justify-content:center;}
   .modal-overlay.open{display:flex;}
   .modal-card{width:100%;max-width:460px;max-height:82vh;background:var(--surface);border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;}
   .modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--line);font-family:var(--font-display);font-weight:600;font-size:15px;}
   .modal-close{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;}
   .modal-body{padding:16px 18px;overflow-y:auto;font-size:13px;line-height:1.6;}
-  .modal-body h4{font-family:var(--font-mono);font-size:11px;color:var(--amber);letter-spacing:0.04em;margin:14px 0 6px;}
-  .modal-body h4:first-child{margin-top:0;}
+  .modal-body h2{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--amber);letter-spacing:0.04em;margin:14px 0 6px;}
+  .modal-body h2:first-child{margin-top:0;}
   .modal-body p{margin-bottom:4px;color:var(--cream);}
 
   /* ---- Transport tab: grouped journeys ---- */
@@ -69,17 +79,12 @@
   .reserve-rollup.all-booked{color:var(--green);}
   .reserve-rollup:empty{display:none;}
   .flight-card{background:var(--paper);color:var(--ink);border-radius:10px;margin-bottom:14px;overflow:hidden;box-shadow:0 6px 16px rgba(0,0,0,0.28);padding:14px 16px;}
-  .flight-route{font-family:var(--font-mono);font-size:19px;font-weight:600;display:flex;align-items:center;gap:8px;}
-  .flight-date{font-size:12.5px;color:#5c5340;margin-top:4px;}
-  .flight-fields{display:flex;gap:8px;margin-top:12px;}
-  .flight-field{flex:1;}
-  .flight-field label{display:block;font-family:var(--font-mono);font-size:10px;color:#8a806a;margin-bottom:4px;}
-  .flight-field input{width:100%;font-family:var(--font-mono);font-size:13px;padding:8px 9px;border-radius:7px;border:1px solid #c9bd9e;background:#fbf7ec;color:var(--ink);}
+  .flight-date{font-size:12.5px;color:var(--paper-ink-secondary);margin-top:4px;}
   .flight-links{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap;}
   .pay-badge{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;font-weight:600;padding:6px 10px;border-radius:8px;margin-top:8px;}
-  .pay-badge.yes{background:#d7ecd4;color:#1f5c2e;}
-  .pay-badge.no{background:#f2d7d0;color:#7a2c1c;}
-  .pay-badge.unknown{background:#f0e6c8;color:#6b5410;}
+  .pay-badge.yes{background:var(--status-confirmed-bg);color:var(--status-confirmed-text);}
+  .pay-badge.no{background:var(--status-no-bg);color:var(--status-no-text);}
+  .pay-badge.unknown{background:var(--status-unclear-bg);color:var(--status-unclear-text);}
   .nearby-row{display:flex;gap:10px;margin-bottom:4px;}
   .nearby-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:0.03em;text-align:center;padding:13px 8px;border-radius:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);cursor:pointer;transition:border-color .15s,background .15s,color .15s;}
   .nearby-btn-icon{font-size:21px;line-height:1;}
@@ -95,14 +100,14 @@
   .nearby-loading,.nearby-empty{font-size:12px;color:var(--muted);padding:10px 2px;font-style:italic;}
 
   .journey{background:var(--paper);color:var(--ink);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.35);position:relative;}
-  .journey-head{padding:15px 16px 11px;border-bottom:1px dashed #c9bd9e;position:relative;}
+  .journey-head{padding:15px 16px 11px;border-bottom:1px dashed var(--paper-line);position:relative;}
   .journey-head::before,.journey-head::after{content:'';position:absolute;bottom:-8px;width:16px;height:16px;border-radius:50%;background:var(--bg);}
   .journey-head::before{left:-8px;}
   .journey-head::after{right:-8px;}
   .journey-route{font-family:var(--font-mono);font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .journey-arrow{color:#8a806a;font-size:15px;}
-  .journey-date{font-size:12.5px;color:#5c5340;margin-top:4px;}
-  .segment{padding:13px 16px;display:flex;gap:10px;border-bottom:1px solid #e2d7bd;}
+  .journey-arrow{color:var(--paper-ink-faint);font-size:15px;}
+  .journey-date{font-size:12.5px;color:var(--paper-ink-secondary);margin-top:4px;}
+  .segment{padding:13px 16px;display:flex;gap:10px;border-bottom:1px solid var(--pill-neutral);}
   .segment:last-child{border-bottom:none;}
   .seg-flag{width:5px;border-radius:3px;flex-shrink:0;}
   .seg-flag.red{background:var(--red);}
@@ -110,13 +115,13 @@
   .seg-flag.green{background:var(--green);}
   .seg-body{flex:1;min-width:0;}
   .seg-title{font-family:var(--font-display);font-weight:600;font-size:14.5px;}
-  .seg-meta{font-size:12px;color:#5c5340;margin-top:2px;}
-  .seg-note{font-size:12px;color:#5c5340;margin-top:5px;line-height:1.4;}
+  .seg-meta{font-size:12px;color:var(--paper-ink-secondary);margin-top:2px;}
+  .seg-note{font-size:12px;color:var(--paper-ink-secondary);margin-top:5px;line-height:1.4;}
   .seg-links{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
-  .pill-link{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:6px 10px;border-radius:16px;text-decoration:none;color:var(--ink);background:#e2d7bd;}
+  .pill-link{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:6px 10px;border-radius:16px;text-decoration:none;color:var(--ink);background:var(--pill-neutral);}
   .pill-link.book{background:var(--amber);}
   .pill-link.primary{background:var(--amber);font-size:11px;padding:7px 13px;}
-  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:none;border:1px solid #c9bd9e;color:var(--ink);text-decoration:none;font-size:13px;flex-shrink:0;}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:none;border:1px solid var(--paper-line);color:var(--ink);text-decoration:none;font-size:13px;flex-shrink:0;}
   .flag-tag{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.02em;padding:2px 8px;border-radius:12px;margin-bottom:5px;}
   .flag-tag.red{background:var(--red);color:#fff;}
   .flag-tag.amber{background:var(--amber);color:var(--ink);}
@@ -200,6 +205,10 @@
   .tab-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;}
   ::-webkit-scrollbar{display:none;}
 
+  ::selection{background:rgba(227,165,66,0.35);color:var(--ink);}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px;}
+  .journey :focus-visible,.flight-card :focus-visible{outline-color:var(--ink);}
+
   .err-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(201,106,82,0.16);border-bottom:1px solid var(--red);color:var(--cream);font-family:var(--font-body);font-size:12.5px;line-height:1.4;padding:10px 14px;}
   .err-banner-dismiss{flex-shrink:0;background:none;border:none;color:var(--cream);font-size:13px;cursor:pointer;padding:4px;}
 </style>
@@ -254,14 +263,14 @@ window.addEventListener('unhandledrejection', function(e){
         <button id="howto-close" class="modal-close">&#10005;</button>
       </div>
       <div class="modal-body">
-        <h4>Between countries</h4>
+        <h2>Between countries</h2>
         <p>Your Eurail pass covers most inter-city legs - just show it (or the Eurail Rail Planner app) on board, no ticket needed. Three legs need a separate paid reservation booked directly with the operator, regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV Lyria), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking - just open the Eurail app for schedules.</p>
-        <h4>Inside each city</h4>
+        <h2>Inside each city</h2>
         <p><b>Amsterdam & Rome & Budapest:</b> tap your card or Apple Pay directly on trams/metro/buses - no ticket needed.</p>
         <p><b>Paris:</b> no direct tap yet - add a Navigo Easy pass to Apple Wallet instead.</p>
         <p><b>Vienna:</b> contactless isn't confirmed - buy through the WienMobil app to be safe.</p>
         <p><b>Switzerland (Interlaken):</b> no gates at all - it's honor-based. Use the SBB Mobile app (EasyRide) or your Eurail pass.</p>
-        <h4>Apps worth having</h4>
+        <h2>Apps worth having</h2>
         <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
       </div>
     </div>

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-07T00:00:00Z",
+  "generatedAt": "2026-09-07T15:00:00Z",
   "title": "Design System: Europe Trip (Amsterdam → Rome)",
   "extensions": {
     "colorMeta": {
@@ -21,7 +21,17 @@
       "city-interlaken": { "role": "accent-city", "displayName": "Interlaken Green", "canonical": "#7FA85C", "tonalRamp": ["#25321B", "#465D32", "#668849", "#87AD66", "#A9C491", "#C6D8B6", "#DDE8D4", "#F2F6EE"] },
       "city-vienna": { "role": "accent-city", "displayName": "Vienna Violet", "canonical": "#9B7FBF", "tonalRamp": ["#251A33", "#44305F", "#64468B", "#8563B1", "#A78FC7", "#C5B4DA", "#DCD3E9", "#F2EEF6"] },
       "city-budapest": { "role": "accent-city", "displayName": "Budapest Gold", "canonical": "#D9A441", "tonalRamp": ["#402E0D", "#775618", "#AE7E23", "#D8A13C", "#E3BC73", "#ECD2A2", "#F4E5C8", "#FBF5EA"] },
-      "city-rome": { "role": "accent-city", "displayName": "Rome Clay", "canonical": "#C75C4A", "tonalRamp": ["#3A1812", "#6D2D22", "#A04131", "#C85E4C", "#D78B7E", "#E4B2A9", "#EFD1CC", "#F9EDEC"] }
+      "city-rome": { "role": "accent-city", "displayName": "Rome Clay", "canonical": "#C75C4A", "tonalRamp": ["#3A1812", "#6D2D22", "#A04131", "#C85E4C", "#D78B7E", "#E4B2A9", "#EFD1CC", "#F9EDEC"] },
+      "paper-ink-secondary": { "role": "neutral-paper", "displayName": "Paper Ink Secondary", "canonical": "#5C5340", "tonalRamp": ["#2D291F", "#544C3B", "#7B6F56", "#9F9175", "#BAB09C", "#D1CABD", "#E4E0D8", "#F5F3F0"] },
+      "paper-ink-faint": { "role": "neutral-paper", "displayName": "Paper Ink Faint", "canonical": "#8A806A", "tonalRamp": ["#2B2821", "#514B3E", "#766E5B", "#998F7A", "#B6AFA0", "#CECAC0", "#E2DFDA", "#F4F3F1"] },
+      "paper-line": { "role": "neutral-paper", "displayName": "Paper Line", "canonical": "#C9BD9E", "tonalRamp": ["#312B1B", "#5C5033", "#86764B", "#AB9868", "#C3B593", "#D7CEB7", "#E7E2D4", "#F6F4EF"] },
+      "pill-neutral": { "role": "neutral-paper", "displayName": "Pill Neutral", "canonical": "#E2D7BD", "tonalRamp": ["#352C17", "#63532C", "#917940", "#B79C5C", "#CCB88A", "#DDD0B1", "#EBE3D1", "#F7F4ED"] },
+      "status-confirmed-text": { "role": "status", "displayName": "Status Confirmed Text", "canonical": "#1F5C2E", "tonalRamp": ["#13391D", "#246B35", "#359C4E", "#50C46C", "#81D596", "#ABE3B9", "#CDEED5", "#ECF9EF"] },
+      "status-confirmed-bg": { "role": "status", "displayName": "Status Confirmed Background", "canonical": "#D7ECD4", "tonalRamp": ["#1B3517", "#33632C", "#4A9140", "#68B75C", "#92CB8A", "#B7DDB1", "#D4EBD1", "#EFF7ED"] },
+      "status-no-text": { "role": "status", "displayName": "Status No Text", "canonical": "#7A2C1C", "tonalRamp": ["#3E160E", "#742A1B", "#AA3D27", "#D35940", "#E08876", "#EAB0A4", "#F3D0C9", "#FAEDEA"] },
+      "status-no-bg": { "role": "status", "displayName": "Status No Background", "canonical": "#F2D7D0", "tonalRamp": ["#3C1A11", "#70301F", "#A4462D", "#CC6347", "#DB8F7B", "#E7B4A7", "#F1D3CB", "#F9EEEB"] },
+      "status-unclear-text": { "role": "status", "displayName": "Status Unclear Text", "canonical": "#6B5410", "tonalRamp": ["#43340A", "#7C6213", "#B68F1B", "#E0B533", "#E9CA6D", "#F0DB9D", "#F6EAC5", "#FCF7E9"] },
+      "status-unclear-bg": { "role": "status", "displayName": "Status Unclear Background", "canonical": "#F0E6C8", "tonalRamp": ["#3C3110", "#705C1F", "#A4862D", "#CDAB47", "#DBC37B", "#E7D7A7", "#F1E7CB", "#FAF6EB"] }
     },
     "typographyMeta": {
       "display": { "displayName": "Display", "purpose": "The single h1 route title only." },

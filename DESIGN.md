@@ -20,6 +20,16 @@ colors:
   city-vienna: "#9B7FBF"
   city-budapest: "#D9A441"
   city-rome: "#C75C4A"
+  paper-ink-secondary: "#5C5340"
+  paper-ink-faint: "#8A806A"
+  paper-line: "#C9BD9E"
+  pill-neutral: "#E2D7BD"
+  status-confirmed-text: "#1F5C2E"
+  status-confirmed-bg: "#D7ECD4"
+  status-no-text: "#7A2C1C"
+  status-no-bg: "#F2D7D0"
+  status-unclear-text: "#6B5410"
+  status-unclear-bg: "#F0E6C8"
 typography:
   display:
     fontFamily: "Space Grotesk, sans-serif"
@@ -121,14 +131,22 @@ A two-surface palette (navy shell / cream paper) plus one warm accent, a three-c
 - **Cream** (`#EDE7D9`): primary body text on dark surfaces.
 - **Paper** (`#F3EBD8`): the background of every "physical document" card (journeys, local-transit cards).
 - **Ink** (`#241F14`): primary text on paper cards - warm near-black, never pure black.
+- **Paper Ink Secondary** (`#5C5340`): secondary/meta text on paper cards (dates, route meta, notes) - the paper-context counterpart to Muted.
+- **Paper Ink Faint** (`#8A806A`): tertiary text on paper cards - field labels, the lightest text weight on a paper surface.
+- **Paper Line** (`#C9BD9E`): borders and dashed dividers on paper cards - the paper-context counterpart to Line, and the color of the signature perforation motif (see Shapes).
+- **Pill Neutral** (`#E2D7BD`): the default background for a non-primary pill-link on a paper card, before any status or accent color is applied.
 
 ### Status Colors (booking urgency, transport tab only)
 - **Book-Now Red** (`#C96A52`): a leg needs a mandatory paid reservation - highest urgency.
 - **Reserve Amber** (`{colors.amber}`): a reservation is optional but worth making.
 - **Hop-On Green** (`#7FAE7A`): no booking needed at all, covered by the rail pass.
+- **Status Confirmed** (text `#1F5C2E` on bg `#D7ECD4`) / **Status No** (text `#7A2C1C` on bg `#F2D7D0`) / **Status Unclear** (text `#6B5410` on bg `#F0E6C8`): a three-state pay-badge vocabulary on the Getting Around tab ("Apple Pay / tap works" / "no direct tap" / "unconfirmed") - each a dark text tone on a light tint of itself. A separate, softer status system from the transport tab's red/amber/green flags above, since a payment-method note is informational, not a booking deadline.
 
 ### City Route Colors (wayfinding only, not UI chrome)
 Six hues, one per city on the route (Amsterdam `#4FA8A0`, Paris `#D8735A`, Interlaken `#7FA85C`, Vienna `#9B7FBF`, Budapest `#D9A441`, Rome `#C75C4A`). Used only as the day-card's left border stripe and the route-timeline dots - a consistent, low-noise way to tell which city a day belongs to at a glance. These never appear on buttons, text, or any interactive control.
+
+### Standard Exceptions
+Two raw, undocumented values are used deliberately rather than drift: a plain `rgba(0,0,0,0.6)` scrim behind the How-To modal (a backdrop dimmer has no brand hue to carry), and plain white (`#fff`) text on the solid red flag-tag (guaranteed maximum contrast on a small saturated chip beats a palette-matched near-white).
 
 ### Named Rules
 **The One Accent Rule.** Amber is the only color used for a primary call-to-action or an active/selected control. Teal, the status colors, and the city colors are all narrowly scoped to one specific job each and never substitute for amber.
@@ -147,8 +165,8 @@ Six hues, one per city on the route (Amsterdam `#4FA8A0`, Paris `#D8735A`, Inter
 - **Display** (600, 27px, 1.1 line-height, -0.01em tracking): the single `<h1>` route title ("Amsterdam → Rome").
 - **Title** (600, 19-20px, mono, normal tracking): route codes and city-pair headers (`AMS → PAR`, flight routes) - the one place the mono face is used at display scale.
 - **Subtitle** (600, 14.5-15px, display face): card and section titles - segment titles, day titles, modal headers, accommodation names.
-- **Body** (400-500, 13-14.5px, 1.4-1.6 line-height): descriptions, notes, form inputs.
-- **Label** (600, 9.5-11.5px, mono, 0-0.04em tracking): everything functional - pill buttons, status flags, nav labels, badges, field labels. The system's smallest text is never body prose, only short functional labels.
+- **Body** (400-500, 13-14.5px, 1.4-1.6 line-height): descriptions, notes, form inputs. On a paper card specifically, secondary meta text (dates, route notes) can run slightly smaller, down to `12px`, in Paper Ink Secondary.
+- **Label** (600, 9.5-11.5px, mono, 0-0.04em tracking): everything functional - pill buttons, status flags, nav labels, badges, field labels. The stamp badge's month text is the one deliberate exception below this floor, at `8.5px`, since it sits inside a fixed 46px circle alongside the day number - still a label, not body prose. The system's smallest text is never body prose, only short functional labels.
 
 ### Named Rules
 **The Printed-Label Rule.** Any text that represents a code, date, status, or short machine-legible fact (not a sentence) is set in IBM Plex Mono, regardless of where it appears in the hierarchy. Any text that represents a name, title, or description is set in Space Grotesk or IBM Plex Sans.
@@ -173,7 +191,7 @@ A deliberate two-tier system, not a continuous shadow scale. Dark app-shell card
 
 ## Shapes
 
-Generous, friendly radii throughout (`7-18px`); nothing in the system uses a sharp corner. Buttons and badges go further, to a full pill (`16px` on a short element, `50%` on a square icon button or dot) - the system draws a hard line between "card" radii and "pill" radii, with nothing in between.
+Generous, friendly radii throughout; nothing in the system uses a sharp corner. Cards and sections sit on the documented `sm`/`md`/`lg` scale (`7-18px`). Compact controls scaled to their own small size - a checkbox-sized icon button, a badge, a tucked-in form input - use a proportional micro-radius roughly a third to half their height (`3-10px`), rounded rather than pilled, since a full pill on a control that small would read as a dot. Buttons and larger badges go further still, to a full pill (`16px` on a short element, `50%` on a square icon button or dot).
 
 The signature form language is physical-document perforation: `journey-head` carries a dashed bottom border plus two circular cutout notches (`::before`/`::after`, positioned half off each edge, painted the page background color) that read exactly like a ticket stub's tear-line. The `stamp-badge` (a day's date badge) is a dashed-border circle rotated `-6deg`, reading as a rubber ink stamp struck slightly askew.
 

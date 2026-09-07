@@ -175,15 +175,20 @@
   .stop-name:hover,.stop-name:active{text-decoration:underline;}
   .stop-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;}
   .stop-actions{margin-top:10px;}
-  .directions-menu{display:flex;flex-wrap:wrap;gap:14px;margin-top:7px;}
+  .directions-menu{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px;}
   .directions-menu[hidden]{display:none;}
   @keyframes flash-save{0%{background:rgba(127,174,122,0.4);}100%{background:transparent;}}
   .flash-save{animation:flash-save 1.2s ease-out;border-radius:7px;padding:1px 4px;margin:-1px -4px;}
-  .stop-map{font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.02em;cursor:pointer;text-decoration:none;white-space:nowrap;background:none;color:var(--amber);border:none;border-bottom:1px dotted transparent;padding:5px 1px;}
-  .stop-map:hover,.stop-map:focus-visible{border-bottom-color:var(--amber);}
-  .stop-map.nearby-add-btn{background:var(--amber);color:var(--ink);border-radius:2px 8px 2px 8px;padding:6px 10px;border-bottom:none;}
-  .stop-map.nearby-add-btn:hover,.stop-map.nearby-add-btn:focus-visible{border-bottom:none;}
-  .stop-map.secondary{background:none;color:var(--amber);}
+  /* Compact action-chip button used for every travel/utility action on a
+     dark background (directions shortcuts, booking, map, use-this, etc.)
+     - fixed min-height and consistent padding/alignment keep every chip
+       the same shape no matter how long its label is; text wraps instead
+       of stretching or overflowing on narrow screens. */
+  .stop-map{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-height:30px;box-sizing:border-box;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.02em;line-height:1.25;text-align:center;cursor:pointer;text-decoration:none;white-space:normal;color:var(--amber);background:var(--surface);border:1px solid var(--glass-line);border-radius:2px 8px 2px 8px;padding:6px 10px;}
+  .stop-map:hover,.stop-map:focus-visible{border-color:var(--amber);}
+  .stop-map.nearby-add-btn{background:var(--amber);color:var(--ink);border:1px solid transparent;}
+  .stop-map.nearby-add-btn:hover,.stop-map.nearby-add-btn:focus-visible{border-color:var(--ink);}
+  .stop-map.secondary{background:var(--surface);color:var(--amber);}
   .stop-controls-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;margin-top:6px;}
   .inline-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:var(--font-mono);font-size:10.5px;color:var(--cream);padding:6px 8px;border-radius:2px 8px;background:rgba(201,106,82,0.12);border:1px dashed var(--red);}
   .inline-confirm.full-row{margin-top:10px;padding:10px;}
@@ -199,8 +204,10 @@
   .stay-len-btn.add{flex:1.3;color:var(--amber);border:1px dashed var(--amber);border-radius:2px 10px 2px 10px;text-align:center;}
   .stay-len-btn:disabled{opacity:.35;cursor:not-allowed;}
   .add-stop-form{margin-top:10px;padding:12px;background:var(--bg);border-radius:2px 10px 10px 2px;border:1px solid var(--glass-line);}
-  .add-stop-form input,.add-stop-form textarea{width:100%;font-family:var(--font-body);font-size:13px;padding:8px 9px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:#EDE7D9;margin-bottom:8px;}
+  .add-stop-form input,.add-stop-form textarea,.add-stop-form select{width:100%;font-family:var(--font-body);font-size:13px;padding:8px 9px;border-radius:7px;border:1px solid var(--line);background:var(--surface);color:#EDE7D9;margin-bottom:8px;}
   .add-stop-form textarea{resize:none;height:44px;}
+  .add-stop-form select{appearance:auto;}
+  .add-stop-form .field-label{display:block;font-family:var(--font-mono);font-size:10.5px;color:var(--muted);letter-spacing:0.02em;margin:0 0 5px;}
   .search-results{margin:-4px 0 8px;max-height:160px;overflow-y:auto;border-radius:7px;}
   .search-item{padding:8px 9px;font-size:12.5px;background:var(--surface);border:1px solid var(--line);border-top:none;cursor:pointer;}
   .search-item:hover,.search-item:active{background:var(--surface-raised);}
@@ -498,6 +505,17 @@ function appSearchUrl(appName){
   const term = appName.split(/\s+or\s+/i)[0].replace(/\bapp\b/i,'').trim();
   return `https://apps.apple.com/us/search?term=${encodeURIComponent(term)}`;
 }
+
+// The Rail Planner app's real, confirmed App Store listing (id579547877,
+// "Eurail/Interrail Rail Planner" by Interrail B.V.) - a direct link to the
+// app's own page rather than a generic search result list, so a tap goes
+// straight to it (showing "OPEN" instead of "GET" if it's already
+// installed). Eurail's own community forum documents that the Rail
+// Planner app and eurail.com are not linked/synced, so there's no
+// confirmed universal-link/deep-link path into the app itself - this App
+// Store link is the most direct, verifiable mechanism available without
+// inventing one.
+const RAIL_PLANNER_APP_STORE_URL = 'https://apps.apple.com/us/app/rail-planner-eurail-interrail/id579547877';
 
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -811,8 +829,26 @@ const LOCAL_TRANSPORT = [
 // entry links out to Hostelworld for the traveler to see live prices,
 // ratings, and availability rather than the app guessing at numbers
 // that would go stale.
-function hostelworldSearchUrl(term){
-  return `https://www.hostelworld.com/search?q=${encodeURIComponent(term)}`;
+//
+// Hostelworld has no "?q=" text-search endpoint (that was verified as
+// broken - it doesn't correspond to a real page on their site). What is
+// real and stable is their per-city listing page, confirmed against
+// hostelworld.com's own indexed URLs: hostelworld.com/hostels/<continent>/
+// <country>/<city>/. Since it's a normal https link on their real domain,
+// iOS will hand it to the Hostelworld app instead of Safari if the app is
+// installed and set up for Universal Links - no custom scheme required or
+// invented.
+const HOSTELWORLD_CITY_PATH = {
+  Amsterdam:'europe/netherlands/amsterdam',
+  Paris:'europe/france/paris',
+  Interlaken:'europe/switzerland/interlaken',
+  Vienna:'europe/austria/vienna',
+  Budapest:'europe/hungary/budapest',
+  Rome:'europe/italy/rome'
+};
+function hostelworldCityUrl(city){
+  const path = HOSTELWORLD_CITY_PATH[city];
+  return path ? `https://www.hostelworld.com/hostels/${path}/` : 'https://www.hostelworld.com/';
 }
 function bookingComSearchUrl(term){
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
@@ -820,18 +856,21 @@ function bookingComSearchUrl(term){
 function slugify(str){
   return String(str).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'');
 }
-// Best-effort "View Booking" link for an accommodation stay, since none of
-// this trip's stays carry a real confirmation number/deep link - a search
-// on the matching provider (Hostelworld for hostels, Booking.com
-// otherwise) gets the traveler to the right property in a couple of taps.
-// Works for any stay, including ones swapped in later via "Edit
-// accommodation", not just the ones hardcoded below.
-function stayBookingInfo(stay){
+// Best-effort "Open Booking" link for an accommodation stay, since none of
+// this trip's stays carry a real confirmation number/deep link. Hostels
+// get Hostelworld's real city page (see HOSTELWORLD_CITY_PATH above);
+// everything else gets a Booking.com property search, since Booking.com
+// does support a plain query-string search on its real domain. Works for
+// any stay, including ones swapped in later via "Edit accommodation", not
+// just the ones hardcoded below. `city` is optional context (falls back
+// to Hostelworld's homepage if the stay's city isn't one of the six this
+// trip covers).
+function stayBookingInfo(stay, city){
   if(/nightjet/i.test(stay.name) || /on board/i.test(stay.type||'')){
     return {url:'https://www.nightjet.com/en', label:'Nightjet'};
   }
+  if(/hostel/i.test(stay.type||'')) return {url: hostelworldCityUrl(city), label:'Hostelworld'};
   const term = `${stay.name}${stay.place ? ', '+stay.place.split(',')[0] : ''}`;
-  if(/hostel/i.test(stay.type||'')) return {url: hostelworldSearchUrl(term), label:'Hostelworld'};
   return {url: bookingComSearchUrl(term), label:'Booking.com'};
 }
 const HOSTELS_BY_CITY = {
@@ -875,12 +914,20 @@ const HOSTELS_BY_CITY = {
   ]
 };
 
+// Flight stops' `booking.url` points at united.com/en/us/manageres/mytrips -
+// United's real "Find a Trip / Manage Your Reservations" page (confirmed as
+// a genuine, indexed united.com URL, not a guess). No documented United
+// deep-link scheme or confirmed universal-link path exists for jumping
+// straight to a specific trip, so this is the closest verifiable target:
+// a real page on their own domain, which iOS will still hand to the
+// United app instead of Safari if it's installed and Universal Links are
+// configured for united.com (standard practice for an app this size).
 const ITINERARY = [
   {id:'d1',date:'Fri Oct 9',city:'Amsterdam',title:'Arrive, settle in',
    arrivalPlace:'Newark Liberty International Airport, Newark, NJ',
    stops:[
      {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol',
-      booking:{url:'https://www.united.com/en/us', label:'United'}}
+      booking:{url:'https://www.united.com/en/us/manageres/mytrips', label:'United'}}
    ],
    stay:{name:'DoubleTree by Hilton Amsterdam Centraal',type:'Hotel · 1 night',place:'DoubleTree by Hilton Amsterdam Centraal Station'}},
   {id:'d2',date:'Sat Oct 10',city:'Amsterdam',title:'Countryside day',
@@ -982,7 +1029,7 @@ const ITINERARY = [
   {id:'d19',date:'Tue Oct 27',city:'Rome',title:'Fly home',
    stops:[
      {name:'Flight UA 41 (United)',desc:'Departs Rome Fiumicino 10:30am for Newark (EWR).',place:'Rome Fiumicino Airport',
-      booking:{url:'https://www.united.com/en/us', label:'United'}}
+      booking:{url:'https://www.united.com/en/us/manageres/mytrips', label:'United'}}
    ],
    stay:{name:'Yes Hotel Rome',type:'Leave ~7am for Fiumicino',place:'Yes Hotel Rome'}},
 ];
@@ -1090,12 +1137,14 @@ function checklistSlug(item){
   return item.toLowerCase().replace(/[^a-z0-9]+/g,'-');
 }
 
-// Packing items added by the traveler, and default items they've deleted -
-// layered on top of CHECKLIST_GROUPS at render time so the built-in list
-// stays a fixed starting point while the actual packing list is fully
-// editable. Persisted the same way as everything else (localStorage).
+// Packing items added by the traveler (each tagged with a category - either
+// one of the built-in group labels below, or one the traveler named
+// themselves), and default items they've deleted - layered on top of
+// CHECKLIST_GROUPS at render time so the built-in list stays a fixed
+// starting point while the actual packing list is fully editable.
+// Persisted the same way as everything else (localStorage).
 let packingRemovedDefaults = new Set();
-let packingCustomItems = [];
+let packingCustomItems = []; // {id, name, category}
 async function loadPackingState(){
   try {
     const r = await store.get('packing:removed-defaults');
@@ -1113,16 +1162,51 @@ function persistPackingCustom(){
   store.set('packing:custom-items', JSON.stringify(packingCustomItems));
 }
 
+// Builds the groups actually rendered: each default CHECKLIST_GROUPS label
+// with its surviving items, plus any custom item merged into its own
+// category - either an existing default label (so it lands in that same
+// section) or a traveler-named one (which becomes its own section, in the
+// order it was first used). A group only appears once it has >=1 item, so
+// removing every item from a group - default or custom-named - makes that
+// category stop being "current" (see currentPackingCategories below).
+function buildPackingGroups(){
+  const groups = [];
+  const byLabel = new Map();
+  for(const g of CHECKLIST_GROUPS){
+    const items = g.items.filter(item => !packingRemovedDefaults.has(checklistSlug(item))).map(item => ({key: checklistSlug(item), name: item}));
+    const groupObj = {label: g.label, items};
+    groups.push(groupObj);
+    byLabel.set(g.label, groupObj);
+  }
+  for(const it of packingCustomItems){
+    let g = byLabel.get(it.category);
+    if(!g){
+      g = {label: it.category, items: []};
+      groups.push(g);
+      byLabel.set(it.category, g);
+    }
+    g.items.push({key: it.id, name: it.name});
+  }
+  return groups.filter(g => g.items.length);
+}
+
+// The category names available to pick from when adding a new item -
+// whatever is currently represented in the packing list, default or
+// traveler-created, so the list never shows a stale/empty category and a
+// newly created one shows up immediately for the next item added.
+function currentPackingCategories(){
+  return buildPackingGroups().map(g => g.label);
+}
+// Case-insensitive match so typing "clothing" when "Clothing" already
+// exists reuses it instead of creating a visually-duplicate category.
+function matchExistingCategory(name){
+  const norm = name.trim().toLowerCase();
+  return currentPackingCategories().find(c => c.toLowerCase() === norm) || null;
+}
+
 function renderChecklist(){
   const el = document.getElementById('panel-checklist');
-  const groups = CHECKLIST_GROUPS
-    .map(group => ({ label: group.label, items: group.items
-      .filter(item => !packingRemovedDefaults.has(checklistSlug(item)))
-      .map(item => ({key: checklistSlug(item), name: item})) }))
-    .filter(g => g.items.length);
-  if(packingCustomItems.length){
-    groups.push({label:'Added By You', items: packingCustomItems.map(it=>({key: it.id, name: it.name}))});
-  }
+  const groups = buildPackingGroups();
 
   el.innerHTML = `
     <div class="section-heading" style="margin-top:6px;">PACKING LIST</div>
@@ -1186,30 +1270,64 @@ function renderChecklist(){
 
   document.getElementById('add-packing-item-btn').addEventListener('click', (e)=>{
     const btn = e.currentTarget;
+    const categories = currentPackingCategories();
+    const NEW_CATEGORY_VALUE = '__new__';
     const form = document.createElement('div');
     form.className = 'add-stop-form';
     form.style.marginBottom = '14px';
     form.innerHTML = `
-      <input type="text" placeholder="Item name (e.g. Rain jacket)" class="f-packing-name" autocomplete="off">
+      <label class="field-label" for="f-packing-name">ITEM NAME</label>
+      <input type="text" id="f-packing-name" placeholder="e.g. Rain jacket" class="f-packing-name" autocomplete="off">
+      <label class="field-label" for="f-packing-category">CATEGORY</label>
+      <select id="f-packing-category" class="f-packing-category">
+        ${categories.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('')}
+        <option value="${NEW_CATEGORY_VALUE}">+ Create New Category</option>
+      </select>
+      <div class="f-packing-new-category-wrap" hidden>
+        <label class="field-label" for="f-packing-new-category">NEW CATEGORY NAME</label>
+        <input type="text" id="f-packing-new-category" placeholder="e.g. Electronics" class="f-packing-new-category" autocomplete="off">
+      </div>
       <div class="add-stop-actions">
         <button class="cancel" type="button">CANCEL</button>
         <button class="confirm" type="button">ADD ITEM</button>
       </div>
     `;
     btn.replaceWith(form);
-    const input = form.querySelector('.f-packing-name');
-    input.focus();
+    const nameInput = form.querySelector('.f-packing-name');
+    const categorySelect = form.querySelector('.f-packing-category');
+    const newCategoryWrap = form.querySelector('.f-packing-new-category-wrap');
+    const newCategoryInput = form.querySelector('.f-packing-new-category');
+    nameInput.focus();
+
+    categorySelect.addEventListener('change', ()=>{
+      const isNew = categorySelect.value === NEW_CATEGORY_VALUE;
+      newCategoryWrap.hidden = !isNew;
+      if(isNew) newCategoryInput.focus();
+    });
+
     const doAdd = ()=>{
-      const name = input.value.trim();
+      const name = nameInput.value.trim();
       if(!name) return;
+      let category;
+      if(categorySelect.value === NEW_CATEGORY_VALUE){
+        const typed = newCategoryInput.value.trim();
+        if(!typed){ newCategoryInput.focus(); return; }
+        category = matchExistingCategory(typed) || typed;
+      } else {
+        category = categorySelect.value || (categories[0] || 'Packed');
+      }
       const id = 'custom-'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
-      packingCustomItems.push({id, name});
+      packingCustomItems.push({id, name, category});
       persistPackingCustom();
       renderChecklist();
     };
     form.querySelector('.confirm').addEventListener('click', doAdd);
     form.querySelector('.cancel').addEventListener('click', ()=>renderChecklist());
-    input.addEventListener('keydown', (ev)=>{
+    nameInput.addEventListener('keydown', (ev)=>{
+      if(ev.key==='Enter'){ ev.preventDefault(); doAdd(); }
+      if(ev.key==='Escape'){ ev.preventDefault(); renderChecklist(); }
+    });
+    newCategoryInput.addEventListener('keydown', (ev)=>{
       if(ev.key==='Enter'){ ev.preventDefault(); doAdd(); }
       if(ev.key==='Escape'){ ev.preventDefault(); renderChecklist(); }
     });
@@ -1294,7 +1412,7 @@ function renderTransport(){
             <div class="seg-meta">${s.meta}</div>
             <div class="seg-note">${s.note}</div>
             <div class="seg-links">
-              <a class="pill-link primary" href="${appSearchUrl('Eurail Rail Planner')}" target="_blank">🚆 EURAIL APP ↗</a>
+              <a class="pill-link primary" href="${RAIL_PLANNER_APP_STORE_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
               ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
               <button class="icon-btn" type="button" data-act="booking" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
@@ -1544,13 +1662,12 @@ function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlace
             <div class="nearby-item-desc">${escapeHtml(h.area)}</div>
           </div>
           <div class="nearby-item-actions">
-            <a class="stop-map secondary" href="${hostelworldSearchUrl(h.name+' '+city)}" target="_blank">HOSTELWORLD ↗</a>
             <button class="stop-map nearby-add-btn" type="button" data-idx="${i}">USE</button>
           </div>
         </div>
       `).join('')}
     </div>
-    <a class="stop-map" href="${hostelworldSearchUrl(city)}" target="_blank" style="display:inline-block;margin:2px 0 14px;">🔍 SEARCH ALL HOSTELS IN ${escapeHtml(city.toUpperCase())} ↗</a>
+    <a class="stop-map" href="${hostelworldCityUrl(city)}" target="_blank" style="display:inline-block;margin:2px 0 14px;">🔍 SEE ALL HOSTELS IN ${escapeHtml(city.toUpperCase())} ON HOSTELWORLD ↗</a>
   ` : '';
   form.innerHTML = `
     ${hostelBrowseHtml}
@@ -1663,7 +1780,7 @@ function renderItinerary(){
       `;
     }).join('');
 
-    const stayBooking = stayBookingInfo(stay);
+    const stayBooking = stayBookingInfo(stay, d.city);
     const stayHtml = `
       <div class="stay-row top" data-id="${d.id}">
         <div class="stay-head">

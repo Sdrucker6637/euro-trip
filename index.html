@@ -53,7 +53,7 @@
   body{font-family:var(--font-body);background:var(--bg);color:var(--cream);display:flex;justify-content:center;}
   .map-bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
   .map-bg svg{display:block;width:100%;height:100%;}
-  .app{position:relative;z-index:1;width:100%;max-width:460px;min-height:100vh;display:flex;flex-direction:column;background:transparent;}
+  .app{position:relative;z-index:1;width:100%;max-width:460px;height:100vh;height:100dvh;display:flex;flex-direction:column;background:transparent;overflow:hidden;}
   header{padding:22px 20px 18px;border-bottom:1px solid var(--glass-line);position:relative;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
   .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--amber);display:flex;justify-content:space-between;align-items:center;}
   .eyebrow .stamp{display:inline-flex;align-items:center;gap:5px;}
@@ -70,7 +70,7 @@
   .route-dot{width:9px;height:9px;border-radius:50%;border:2px solid var(--bg);position:relative;top:11px;}
   .route-dot:first-child,.route-dot:last-child{width:12px;height:12px;top:9.5px;box-shadow:0 0 0 3px rgba(227,165,66,0.16);}
   .route-plane{position:absolute;top:-3px;transform:translateX(-50%);transition:left 0.3s;font-size:13px;}
-  main{position:relative;flex:1;overflow-y:auto;padding:16px 16px 90px;}
+  main{position:relative;flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 90px;}
   .panel{display:none;}
   .panel.active{display:block;}
 
@@ -161,12 +161,16 @@
   .day-card.open .day-chevron{transform:rotate(180deg);}
   .day-detail{display:none;padding:0 14px 14px;}
   .day-card.open .day-detail{display:block;border-top:1px dashed var(--glass-line);padding-top:12px;}
-  .stop-row{padding:11px 0;border-top:1px dotted var(--glass-line);}
+  .stop-row{position:relative;padding:16px 0 16px 26px;}
+  .stop-row::before{content:'';position:absolute;left:5px;top:0;bottom:0;width:1px;background:var(--glass-line);}
+  .stop-row::after{content:'';position:absolute;left:1px;top:19px;width:9px;height:9px;border-radius:50%;background:var(--bg);border:2px solid var(--amber);}
+  .stop-row:first-child::before{top:19px;}
+  .stop-row:last-child::before{bottom:auto;height:19px;}
   .stop-info{min-width:0;}
-  .stop-name{display:block;font-size:13.5px;font-weight:500;color:var(--cream);text-decoration:none;}
+  .stop-name{display:block;font-size:14px;font-weight:600;color:var(--cream);text-decoration:none;}
   .stop-name:hover,.stop-name:active{text-decoration:underline;}
-  .stop-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
-  .stop-actions{margin-top:9px;}
+  .stop-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;}
+  .stop-actions{margin-top:10px;}
   .directions-menu{display:flex;flex-wrap:wrap;gap:14px;margin-top:7px;}
   .directions-menu[hidden]{display:none;}
   @keyframes flash-save{0%{background:rgba(127,174,122,0.4);}100%{background:transparent;}}
@@ -275,9 +279,15 @@ window.addEventListener('unhandledrejection', function(e){
     </defs>
 
     <rect width="460" height="900" fill="url(#mapVignette)"/>
+
+    <!-- aged-paper corner stain -->
+    <ellipse cx="40" cy="860" rx="180" ry="140" fill="#3a2c14" opacity="0.05"/>
+    <ellipse cx="440" cy="60" rx="160" ry="120" fill="#3a2c14" opacity="0.04"/>
+
     <rect width="460" height="900" filter="url(#mapGrain)" opacity="0.05"/>
 
-    <g stroke="rgba(133,152,173,0.11)" stroke-width="1">
+    <!-- lat/long graticule -->
+    <g stroke="rgba(133,152,173,0.09)" stroke-width="1">
       <line x1="0" y1="150" x2="460" y2="150" stroke-dasharray="1 7"/>
       <line x1="0" y1="330" x2="460" y2="330" stroke-dasharray="1 7"/>
       <line x1="0" y1="510" x2="460" y2="510" stroke-dasharray="1 7"/>
@@ -286,39 +296,101 @@ window.addEventListener('unhandledrejection', function(e){
       <line x1="345" y1="0" x2="345" y2="900" stroke-dasharray="1 7"/>
     </g>
 
-    <g fill="none" stroke="rgba(133,152,173,0.11)" stroke-width="1.2" stroke-linecap="round">
-      <path d="M -20 230 C 60 200, 90 260, 40 320 S 10 420, 70 460 S 140 440, 120 520 S 60 600, 100 680 S 180 720, 150 800"/>
-      <path d="M 460 40 C 380 70, 360 140, 410 190 S 470 260, 400 300 S 320 320, 340 400 S 400 470, 360 540"/>
-      <path d="M 200 -10 C 210 60, 170 100, 210 150 S 270 190, 240 250"/>
+    <!-- landmass silhouettes: Iberian/Atlantic edge, Benelux/North Sea coast, Italian peninsula -->
+    <g fill="rgba(133,152,173,0.035)" stroke="rgba(133,152,173,0.17)" stroke-width="1.3" stroke-linejoin="round">
+      <path d="M -30 40 C 40 20, 70 90, 30 160 C -10 220, 50 260, 20 330 C -10 390, 40 430, 10 500 L -30 500 Z"/>
+      <path d="M 460 -20 L 460 260 C 400 250, 370 200, 400 150 C 420 115, 390 80, 420 40 C 435 20, 450 0, 460 -20 Z"/>
+      <path d="M 130 -20 C 150 30, 110 55, 140 95 C 160 120, 130 150, 165 180 L 60 180 C 50 100, 70 30, 130 -20 Z" stroke-width="1.1"/>
     </g>
 
+    <!-- Italy: schematic boot peninsula, anchoring the Rome end of the route -->
+    <path d="M254 672 C242 715 248 758 236 798 C230 826 218 848 206 868 C200 880 214 892 234 888 C252 884 264 870 260 854 C276 838 282 812 292 782 C302 750 298 706 288 672 C278 656 262 656 254 672 Z"
+          fill="rgba(133,152,173,0.04)" stroke="rgba(133,152,173,0.19)" stroke-width="1.3" stroke-linejoin="round"/>
+    <path d="M206 868 C196 876 190 890 200 896 C212 902 222 892 218 880" fill="rgba(133,152,173,0.04)" stroke="rgba(133,152,173,0.19)" stroke-width="1.1" stroke-linejoin="round"/>
+
+    <!-- Alps: hachure marks between Interlaken and Vienna -->
+    <g fill="rgba(133,152,173,0.2)">
+      <path d="M148 400 L158 380 L168 400 Z"/>
+      <path d="M168 396 L179 372 L190 396 Z"/>
+      <path d="M190 402 L200 382 L210 402 Z"/>
+      <path d="M212 396 L224 368 L236 396 Z"/>
+      <path d="M236 402 L246 382 L256 402 Z"/>
+      <path d="M256 396 L268 372 L280 396 Z"/>
+    </g>
+
+    <!-- secondary rail network: fainter straight-ish lines suggesting a wider network -->
+    <g stroke="rgba(133,152,173,0.11)" stroke-width="1" fill="none" stroke-linecap="round">
+      <path d="M84 92 L -30 60"/>
+      <path d="M84 92 L 40 220 L -20 300"/>
+      <path d="M62 258 L -30 340"/>
+      <path d="M152 418 L 60 480 L 20 560"/>
+      <path d="M312 478 L 420 420 L 460 460"/>
+      <path d="M312 478 L 380 380 L 460 340"/>
+      <path d="M382 606 L 460 640"/>
+      <path d="M382 606 L 320 700 L 340 800"/>
+      <path d="M252 796 L 180 850 L 140 900"/>
+    </g>
+
+    <!-- primary route: Amsterdam -> Paris -> Interlaken -> Vienna -> Budapest -> Rome -->
     <path d="M 84 92 C 60 150, 50 200, 62 258 S 100 360, 152 418 C 210 400, 270 430, 312 478 C 350 520, 372 560, 382 606 C 360 660, 300 720, 252 796"
-          fill="none" stroke="rgba(227,165,66,0.11)" stroke-width="1.4" stroke-dasharray="2 6" stroke-linecap="round"/>
+          fill="none" stroke="rgba(227,165,66,0.24)" stroke-width="1.7" stroke-dasharray="3 5" stroke-linecap="round"/>
 
-    <g font-family="'IBM Plex Mono',monospace" font-size="9" letter-spacing="1" fill="rgba(243,235,216,0.14)">
-      <circle cx="84" cy="92" r="3" fill="#4FA8A0" fill-opacity="0.3"/>
-      <text x="94" y="89">AMS</text>
-      <circle cx="62" cy="258" r="3" fill="#D8735A" fill-opacity="0.3"/>
-      <text x="72" y="255">PAR</text>
-      <circle cx="152" cy="418" r="3" fill="#7FA85C" fill-opacity="0.3"/>
-      <text x="162" y="415">INT</text>
-      <circle cx="312" cy="478" r="3" fill="#9B7FBF" fill-opacity="0.3"/>
-      <text x="322" y="475">VIE</text>
-      <circle cx="382" cy="606" r="3" fill="#D9A441" fill-opacity="0.3"/>
-      <text x="392" y="603">BUD</text>
-      <circle cx="252" cy="796" r="3" fill="#C75C4A" fill-opacity="0.3"/>
-      <text x="262" y="793">ROM</text>
+    <!-- minor waypoint ticks along the primary route -->
+    <g stroke="rgba(227,165,66,0.24)" stroke-width="1.4">
+      <line x1="52" y1="175" x2="62" y2="169" transform="rotate(8 57 172)"/>
+      <line x1="118" y1="392" x2="126" y2="400" transform="rotate(-30 122 396)"/>
+      <line x1="352" y1="540" x2="362" y2="546" transform="rotate(20 357 543)"/>
+      <line x1="316" y1="700" x2="326" y2="694" transform="rotate(60 321 697)"/>
     </g>
 
-    <g transform="translate(388,66)" stroke="rgba(133,152,173,0.1)" fill="none" stroke-width="1">
+    <!-- city stations: open square marker + code, station-tick through each -->
+    <g font-family="'IBM Plex Mono',monospace" font-size="9.5" letter-spacing="1.2" fill="rgba(243,235,216,0.19)">
+      <g stroke="rgba(227,165,66,0.3)" stroke-width="1.3">
+        <rect x="80" y="88" width="8" height="8" fill="#4FA8A0" fill-opacity="0.4" stroke="none"/>
+        <line x1="80" y1="92" x2="88" y2="92"/>
+      </g>
+      <text x="94" y="89">AMSTERDAM</text>
+
+      <g stroke="rgba(227,165,66,0.3)" stroke-width="1.3">
+        <rect x="58" y="254" width="8" height="8" fill="#D8735A" fill-opacity="0.4" stroke="none"/>
+        <line x1="66" y1="258" x2="40" y2="304" stroke-dasharray="1 3"/>
+      </g>
+      <text x="26" y="316">PARIS</text>
+
+      <g stroke="rgba(227,165,66,0.3)" stroke-width="1.3">
+        <rect x="148" y="414" width="8" height="8" fill="#7FA85C" fill-opacity="0.4" stroke="none"/>
+        <line x1="148" y1="418" x2="156" y2="418"/>
+      </g>
+      <text x="162" y="415">INTERLAKEN</text>
+
+      <g stroke="rgba(227,165,66,0.3)" stroke-width="1.3">
+        <rect x="308" y="474" width="8" height="8" fill="#9B7FBF" fill-opacity="0.4" stroke="none"/>
+        <line x1="308" y1="478" x2="316" y2="478"/>
+      </g>
+      <text x="322" y="475">VIENNA</text>
+
+      <g stroke="rgba(227,165,66,0.3)" stroke-width="1.3">
+        <rect x="378" y="602" width="8" height="8" fill="#D9A441" fill-opacity="0.4" stroke="none"/>
+        <line x1="378" y1="606" x2="386" y2="606"/>
+      </g>
+      <text x="392" y="603">BUDAPEST</text>
+
+      <g stroke="rgba(227,165,66,0.3)" stroke-width="1.3">
+        <rect x="248" y="792" width="8" height="8" fill="#C75C4A" fill-opacity="0.4" stroke="none"/>
+        <line x1="248" y1="796" x2="256" y2="796"/>
+      </g>
+      <text x="262" y="793">ROME</text>
+    </g>
+
+    <g transform="translate(388,66)" stroke="rgba(133,152,173,0.13)" fill="none" stroke-width="1">
       <circle r="24"/>
       <line x1="0" y1="-24" x2="0" y2="-30"/>
       <line x1="0" y1="24" x2="0" y2="30"/>
       <line x1="-24" y1="0" x2="-30" y2="0"/>
       <line x1="24" y1="0" x2="30" y2="0"/>
-      <line x1="0" y1="0" x2="-9" y2="-16" stroke="rgba(227,165,66,0.12)"/>
-      <line x1="0" y1="0" x2="9" y2="16" stroke="rgba(227,165,66,0.12)"/>
-      <text x="0" y="-34" font-family="'IBM Plex Mono',monospace" font-size="8" fill="rgba(133,152,173,0.13)" text-anchor="middle">N</text>
+      <line x1="0" y1="0" x2="-9" y2="-16" stroke="rgba(227,165,66,0.16)"/>
+      <line x1="0" y1="0" x2="9" y2="16" stroke="rgba(227,165,66,0.16)"/>
+      <text x="0" y="-34" font-family="'IBM Plex Mono',monospace" font-size="8" fill="rgba(133,152,173,0.15)" text-anchor="middle">N</text>
     </g>
   </svg>
 </div>

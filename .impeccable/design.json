@@ -113,6 +113,14 @@
       "description": "Signature component: a dashed-border circle rotated -6deg showing a day's date, colored by that day's city - the strongest expression of the ink-stamp metaphor.",
       "html": "<div class=\"ds-stamp-badge\" style=\"color:#D8735A\"><span class=\"ds-stamp-badge-mon\">OCT</span><span class=\"ds-stamp-badge-day\">12</span></div>",
       "css": ".ds-stamp-badge { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed currentColor; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; line-height: 1.05; transform: rotate(-6deg); } .ds-stamp-badge-mon { font-size: 8.5px; letter-spacing: 0.05em; } .ds-stamp-badge-day { font-size: 15px; font-weight: 600; }"
+    },
+    {
+      "name": "Day Timeline",
+      "kind": "custom",
+      "refersTo": "stop-row",
+      "description": "A day's activities as rows on a small vertical rail (a per-day miniature of the header's own route-line motif) instead of stacked cards or a flat divided list - a hollow amber-ringed node per stop on a continuous line, indented text with a clear name/description weight step.",
+      "html": "<div class=\"ds-timeline\"><div class=\"ds-timeline-row\"><div class=\"ds-timeline-name\">Eiffel Tower</div><div class=\"ds-timeline-desc\">Paris's icon - go up for skyline views.</div></div><div class=\"ds-timeline-row\"><div class=\"ds-timeline-name\">Seine river cruise</div><div class=\"ds-timeline-desc\">Evening boat ride past Notre-Dame.</div></div></div>",
+      "css": ".ds-timeline-row { position: relative; padding: 16px 0 16px 26px; } .ds-timeline-row::before { content: ''; position: absolute; left: 5px; top: 0; bottom: 0; width: 1px; background: rgba(133,152,173,0.22); } .ds-timeline-row::after { content: ''; position: absolute; left: 1px; top: 19px; width: 9px; height: 9px; border-radius: 50%; background: #0F1B2D; border: 2px solid #E3A542; } .ds-timeline-row:first-child::before { top: 19px; } .ds-timeline-row:last-child::before { bottom: auto; height: 19px; } .ds-timeline-name { font-size: 14px; font-weight: 600; color: #EDE7D9; } .ds-timeline-desc { font-size: 12px; color: #8598AD; margin-top: 3px; line-height: 1.45; }"
     }
   ],
   "narrative": {
@@ -133,7 +141,8 @@
       { "name": "The Printed-Label Rule", "body": "Any text that represents a code, date, status, or short machine-legible fact (not a sentence) is set in IBM Plex Mono, regardless of where it appears in the hierarchy. Any text that represents a name, title, or description is set in Space Grotesk or IBM Plex Sans.", "section": "typography" },
       { "name": "The Document Lift Rule", "body": "Only paper-toned cards get a pronounced shadow. A dark-surface card never carries more than the ambient level, no matter its importance.", "section": "elevation" },
       { "name": "The Perforation Rule", "body": "Dashed and dotted borders and circular notch cutouts are reserved for elements that represent a physical, tearable, or stampable document, or the rules that separate its internal rows. A purely digital control never borrows this motif for its own sake.", "section": "shapes" },
-      { "name": "The Ticket-Stub Rule", "body": "The asymmetric one-sharp/one-round corner radius is reserved for elements that represent a torn or issued document/action: primary content cards and primary buttons. A container that isn't standing in for a physical object uses a plain symmetric radius or none.", "section": "shapes" }
+      { "name": "The Ticket-Stub Rule", "body": "The asymmetric one-sharp/one-round corner radius is reserved for elements that represent a torn or issued document/action: primary content cards and primary buttons. A container that isn't standing in for a physical object uses a plain symmetric radius or none.", "section": "shapes" },
+      { "name": "The Single-Scroll Rule", "body": ".app never scrolls as a document; main is the one internal scroll container (flex: 1; min-height: 0; overflow-y: auto), and .app is a true fixed-height shell (height: 100dvh; overflow: hidden) so it can never grow past the viewport. Header, nav, and the background map layer stay visually anchored to the viewport while only main's content moves.", "section": "layout" }
     ],
     "dos": [
       "Do put any code, date, status, or label-length string in IBM Plex Mono; put any name, title, or sentence-length string in Space Grotesk or IBM Plex Sans.",

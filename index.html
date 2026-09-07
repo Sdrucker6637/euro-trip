@@ -506,16 +506,29 @@ function appSearchUrl(appName){
   return `https://apps.apple.com/us/search?term=${encodeURIComponent(term)}`;
 }
 
-// The Rail Planner app's real, confirmed App Store listing (id579547877,
-// "Eurail/Interrail Rail Planner" by Interrail B.V.) - a direct link to the
-// app's own page rather than a generic search result list, so a tap goes
-// straight to it (showing "OPEN" instead of "GET" if it's already
-// installed). Eurail's own community forum documents that the Rail
-// Planner app and eurail.com are not linked/synced, so there's no
-// confirmed universal-link/deep-link path into the app itself - this App
-// Store link is the most direct, verifiable mechanism available without
-// inventing one.
-const RAIL_PLANNER_APP_STORE_URL = 'https://apps.apple.com/us/app/rail-planner-eurail-interrail/id579547877';
+// Where "RAIL PLANNER" points, and why it's not an apps.apple.com link:
+// an App Store product-page URL (apps.apple.com/app/id...) always opens
+// the App Store app itself first - even with Rail Planner already
+// installed, that's a hard dead-end at "OPEN" rather than the app
+// actually launching, which is exactly the wrong behavior here.
+//
+// Verified attempt at a real deep link: no documented custom URL scheme
+// for Rail Planner exists anywhere searchable (App Store metadata,
+// Eurail's own community forum, GitHub, third-party deep-link
+// registries), and this app's outbound network is sandboxed so the
+// eurail.com/railplanner.eu apple-app-site-association files (the
+// authoritative source for Universal Link support) couldn't be fetched to
+// confirm or rule one out either. Given that, inventing a scheme is
+// exactly what was ruled out - so this links to Eurail's own real page
+// about the app instead of the App Store. That's a genuine improvement
+// regardless of the unresolved uncertainty: it can never force-open the
+// App Store the way an apps.apple.com link structurally always does, and
+// if eurail.com has Apple's standard Smart App Banner on this page (a
+// documented, legitimate mechanism many travel sites use to launch their
+// own installed app - unverified here, but plausible for an app this
+// size), tapping it opens Rail Planner directly; if not, the traveler
+// lands on Eurail's own official page for the app rather than a dead end.
+const RAIL_PLANNER_URL = 'https://www.eurail.com/en/plan-your-trip/rail-planner-app';
 
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1412,7 +1425,7 @@ function renderTransport(){
             <div class="seg-meta">${s.meta}</div>
             <div class="seg-note">${s.note}</div>
             <div class="seg-links">
-              <a class="pill-link primary" href="${RAIL_PLANNER_APP_STORE_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
+              <a class="pill-link primary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
               ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
               <button class="icon-btn" type="button" data-act="booking" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>

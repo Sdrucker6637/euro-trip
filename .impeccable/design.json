@@ -31,10 +31,17 @@
       "status-no-text": { "role": "status", "displayName": "Status No Text", "canonical": "#7A2C1C", "tonalRamp": ["#3E160E", "#742A1B", "#AA3D27", "#D35940", "#E08876", "#EAB0A4", "#F3D0C9", "#FAEDEA"] },
       "status-no-bg": { "role": "status", "displayName": "Status No Background", "canonical": "#F2D7D0", "tonalRamp": ["#3C1A11", "#70301F", "#A4462D", "#CC6347", "#DB8F7B", "#E7B4A7", "#F1D3CB", "#F9EEEB"] },
       "status-unclear-text": { "role": "status", "displayName": "Status Unclear Text", "canonical": "#6B5410", "tonalRamp": ["#43340A", "#7C6213", "#B68F1B", "#E0B533", "#E9CA6D", "#F0DB9D", "#F6EAC5", "#FCF7E9"] },
-      "status-unclear-bg": { "role": "status", "displayName": "Status Unclear Background", "canonical": "#F0E6C8", "tonalRamp": ["#3C3110", "#705C1F", "#A4862D", "#CDAB47", "#DBC37B", "#E7D7A7", "#F1E7CB", "#FAF6EB"] }
+      "status-unclear-bg": { "role": "status", "displayName": "Status Unclear Background", "canonical": "#F0E6C8", "tonalRamp": ["#3C3110", "#705C1F", "#A4862D", "#CDAB47", "#DBC37B", "#E7D7A7", "#F1E7CB", "#FAF6EB"] },
+      "glass": { "role": "overlay-shell", "displayName": "Glass", "canonical": "rgba(23,38,61,0.87)", "note": "Translucent counterpart to Surface, used on app-chrome cards over the fixed map layer with backdrop-filter blur. Overlay color; no tonal ramp." },
+      "glass-raised": { "role": "overlay-shell", "displayName": "Glass Raised", "canonical": "rgba(30,48,73,0.9)", "note": "Translucent counterpart to Surface Raised, used on the nav bar and the how-to modal. Overlay color; no tonal ramp." },
+      "glass-line": { "role": "overlay-shell", "displayName": "Glass Line", "canonical": "rgba(133,152,173,0.22)", "note": "Translucent counterpart to Line, for hairline/dashed borders on glass surfaces. Overlay color; no tonal ramp." },
+      "map-line": { "role": "overlay-map", "displayName": "Map Line", "canonical": "rgba(227,165,66,0.16)", "note": "The background rail-map route line. Deliberately near-invisible. Overlay color; no tonal ramp." },
+      "map-line-faint": { "role": "overlay-map", "displayName": "Map Line Faint", "canonical": "rgba(133,152,173,0.11)", "note": "The background rail-map graticule/coastline linework. Overlay color; no tonal ramp." },
+      "map-dot": { "role": "overlay-map", "displayName": "Map Dot", "canonical": "rgba(243,235,216,0.4)", "note": "The background rail-map city-label text color. Overlay color; no tonal ramp." }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "The single h1 route title only." },
+      "masthead": { "displayName": "Masthead", "purpose": "The arrival-city line of the h1 route lockup (36px) - the single largest, boldest text in the app." },
+      "display": { "displayName": "Display", "purpose": "Reserved large-headline step; unused now that the route title runs at Masthead scale." },
       "title": { "displayName": "Title (mono)", "purpose": "Route codes and city-pair headers, set in mono at display scale." },
       "body": { "displayName": "Body", "purpose": "Descriptions, notes, and form input text." },
       "label": { "displayName": "Label (mono)", "purpose": "Pill buttons, status flags, nav labels, badges, field labels - anything functional or code-like." }
@@ -116,27 +123,32 @@
       "Monospace for anything ticket-like (codes, dates, statuses, labels); a display face only for headlines/titles",
       "Dashed borders and circular notch cutouts standing in for perforation and stamps",
       "One accent (amber) reserved for primary action and current state; a small red/green/amber status vocabulary for booking urgency",
-      "Six named per-city hues used only as wayfinding accents (day-card left border, route dots), never as UI chrome"
+      "Six named per-city hues used only as wayfinding accents (day-card left border, route dots), never as UI chrome",
+      "A fixed, near-invisible vintage rail-map layer behind the whole app (route Amsterdam→Paris→Interlaken→Vienna→Budapest→Rome), visible through translucent 'glass' app-chrome; paper document cards stay fully opaque",
+      "An asymmetric 'ticket-stub' corner radius (one sharp corner, one rounded) on primary content cards and primary buttons, paired with a plain text-link style (no fill/border) for secondary actions"
     ],
     "rules": [
       { "name": "The One Accent Rule", "body": "Amber is the only color used for a primary call-to-action or an active/selected control. Teal, the status colors, and the city colors are all narrowly scoped to one specific job each and never substitute for amber.", "section": "colors" },
       { "name": "The Paper-or-Navy Rule", "body": "A card is either a paper-document card (paper background, ink text, warm-toned shadow) or an app-shell card (surface background, cream text, cool ambient shadow). The two never blend on the same element.", "section": "colors" },
       { "name": "The Printed-Label Rule", "body": "Any text that represents a code, date, status, or short machine-legible fact (not a sentence) is set in IBM Plex Mono, regardless of where it appears in the hierarchy. Any text that represents a name, title, or description is set in Space Grotesk or IBM Plex Sans.", "section": "typography" },
       { "name": "The Document Lift Rule", "body": "Only paper-toned cards get a pronounced shadow. A dark-surface card never carries more than the ambient level, no matter its importance.", "section": "elevation" },
-      { "name": "The Perforation Rule", "body": "Dashed borders and circular notch cutouts are reserved for elements that represent a physical, tearable, or stampable document (ticket cards, date stamps). A purely digital control (a button, an input) never borrows this motif.", "section": "shapes" }
+      { "name": "The Perforation Rule", "body": "Dashed and dotted borders and circular notch cutouts are reserved for elements that represent a physical, tearable, or stampable document, or the rules that separate its internal rows. A purely digital control never borrows this motif for its own sake.", "section": "shapes" },
+      { "name": "The Ticket-Stub Rule", "body": "The asymmetric one-sharp/one-round corner radius is reserved for elements that represent a torn or issued document/action: primary content cards and primary buttons. A container that isn't standing in for a physical object uses a plain symmetric radius or none.", "section": "shapes" }
     ],
     "dos": [
       "Do put any code, date, status, or label-length string in IBM Plex Mono; put any name, title, or sentence-length string in Space Grotesk or IBM Plex Sans.",
       "Do keep the paper/navy split absolute: paper background always pairs with ink text and a lifted shadow; navy/surface background always pairs with cream text and an ambient shadow.",
-      "Do reserve full-pill radius for interactive controls and card/section radii (12-18px) for containers; nothing sits between those two scales.",
-      "Do reserve dashed borders and circular notches for content that represents a physical, perforated, or stamped document.",
-      "Do limit a card's action row to one primary (amber, solid) action plus ghost/icon secondary actions - never two solid amber buttons side by side."
+      "Do keep app-chrome surfaces as translucent glass over the fixed map layer, and paper cards fully opaque.",
+      "Do reserve the ticket-stub asymmetric radius for primary content cards and primary buttons; use a plain symmetric radius (or none) everywhere else.",
+      "Do reserve dashed/dotted borders and circular notches for content that represents a physical, perforated, or stamped document.",
+      "Do limit a card's action row to one primary (amber, ticket-stub, solid) action plus text-link/icon secondary actions - never two solid amber buttons side by side."
     ],
     "donts": [
       "Don't use amber for anything other than the single primary action or current/active state in a given row or tab.",
       "Don't introduce a fourth type family; the display/body/mono trio covers every case in the system.",
       "Don't give a dark-surface (app-chrome) element the pronounced \"lifted\" shadow reserved for paper document cards.",
-      "Don't use a city color anywhere except the day-card left border and the route-timeline dots."
+      "Don't use a city color anywhere except the day-card left border, the route-timeline dots, and the background map's own city dots.",
+      "Don't let the background map layer become legible enough to read as content, or scroll with the page."
     ]
   }
 }

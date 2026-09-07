@@ -122,6 +122,30 @@
         "value": "4px",
         "createdAt": "2026-09-07T15:02:52.082Z",
         "reason": "Focus-ring outline corner softening; within the documented 3-10px micro-radius range in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "2px",
+        "createdAt": "2026-09-07T17:59:47.495Z",
+        "reason": "Ticket-stub asymmetric radius pattern (2px sharp / 10-16px rounded corners) added in the bolder pass — a deliberate new shape language for buttons/tags evoking a torn ticket stub, extending the existing perforation motif. Documented in DESIGN.md Shapes."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "36px",
+        "createdAt": "2026-09-07T17:59:47.506Z",
+        "reason": "New masthead display step for the h1 route title's arrival-city line, added in the bolder pass for stronger editorial hierarchy. Documented in DESIGN.md Typography."
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "18px",
+        "createdAt": "2026-09-07T17:59:47.517Z",
+        "reason": "Nearby-button emoji glyph size (decorative icon, not body/functional text), reduced from 21px to fit the new horizontal segmented-control layout."
+      },
+      {
+        "rule": "design-system-color",
+        "value": "rgba(255,255,255,0.25)",
+        "createdAt": "2026-09-07T17:59:47.528Z",
+        "reason": "Inset top-highlight on solid amber ticket-stub buttons (gloss/tactile cue), the same category of raw utility value as the already-documented modal scrim and white-on-red text exceptions. Documented in DESIGN.md Standard Exceptions."
       }
     ]
   }

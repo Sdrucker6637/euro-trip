@@ -84,6 +84,10 @@
   .modal-body h2{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--amber);letter-spacing:0.04em;margin:14px 0 6px;}
   .modal-body h2:first-child{margin-top:0;}
   .modal-body p{margin-bottom:4px;color:var(--cream);}
+  .booking-shot-img{width:100%;border-radius:8px;margin-top:8px;display:block;cursor:zoom-in;}
+  .booking-shot-actions{display:flex;gap:16px;align-items:center;margin-top:12px;flex-wrap:wrap;}
+  .booking-shot-remove{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--red);background:none;border:none;border-bottom:1px dotted var(--red);padding:7px 1px;cursor:pointer;}
+  .booking-shot-label{font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--ink);background:var(--amber);border-radius:2px 9px 2px 9px;padding:8px 14px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);display:inline-flex;align-items:center;gap:6px;}
 
   /* ---- Transport tab: grouped journeys ---- */
   .section-heading{display:flex;align-items:center;gap:9px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;color:var(--muted);margin:4px 0 12px;}
@@ -266,7 +270,7 @@ window.addEventListener('unhandledrejection', function(e){
 </script>
 <div class="app">
   <div id="err-banner" class="err-banner" role="alert" style="display:none;">
-    <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and checklist are safe - try reloading the page.</span>
+    <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and packing list are safe - try reloading the page.</span>
     <button id="err-banner-dismiss" class="err-banner-dismiss" aria-label="Dismiss">&#10005;</button>
   </div>
   <header>
@@ -304,6 +308,16 @@ window.addEventListener('unhandledrejection', function(e){
         <h2>Apps worth having</h2>
         <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
       </div>
+    </div>
+  </div>
+
+  <div id="booking-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span id="booking-modal-title">Booking</span>
+        <button id="booking-modal-close" class="modal-close" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="modal-body" id="booking-modal-body"></div>
     </div>
   </div>
 
@@ -454,7 +468,7 @@ window.addEventListener('unhandledrejection', function(e){
     </button>
     <button class="tab-btn" data-tab="checklist">
       <svg viewBox="0 0 24 24"><rect x="4" y="3.5" width="16" height="17" rx="2"/><path stroke-linecap="round" stroke-linejoin="round" d="M8 11.5l2 2 4-4.5M8 16.5h6"/></svg>
-      Checklist
+      Packing List
     </button>
   </nav>
 </div>
@@ -490,9 +504,12 @@ function escapeHtml(str){
 }
 
 // Swaps a destructive control for an inline "are you sure" confirm, in
-// place, instead of deleting on the first tap. Cancel just re-renders the
-// itinerary (the confirm is never persisted state, so nothing to undo).
-function confirmInline(target, message, onConfirm, extraClass){
+// place, instead of deleting on the first tap. Cancel just re-renders
+// (the confirm is never persisted state, so nothing to undo) - defaults
+// to the itinerary since that's every existing caller but a caller
+// removing something from a different panel (e.g. the packing list)
+// passes its own re-render function.
+function confirmInline(target, message, onConfirm, extraClass, onCancel){
   const wrap = document.createElement('div');
   wrap.className = 'inline-confirm' + (extraClass ? ' '+extraClass : '');
   wrap.innerHTML = `
@@ -502,7 +519,109 @@ function confirmInline(target, message, onConfirm, extraClass){
   `;
   target.replaceWith(wrap);
   wrap.querySelector('.inline-confirm-yes').addEventListener('click', (e)=>{ e.stopPropagation(); onConfirm(); });
-  wrap.querySelector('.inline-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); renderItinerary(); });
+  wrap.querySelector('.inline-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); (onCancel || renderItinerary)(); });
+}
+
+// Wires every compact "🎫" booking trigger found within a container -
+// shared by the transport (train legs) and itinerary (stays, flights)
+// panels so each one opens its own booking modal.
+function wireBookingButtons(container){
+  container.querySelectorAll('[data-act="booking"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      openBookingModal({
+        key: btn.dataset.key,
+        title: btn.dataset.title,
+        bookingUrl: btn.dataset.url || null,
+        bookingLabel: btn.dataset.label || null
+      });
+    });
+  });
+}
+
+// ---- Booking access: a compact "View Booking" + screenshot modal shared
+// by every bookable item (stays, flights, train legs). Screenshots are
+// stored locally as a resized data URL, keyed per item, so each booking
+// keeps its own image independent of the others.
+const BOOKING_SHOT_MAX_DIM = 1600;
+function resizeImageFile(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const img = new Image();
+      img.onload = ()=>{
+        let {width, height} = img;
+        const scale = Math.min(1, BOOKING_SHOT_MAX_DIM / Math.max(width, height));
+        width = Math.max(1, Math.round(width*scale));
+        height = Math.max(1, Math.round(height*scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.onerror = ()=>reject(new Error('Could not read image'));
+      img.src = reader.result;
+    };
+    reader.onerror = ()=>reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+// data: URLs can't reliably be opened as a new-tab navigation target in
+// every browser, so the "view large" tap converts to a blob: URL first.
+async function openImageLarge(dataUrl){
+  try {
+    const blob = await (await fetch(dataUrl)).blob();
+    window.open(URL.createObjectURL(blob), '_blank');
+  } catch(e){
+    window.open(dataUrl, '_blank');
+  }
+}
+
+function paintBookingModalBody(key, bookingUrl, bookingLabel, shot){
+  const bodyEl = document.getElementById('booking-modal-body');
+  bodyEl.innerHTML = `
+    ${bookingUrl ? `<a class="pill-link book" href="${escapeHtml(bookingUrl)}" target="_blank">VIEW BOOKING${bookingLabel ? ' · '+escapeHtml(bookingLabel) : ''} ↗</a>` : ''}
+    <h2 style="${bookingUrl ? '' : 'margin-top:0;'}">SCREENSHOT</h2>
+    <div id="booking-shot-area">
+      ${shot ? `<img src="${shot}" class="booking-shot-img" alt="Saved booking screenshot" title="Tap to view full size">` : `<div class="nearby-empty">No screenshot saved yet - add one so it's ready to show when you arrive.</div>`}
+    </div>
+    <div class="booking-shot-actions">
+      <label class="booking-shot-label">${shot ? 'REPLACE SCREENSHOT' : '+ ADD SCREENSHOT'}<input type="file" accept="image/*" id="booking-shot-input" style="display:none;"></label>
+      ${shot ? `<button class="booking-shot-remove" type="button" id="booking-shot-remove">REMOVE</button>` : ''}
+    </div>
+  `;
+  const shotImg = bodyEl.querySelector('.booking-shot-img');
+  if(shotImg) shotImg.addEventListener('click', ()=>openImageLarge(shot));
+  bodyEl.querySelector('#booking-shot-input').addEventListener('change', async (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    document.getElementById('booking-shot-area').innerHTML = '<div class="nearby-empty">Saving…</div>';
+    try {
+      const dataUrl = await resizeImageFile(file);
+      await store.set(key, dataUrl);
+      paintBookingModalBody(key, bookingUrl, bookingLabel, dataUrl);
+    } catch(err){
+      paintBookingModalBody(key, bookingUrl, bookingLabel, shot);
+    }
+  });
+  const removeBtn = bodyEl.querySelector('#booking-shot-remove');
+  if(removeBtn) removeBtn.addEventListener('click', async ()=>{
+    await store.set(key, '');
+    paintBookingModalBody(key, bookingUrl, bookingLabel, null);
+  });
+}
+
+async function openBookingModal({key, title, bookingUrl, bookingLabel}){
+  document.getElementById('booking-modal-title').textContent = title;
+  document.getElementById('booking-modal-body').innerHTML = '<div class="nearby-empty">Loading…</div>';
+  document.getElementById('booking-modal').classList.add('open');
+  let shot = null;
+  try {
+    const r = await store.get(key);
+    shot = (r && r.value) ? r.value : null;
+  } catch(e){ /* no saved screenshot */ }
+  paintBookingModalBody(key, bookingUrl, bookingLabel, shot);
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
@@ -615,11 +734,84 @@ const LOCAL_TRANSPORT = [
    pay:'yes', payNote:'Same Tap&Go system - tap in with your card or Apple Pay.'}
 ];
 
+// Curated starting points for the "browse hostels" list shown when
+// editing a day's accommodation - not a live feed (no Hostelworld
+// partner API is available to this app, and scraping their site isn't
+// an option), so this is a small, real, well-known hostel per city to
+// widen what's surfaced beyond the single one already booked. Every
+// entry links out to Hostelworld for the traveler to see live prices,
+// ratings, and availability rather than the app guessing at numbers
+// that would go stale.
+function hostelworldSearchUrl(term){
+  return `https://www.hostelworld.com/search?q=${encodeURIComponent(term)}`;
+}
+function bookingComSearchUrl(term){
+  return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
+}
+function slugify(str){
+  return String(str).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'');
+}
+// Best-effort "View Booking" link for an accommodation stay, since none of
+// this trip's stays carry a real confirmation number/deep link - a search
+// on the matching provider (Hostelworld for hostels, Booking.com
+// otherwise) gets the traveler to the right property in a couple of taps.
+// Works for any stay, including ones swapped in later via "Edit
+// accommodation", not just the ones hardcoded below.
+function stayBookingInfo(stay){
+  if(/nightjet/i.test(stay.name) || /on board/i.test(stay.type||'')){
+    return {url:'https://www.nightjet.com/en', label:'Nightjet'};
+  }
+  const term = `${stay.name}${stay.place ? ', '+stay.place.split(',')[0] : ''}`;
+  if(/hostel/i.test(stay.type||'')) return {url: hostelworldSearchUrl(term), label:'Hostelworld'};
+  return {url: bookingComSearchUrl(term), label:'Booking.com'};
+}
+const HOSTELS_BY_CITY = {
+  Amsterdam:[
+    {name:'The Flying Pig Downtown Hostel', area:'Centrum, near Dam Square - lively, long-running backpacker favorite.'},
+    {name:'St Christopher\'s at the Winston', area:'Red Light District edge - bar/venue downstairs, social scene.'},
+    {name:'ClinkNOORD', area:'Amsterdam Noord, free ferry from Centraal - quieter, design-forward.'},
+    {name:'Cocomama Hostel', area:'De Pijp - boutique-style, former brothel turned hostel.'},
+    {name:'Ecomama Hostel', area:'Near Waterlooplein - eco-focused, central canal-side location.'}
+  ],
+  Paris:[
+    {name:'The People – Paris Bercy', area:'Bercy, 12th arr. - modern, near Gare de Lyon.'},
+    {name:'Generator Paris', area:'10th arr., near Canal Saint-Martin - rooftop bar, design hostel.'},
+    {name:'St Christopher\'s Inn Paris Gare du Nord', area:'Right by Gare du Nord - convenient for early Eurostar departures.'},
+    {name:'Le Village Montmartre', area:'Montmartre hill, near Sacré-Cœur - quieter, hilltop views.'},
+    {name:'MIJE Le Fourcy', area:'Le Marais, historic 17th-century building - central, low-key.'}
+  ],
+  Interlaken:[
+    {name:'Backpackers Villa Sonnenhof', area:'Near Interlaken West station - lakeview terrace, quiet.'},
+    {name:'Balmer\'s Herberge', area:'Just outside town - Interlaken\'s original backpacker institution.'},
+    {name:'Funny Farm Backpackers', area:'Lakeside, short walk from center - social, outdoorsy crowd.'},
+    {name:'Happy Inn Lodge', area:'Central, near Interlaken Ost - simple, walkable to the station.'}
+  ],
+  Vienna:[
+    {name:'Hostel Ruthensteiner', area:'Near Westbahnhof - garden courtyard, long-running favorite.'},
+    {name:'Wombat\'s City Hostel Naschmarkt', area:'By the Naschmarkt - modern, big chain reliability.'},
+    {name:'Wombat\'s City Hostel The Lounge', area:'Near Westbahnhof - bar/lounge on site, sociable.'},
+    {name:'MEININGER Hotel Vienna Downtown Franz', area:'Near Danube Canal - hostel/hotel hybrid, family-friendly too.'}
+  ],
+  Budapest:[
+    {name:'Maverick Hostel & Ensuites', area:'Central Market Hall area - polished, central.'},
+    {name:'Maverick City Lodge', area:'Near Deák Ferenc tér - central, quieter than the party hostels.'},
+    {name:'Wombat\'s City Hostel Budapest', area:'Near Nyugati station - big chain, reliable amenities.'},
+    {name:'Retox Hostel', area:'District VII, Jewish Quarter/ruin bar district - lively, nightlife-focused.'}
+  ],
+  Rome:[
+    {name:'The RomeHello', area:'Near Termini - design-forward, rooftop terrace.'},
+    {name:'Yellow Square Hostel', area:'Near Termini - famous party hostel, very social.'},
+    {name:'The Beehive', area:'Near Termini - boutique eco-hostel, quieter and plant-filled.'},
+    {name:'Alessandro Palace Hostel', area:'Near Termini - long-running, bar on site.'}
+  ]
+};
+
 const ITINERARY = [
   {id:'d1',date:'Fri Oct 9',city:'Amsterdam',title:'Arrive, settle in',
    arrivalPlace:'Newark Liberty International Airport, Newark, NJ',
    stops:[
-     {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol'}
+     {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol',
+      booking:{url:'https://www.united.com/en/us', label:'United'}}
    ],
    stay:{name:'DoubleTree by Hilton Amsterdam Centraal',type:'Hotel · 1 night',place:'DoubleTree by Hilton Amsterdam Centraal Station'}},
   {id:'d2',date:'Sat Oct 10',city:'Amsterdam',title:'Countryside day',
@@ -639,17 +831,17 @@ const ITINERARY = [
      {name:'Eiffel Tower',desc:"Paris's icon - go up for skyline views or admire from the Champ de Mars.",place:'Eiffel Tower, Paris'},
      {name:'Seine river cruise',desc:'Evening boat ride past Notre-Dame and the illuminated riverbanks.',place:'Seine River Cruise Pier, Paris'}
    ],
-   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
+   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
   {id:'d5',date:'Tue Oct 13',city:'Paris',title:'Versailles day trip',
    stops:[
      {name:'Palace of Versailles',desc:"Louis XIV's opulent palace and gardens, a short train ride out.",place:'Palace of Versailles, Versailles, France'}
    ],
-   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
+   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
   {id:'d6',date:'Wed Oct 14',city:'Paris',title:'Latin Quarter, then train to Switzerland',
    stops:[
      {name:'Latin Quarter + Notre-Dame',desc:'Historic student quarter and the newly restored Gothic cathedral.',place:'Notre-Dame Cathedral, Paris'}
    ],
-   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People Hostel Paris Bercy'}},
+   stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
   {id:'d7',date:'Thu Oct 15',city:'Interlaken',title:'Arrive, relax',
    arrivalPlace:'Interlaken Ost, Interlaken, Switzerland',
    stops:[],
@@ -720,7 +912,8 @@ const ITINERARY = [
    stay:{name:'Yes Hotel Rome',type:'Hotel · last night',place:'Yes Hotel Rome'}},
   {id:'d19',date:'Tue Oct 27',city:'Rome',title:'Fly home',
    stops:[
-     {name:'Flight UA 41 (United)',desc:'Departs Rome Fiumicino 10:30am for Newark (EWR).',place:'Rome Fiumicino Airport'}
+     {name:'Flight UA 41 (United)',desc:'Departs Rome Fiumicino 10:30am for Newark (EWR).',place:'Rome Fiumicino Airport',
+      booking:{url:'https://www.united.com/en/us', label:'United'}}
    ],
    stay:{name:'Yes Hotel Rome',type:'Leave ~7am for Fiumicino',place:'Yes Hotel Rome'}},
 ];
@@ -828,22 +1021,57 @@ function checklistSlug(item){
   return item.toLowerCase().replace(/[^a-z0-9]+/g,'-');
 }
 
+// Packing items added by the traveler, and default items they've deleted -
+// layered on top of CHECKLIST_GROUPS at render time so the built-in list
+// stays a fixed starting point while the actual packing list is fully
+// editable. Persisted the same way as everything else (localStorage).
+let packingRemovedDefaults = new Set();
+let packingCustomItems = [];
+async function loadPackingState(){
+  try {
+    const r = await store.get('packing:removed-defaults');
+    packingRemovedDefaults = new Set(r && r.value ? JSON.parse(r.value) : []);
+  } catch(e){ packingRemovedDefaults = new Set(); }
+  try {
+    const r = await store.get('packing:custom-items');
+    packingCustomItems = r && r.value ? JSON.parse(r.value) : [];
+  } catch(e){ packingCustomItems = []; }
+}
+function persistPackingRemoved(){
+  store.set('packing:removed-defaults', JSON.stringify([...packingRemovedDefaults]));
+}
+function persistPackingCustom(){
+  store.set('packing:custom-items', JSON.stringify(packingCustomItems));
+}
+
 function renderChecklist(){
   const el = document.getElementById('panel-checklist');
+  const groups = CHECKLIST_GROUPS
+    .map(group => ({ label: group.label, items: group.items
+      .filter(item => !packingRemovedDefaults.has(checklistSlug(item)))
+      .map(item => ({key: checklistSlug(item), name: item})) }))
+    .filter(g => g.items.length);
+  if(packingCustomItems.length){
+    groups.push({label:'Added By You', items: packingCustomItems.map(it=>({key: it.id, name: it.name}))});
+  }
+
   el.innerHTML = `
+    <div class="section-heading" style="margin-top:6px;">PACKING LIST</div>
     <div class="checklist-head">
       <div class="checklist-sub">Check before you leave each place</div>
       <button class="reset-btn" id="reset-checklist">RESET</button>
     </div>
-    ${CHECKLIST_GROUPS.map(group => `
+    <button class="add-stop-btn" id="add-packing-item-btn" type="button" style="margin-bottom:14px;">+ ADD ITEM</button>
+    ${groups.length ? groups.map(group => `
       <div class="section-heading">${escapeHtml(group.label.toUpperCase())}</div>
       ${group.items.map(item=>`
-        <div class="check-item" data-key="${checklistSlug(item)}">
+        <div class="check-item" data-key="${escapeHtml(item.key)}">
           <input type="checkbox">
-          <span>${escapeHtml(item)}</span>
+          <span>${escapeHtml(item.name)}</span>
+          <button class="ctrl-btn danger packing-remove-btn" type="button" data-key="${escapeHtml(item.key)}" data-name="${escapeHtml(item.name)}" title="Remove item" aria-label="Remove ${escapeHtml(item.name)}">&#10005;</button>
         </div>
       `).join('')}
-    `).join('')}
+    `).join('') : `<div class="nearby-empty">No items yet - tap + ADD ITEM to build your packing list.</div>`}
   `;
 
   el.querySelectorAll('.check-item').forEach(row=>{
@@ -859,12 +1087,62 @@ function renderChecklist(){
     });
   });
 
+  el.querySelectorAll('.packing-remove-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.key, name = btn.dataset.name;
+      confirmInline(btn.closest('.check-item'), `Remove "${name}"?`, ()=>{
+        const customIdx = packingCustomItems.findIndex(it=>it.id===key);
+        if(customIdx !== -1){
+          packingCustomItems.splice(customIdx,1);
+          persistPackingCustom();
+        } else {
+          packingRemovedDefaults.add(key);
+          persistPackingRemoved();
+        }
+        store.set('packing:'+key, '0');
+        renderChecklist();
+      }, 'full-row', renderChecklist);
+    });
+  });
+
   document.getElementById('reset-checklist').addEventListener('click', ()=>{
     el.querySelectorAll('.check-item').forEach(row=>{
       const cb = row.querySelector('input');
       cb.checked = false;
       row.classList.remove('checked');
       store.set('packing:'+row.dataset.key, '0');
+    });
+  });
+
+  document.getElementById('add-packing-item-btn').addEventListener('click', (e)=>{
+    const btn = e.currentTarget;
+    const form = document.createElement('div');
+    form.className = 'add-stop-form';
+    form.style.marginBottom = '14px';
+    form.innerHTML = `
+      <input type="text" placeholder="Item name (e.g. Rain jacket)" class="f-packing-name" autocomplete="off">
+      <div class="add-stop-actions">
+        <button class="cancel" type="button">CANCEL</button>
+        <button class="confirm" type="button">ADD ITEM</button>
+      </div>
+    `;
+    btn.replaceWith(form);
+    const input = form.querySelector('.f-packing-name');
+    input.focus();
+    const doAdd = ()=>{
+      const name = input.value.trim();
+      if(!name) return;
+      const id = 'custom-'+Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+      packingCustomItems.push({id, name});
+      persistPackingCustom();
+      renderChecklist();
+    };
+    form.querySelector('.confirm').addEventListener('click', doAdd);
+    form.querySelector('.cancel').addEventListener('click', ()=>renderChecklist());
+    input.addEventListener('keydown', (ev)=>{
+      if(ev.key==='Enter'){ ev.preventDefault(); doAdd(); }
+      if(ev.key==='Escape'){ ev.preventDefault(); renderChecklist(); }
     });
   });
 }
@@ -950,6 +1228,7 @@ function renderTransport(){
               <a class="pill-link primary" href="${appSearchUrl('Eurail Rail Planner')}" target="_blank">🚆 EURAIL APP ↗</a>
               ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
+              <button class="icon-btn" type="button" data-act="booking" data-key="booking-shot:train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>
@@ -964,23 +1243,52 @@ function renderTransport(){
     cb.addEventListener('change', ()=>{ store.set(key, cb.checked ? '1':'0'); updateBookingRollup(); });
   });
   updateBookingRollup();
+  wireBookingButtons(el);
 
   renderLocalTransport();
 }
 
+// City -> country, used only to build more specific fallback geocode
+// queries below (never to replace the place name outright).
+const CITY_COUNTRY = {
+  Amsterdam:'Netherlands', Paris:'France', Interlaken:'Switzerland',
+  Vienna:'Austria', Budapest:'Hungary', Rome:'Italy'
+};
+
 const geocodeCache = {};
-async function geocodePlace(place){
-  if(geocodeCache[place]) return geocodeCache[place];
+async function geocodeQuery(q){
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(place)}`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
     const data = await res.json();
-    if(data[0]){
-      const coords = {lat:+data[0].lat, lon:+data[0].lon};
-      geocodeCache[place] = coords;
-      return coords;
-    }
+    if(data[0]) return {lat:+data[0].lat, lon:+data[0].lon};
   } catch(e){}
   return null;
+}
+// Geocodes a place, trying the exact string first (so already-working
+// lookups are untouched) and only falling back to progressively more
+// specific/general queries - place+country, place+city+country, then
+// city+country alone - when that fails. This is what makes an
+// ambiguous or non-standard venue name (e.g. a hostel not indexed under
+// that exact name on OpenStreetMap) still resolve to a useful nearby
+// point instead of "could not locate", without ever hardcoding a
+// generic stand-in location.
+async function geocodePlace(place, city){
+  const cacheKey = place+'|'+(city||'');
+  if(cacheKey in geocodeCache) return geocodeCache[cacheKey];
+  const country = city && CITY_COUNTRY[city];
+  const lower = place.toLowerCase();
+  const candidates = [place];
+  if(country && !lower.includes(country.toLowerCase())) candidates.push(`${place}, ${country}`);
+  if(city && !lower.includes(city.toLowerCase())) candidates.push(country ? `${place}, ${city}, ${country}` : `${place}, ${city}`);
+  if(city) candidates.push(country ? `${city}, ${country}` : city);
+
+  let coords = null;
+  for(const q of candidates){
+    coords = await geocodeQuery(q);
+    if(coords) break;
+  }
+  geocodeCache[cacheKey] = coords;
+  return coords;
 }
 
 // One-sentence descriptions per OSM category, so nearby results read as
@@ -1072,7 +1380,7 @@ function wireNearbyButtons(el){
       btn.classList.add('active');
       resultsEl.innerHTML = '<div class="nearby-loading">Finding nearby spots…</div>';
       try {
-        const coords = await geocodePlace(place);
+        const coords = await geocodePlace(place, city);
         if(!coords){ resultsEl.innerHTML = '<div class="nearby-empty">Could not locate this place.</div>'; return; }
         const items = await fetchNearby(coords.lat, coords.lon, type);
         if(!items.length){ resultsEl.innerHTML = '<div class="nearby-empty">Nothing found nearby - try Google Maps directly.</div>'; return; }
@@ -1153,10 +1461,30 @@ function persistStay(id){
 
 // Shared Nominatim-backed place search, used both for adding a stop and
 // for editing a day's accommodation.
-function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlaceholder='Search a place', descPlaceholder='One-line description (optional)', confirmLabel='ADD TO DAY', deriveDesc=null, onConfirm, onCancel }){
+function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlaceholder='Search a place', descPlaceholder='One-line description (optional)', confirmLabel='ADD TO DAY', deriveDesc=null, onConfirm, onCancel, hostelBrowse=false }){
   const form = document.createElement('div');
   form.className = 'add-stop-form';
+  const hostels = hostelBrowse ? (HOSTELS_BY_CITY[city] || []) : [];
+  const hostelBrowseHtml = hostels.length ? `
+    <div class="section-heading" style="margin-top:0;">BROWSE HOSTELS IN ${escapeHtml(city.toUpperCase())}</div>
+    <div class="nearby-results">
+      ${hostels.map((h,i)=>`
+        <div class="nearby-item">
+          <div class="nearby-item-info">
+            <div class="nearby-item-name">${escapeHtml(h.name)}</div>
+            <div class="nearby-item-desc">${escapeHtml(h.area)}</div>
+          </div>
+          <div class="nearby-item-actions">
+            <a class="stop-map secondary" href="${hostelworldSearchUrl(h.name+' '+city)}" target="_blank">HOSTELWORLD ↗</a>
+            <button class="stop-map nearby-add-btn" type="button" data-idx="${i}">USE</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <a class="stop-map" href="${hostelworldSearchUrl(city)}" target="_blank" style="display:inline-block;margin:2px 0 14px;">🔍 SEARCH ALL HOSTELS IN ${escapeHtml(city.toUpperCase())} ↗</a>
+  ` : '';
   form.innerHTML = `
+    ${hostelBrowseHtml}
     <input type="text" placeholder="${escapeHtml(namePlaceholder)}" class="f-name" autocomplete="off" value="${escapeHtml(initialName)}">
     <div class="search-results"></div>
     <textarea placeholder="${escapeHtml(descPlaceholder)}">${escapeHtml(initialDesc)}</textarea>
@@ -1167,6 +1495,14 @@ function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlace
   `;
 
   const nameInput = form.querySelector('.f-name');
+  form.querySelectorAll('.nearby-add-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const h = hostels[+btn.dataset.idx];
+      nameInput.value = h.name;
+      nameInput.dispatchEvent(new Event('input', {bubbles:true}));
+      nameInput.focus();
+    });
+  });
   const resultsEl = form.querySelector('.search-results');
   let selectedPlace = null;
   let debounceTimer;
@@ -1242,6 +1578,7 @@ function renderItinerary(){
           </div>
           <div class="stop-actions">
             <button class="stop-map secondary directions-toggle" type="button">🧭 DIRECTIONS ▾</button>
+            ${s.booking ? `<button class="stop-map" type="button" data-act="booking" data-key="booking-shot:stop:${slugify(s.name)}" data-title="${escapeHtml(s.name)}" data-url="${escapeHtml(s.booking.url||'')}" data-label="${escapeHtml(s.booking.label||'')}">🎫 BOOKING</button>` : ''}
             <div class="directions-menu" hidden>
               <a class="stop-map secondary" href="${directionsUrl(stay.place,s.place)}" target="_blank">FROM STAY</a>
               <a class="stop-map secondary" href="${directionsUrl(s.place,stay.place)}" target="_blank">TO STAY</a>
@@ -1257,6 +1594,7 @@ function renderItinerary(){
       `;
     }).join('');
 
+    const stayBooking = stayBookingInfo(stay);
     const stayHtml = `
       <div class="stay-row top" data-id="${d.id}">
         <div class="stay-head">
@@ -1264,7 +1602,10 @@ function renderItinerary(){
             <div class="stay-label">${escapeHtml(stay.type.toUpperCase())}</div>
             <a class="stay-name${flashKey==='stay:'+d.id?' flash-save':''}" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
           </div>
-          <button class="icon-edit-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
+          <div style="display:flex;gap:6px;flex-shrink:0;">
+            <button class="icon-edit-btn" type="button" data-act="booking" data-key="booking-shot:stay:${slugify(stay.name)}" data-title="${escapeHtml(stay.name)}" data-url="${escapeHtml(stayBooking.url)}" data-label="${escapeHtml(stayBooking.label)}" title="Booking / screenshot" aria-label="Booking details for ${escapeHtml(stay.name)}">🎫</button>
+            <button class="icon-edit-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
+          </div>
         </div>
       </div>
     `;
@@ -1295,8 +1636,8 @@ function renderItinerary(){
         <div class="day-detail">
           ${stayHtml}
           <div class="nearby-row">
-            <button class="nearby-btn" data-type="things" data-place="${stay.place}" data-id="${d.id}" data-city="${escapeHtml(d.city)}"><span class="nearby-btn-icon">🎡</span><span>THINGS TO DO</span></button>
-            <button class="nearby-btn" data-type="food" data-place="${stay.place}" data-id="${d.id}" data-city="${escapeHtml(d.city)}"><span class="nearby-btn-icon">🍽️</span><span>FOOD NEARBY</span></button>
+            <button class="nearby-btn" data-type="things" data-place="${escapeHtml(stay.place)}" data-id="${d.id}" data-city="${escapeHtml(d.city)}"><span class="nearby-btn-icon">🎡</span><span>THINGS TO DO</span></button>
+            <button class="nearby-btn" data-type="food" data-place="${escapeHtml(stay.place)}" data-id="${d.id}" data-city="${escapeHtml(d.city)}"><span class="nearby-btn-icon">🍽️</span><span>FOOD NEARBY</span></button>
           </div>
           <div class="nearby-results" id="nearby-${d.id}"></div>
           ${stopsHtml}
@@ -1384,6 +1725,7 @@ function renderItinerary(){
         namePlaceholder: 'Search accommodation',
         descPlaceholder: 'Stay type (e.g. Hostel · 2 nights)',
         confirmLabel: 'SAVE',
+        hostelBrowse: true,
         onConfirm: ({name, desc, place})=>{
           dayStayState[id] = {name, type: desc || current.type, place};
           justSavedKey = 'stay:'+id;
@@ -1467,6 +1809,7 @@ function renderItinerary(){
   });
 
   wireNearbyButtons(el);
+  wireBookingButtons(el);
 }
 
 function switchTab(tab){
@@ -1518,10 +1861,18 @@ document.getElementById('howto-modal').addEventListener('click', (e)=>{
   if(e.target.id === 'howto-modal') e.target.classList.remove('open');
 });
 
+document.getElementById('booking-modal-close').addEventListener('click', ()=>{
+  document.getElementById('booking-modal').classList.remove('open');
+});
+document.getElementById('booking-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'booking-modal') e.target.classList.remove('open');
+});
+
 async function init(){
   renderTransport();
   await loadItineraryState();
   renderItinerary();
+  await loadPackingState();
   renderChecklist();
   renderRouteLine();
   updateCountdown();

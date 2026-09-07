@@ -564,7 +564,8 @@ function wireBookingButtons(container){
         key: btn.dataset.key,
         title: btn.dataset.title,
         bookingUrl: btn.dataset.url || null,
-        bookingLabel: btn.dataset.label || null
+        bookingLabel: btn.dataset.label || null,
+        kind: btn.dataset.kind || null
       });
     });
   });
@@ -629,17 +630,40 @@ async function openImageLarge(dataUrl){
   }
 }
 
-function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override){
+// Train legs get Rail Planner-specific copy and a prefilled provider name
+// in the link editor, since - unlike Hostelworld/United/hotels - there's
+// no confirmed Universal Link for eurail.com to rely on for the default
+// link. What Rail Planner *does* offer, per Eurail's own community forum,
+// is an in-app "Share as link" export of a saved trip that the recipient
+// can import - a real, user-generated link, not a guessed one. Whether
+// that link is itself configured to open the app via Universal Link isn't
+// published anywhere findable, so the copy below says so plainly instead
+// of asserting it.
+function isTrainKind(kind){ return kind === 'train'; }
+
+function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind){
   const bodyEl = document.getElementById('booking-modal-body');
   const url = (override && override.url) || defaultUrl || '';
   const label = (override && override.label) || defaultLabel || '';
+  const isTrain = isTrainKind(kind);
+
+  const openBookingNote = !url
+    ? 'No booking link set yet.'
+    : (isTrain && override)
+      ? `This is your saved Rail Planner link. Eurail hasn't published whether "Share as link" trips open the app directly on iOS, so this may open the app or the website depending on your phone - the screenshot below is the guaranteed fallback either way.`
+      : `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.`;
+
+  const editLinkBtnLabel = override
+    ? (isTrain ? '✎ EDIT RAIL PLANNER LINK' : '✎ EDIT LINK')
+    : (isTrain ? '+ ADD RAIL PLANNER LINK' : '+ ADD EXACT BOOKING LINK');
 
   bodyEl.innerHTML = `
     <h2 style="margin-top:0;">OPEN BOOKING</h2>
-    <p style="font-size:11.5px;color:var(--paper-ink-secondary,var(--muted));margin-bottom:8px;">${url ? `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.` : 'No booking link set yet.'}</p>
+    <p style="font-size:11.5px;color:var(--paper-ink-secondary,var(--muted));margin-bottom:8px;">${openBookingNote}</p>
     ${url ? `<a class="pill-link book" href="${escapeHtml(url)}" target="_blank">OPEN BOOKING${label ? ' · '+escapeHtml(label) : ''} ↗</a>` : ''}
+    ${isTrain && !override ? `<p style="font-size:11.5px;color:var(--muted);margin:8px 0 0;">Already have a trip saved in Rail Planner? Use its "Share as link" option (in the app, on the trip's menu) and paste that link below - it'll be tried before the operator's site above.</p>` : ''}
     <div>
-      <button class="stop-map" type="button" id="booking-edit-link-btn" style="margin-top:${url?'10px':'0'};">${override ? '✎ EDIT LINK' : '+ ADD EXACT BOOKING LINK'}</button>
+      <button class="stop-map" type="button" id="booking-edit-link-btn" style="margin-top:10px;">${editLinkBtnLabel}</button>
     </div>
     <div id="booking-edit-link-slot"></div>
 
@@ -663,15 +687,15 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     try {
       const dataUrl = await resizeImageFile(file);
       await store.set(bookingShotKey(itemKey), dataUrl);
-      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override, kind);
     } catch(err){
-      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind);
     }
   });
   const removeShotBtn = bodyEl.querySelector('#booking-shot-remove');
   if(removeShotBtn) removeShotBtn.addEventListener('click', async ()=>{
     await store.set(bookingShotKey(itemKey), '');
-    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override);
+    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override, kind);
   });
 
   bodyEl.querySelector('#booking-edit-link-btn').addEventListener('click', (e)=>{
@@ -680,9 +704,23 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     const form = document.createElement('div');
     form.className = 'add-stop-form';
     form.style.margin = '10px 0';
+    const providerPlaceholder = isTrain ? 'Provider (defaults to Rail Planner)' : 'Provider (e.g. Booking.com, Marriott, United)';
+    // For trains, only prefill from an *override's* label (a link the
+    // traveler already saved). The segment's default label ("Eurostar",
+    // etc.) describes the fallback operator-site link, not the Rail
+    // Planner link being added here, so it must not leak into this field.
+    const providerValue = isTrain ? ((override && override.label) || 'Rail Planner') : label;
+    const urlPlaceholder = isTrain ? "https://... your Rail Planner 'Share as link' URL" : 'https://... exact booking/confirmation link';
+    // A train leg's default `url` is the unrelated operator-site fallback
+    // (e.g. eurostar.com), not a draft of the Rail Planner link being
+    // added - prefilling it here would invite pasting a link on top of it
+    // without noticing. Every other case prefills the current value
+    // (default or existing override) as something to refine, same as
+    // before.
+    const urlValue = (isTrain && !override) ? '' : url;
     form.innerHTML = `
-      <input type="text" class="f-booking-provider" placeholder="Provider (e.g. Booking.com, Marriott, United)" value="${escapeHtml(label)}">
-      <input type="text" class="f-booking-url" placeholder="https://... exact booking/confirmation link" value="${escapeHtml(url)}">
+      <input type="text" class="f-booking-provider" placeholder="${escapeHtml(providerPlaceholder)}" value="${escapeHtml(providerValue)}">
+      <input type="text" class="f-booking-url" placeholder="${escapeHtml(urlPlaceholder)}" value="${escapeHtml(urlValue)}">
       <div class="add-stop-actions">
         <button class="cancel" type="button">CANCEL</button>
         <button class="confirm" type="button">SAVE</button>
@@ -694,21 +732,21 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     form.querySelector('.cancel').addEventListener('click', ()=>{ form.remove(); btn.style.display = ''; });
     form.querySelector('.confirm').addEventListener('click', async ()=>{
       let newUrl = form.querySelector('.f-booking-url').value.trim();
-      const newLabel = form.querySelector('.f-booking-provider').value.trim();
+      const newLabel = form.querySelector('.f-booking-provider').value.trim() || (isTrain ? 'Rail Planner' : '');
       if(newUrl && !/^https?:\/\//i.test(newUrl)) newUrl = 'https://'+newUrl;
       if(newUrl){
         await store.set(bookingUrlKey(itemKey), JSON.stringify({url: newUrl, label: newLabel}));
-        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel});
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel}, kind);
       } else {
         // Empty URL clears the override and reverts to the computed default.
         await store.set(bookingUrlKey(itemKey), '');
-        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null);
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null, kind);
       }
     });
   });
 }
 
-async function openBookingModal({key, title, bookingUrl, bookingLabel}){
+async function openBookingModal({key, title, bookingUrl, bookingLabel, kind}){
   document.getElementById('booking-modal-title').textContent = title;
   document.getElementById('booking-modal-body').innerHTML = '<div class="nearby-empty">Loading…</div>';
   document.getElementById('booking-modal').classList.add('open');
@@ -721,7 +759,7 @@ async function openBookingModal({key, title, bookingUrl, bookingLabel}){
     const r = await store.get(bookingUrlKey(key));
     override = (r && r.value) ? JSON.parse(r.value) : null;
   } catch(e){ /* no saved link override */ }
-  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override);
+  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override, kind);
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
@@ -1428,7 +1466,7 @@ function renderTransport(){
               <a class="pill-link primary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
               ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
-              <button class="icon-btn" type="button" data-act="booking" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
+              <button class="icon-btn" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>

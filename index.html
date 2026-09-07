@@ -144,7 +144,11 @@
   .stop-name{display:block;font-size:13.5px;font-weight:500;color:var(--cream);text-decoration:none;}
   .stop-name:hover,.stop-name:active{text-decoration:underline;}
   .stop-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
-  .stop-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;row-gap:6px;}
+  .stop-actions{margin-top:9px;}
+  .directions-menu{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .directions-menu[hidden]{display:none;}
+  @keyframes flash-save{0%{background:rgba(127,174,122,0.4);}100%{background:transparent;}}
+  .flash-save{animation:flash-save 1.2s ease-out;border-radius:7px;padding:1px 4px;margin:-1px -4px;}
   .stop-map{font-family:var(--font-mono);font-size:10px;font-weight:600;border-radius:16px;padding:6px 10px;cursor:pointer;text-decoration:none;white-space:nowrap;background:var(--amber);color:var(--ink);border:1px solid var(--amber);}
   .stop-map.secondary{background:none;color:var(--amber);}
   .stop-controls-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-top:6px;}
@@ -196,16 +200,12 @@
   .tab-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;}
   ::-webkit-scrollbar{display:none;}
 
-  .err-banner{position:fixed;top:0;left:0;right:0;z-index:9999;display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(201,106,82,0.16);backdrop-filter:blur(6px);border-bottom:1px solid var(--red);color:var(--cream);font-family:var(--font-body);font-size:12.5px;line-height:1.4;padding:10px 14px;}
+  .err-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(201,106,82,0.16);border-bottom:1px solid var(--red);color:var(--cream);font-family:var(--font-body);font-size:12.5px;line-height:1.4;padding:10px 14px;}
   .err-banner-dismiss{flex-shrink:0;background:none;border:none;color:var(--cream);font-size:13px;cursor:pointer;padding:4px;}
 </style>
 </head>
 <body>
 
-<div id="err-banner" class="err-banner" role="alert" style="display:none;">
-  <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and checklist are safe - try reloading the page.</span>
-  <button id="err-banner-dismiss" class="err-banner-dismiss" aria-label="Dismiss">&#10005;</button>
-</div>
 <script>
 // The real error still goes to the console for debugging; the banner only
 // ever shows the traveler a plain, reassuring message, never a stack trace.
@@ -229,6 +229,10 @@ window.addEventListener('unhandledrejection', function(e){
 });
 </script>
 <div class="app">
+  <div id="err-banner" class="err-banner" role="alert" style="display:none;">
+    <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and checklist are safe - try reloading the page.</span>
+    <button id="err-banner-dismiss" class="err-banner-dismiss" aria-label="Dismiss">&#10005;</button>
+  </div>
   <header>
     <div class="eyebrow">
       <span class="stamp">✈ EUROPE · 6 COUNTRIES</span>
@@ -644,7 +648,15 @@ function buildEffectiveDays(){
   return days;
 }
 
-const CHECKLIST_ITEMS = ['Phone','Wallet','Keys','AirPods','Chargers','Toiletries','Backpack','Travel bag','Camera','Passport','Earplugs','Shoes','Locks'];
+const CHECKLIST_GROUPS = [
+  {label:'On You', items:['Phone','Wallet','Keys','Passport','AirPods']},
+  {label:'Packed', items:['Chargers','Toiletries','Camera','Earplugs','Locks']},
+  {label:'Grab Before You Go', items:['Backpack','Travel bag','Shoes']}
+];
+
+function checklistSlug(item){
+  return item.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+}
 
 function renderChecklist(){
   const el = document.getElementById('panel-checklist');
@@ -653,17 +665,20 @@ function renderChecklist(){
       <div class="checklist-sub">Check before you leave each place</div>
       <button class="reset-btn" id="reset-checklist">RESET</button>
     </div>
-    ${CHECKLIST_ITEMS.map((item,i)=>`
-      <div class="check-item" data-idx="${i}">
-        <input type="checkbox" id="chk-${i}">
-        <span>${item}</span>
-      </div>
+    ${CHECKLIST_GROUPS.map(group => `
+      <div class="section-heading">${escapeHtml(group.label.toUpperCase())}</div>
+      ${group.items.map(item=>`
+        <div class="check-item" data-key="${checklistSlug(item)}">
+          <input type="checkbox">
+          <span>${escapeHtml(item)}</span>
+        </div>
+      `).join('')}
     `).join('')}
   `;
 
   el.querySelectorAll('.check-item').forEach(row=>{
     const cb = row.querySelector('input');
-    const key = 'packing:'+row.dataset.idx;
+    const key = 'packing:'+row.dataset.key;
     store.get(key).then(r=>{
       if(r && r.value==='1'){ cb.checked = true; row.classList.add('checked'); }
     }).catch(()=>{});
@@ -679,7 +694,7 @@ function renderChecklist(){
       const cb = row.querySelector('input');
       cb.checked = false;
       row.classList.remove('checked');
-      store.set('packing:'+row.dataset.idx, '0');
+      store.set('packing:'+row.dataset.key, '0');
     });
   });
 }
@@ -909,6 +924,7 @@ function wireNearbyButtons(el){
             const it = items[+addBtn.dataset.idx];
             dayStopsState[id] = dayStopsState[id] || [];
             dayStopsState[id].push({name: it.name, desc: it.desc, place: `${it.lat},${it.lon}`});
+            justSavedKey = 'stop:'+id+':'+(dayStopsState[id].length-1);
             persistDay(id);
             openDays.add(id);
             renderItinerary();
@@ -925,6 +941,10 @@ let dayStopsState = {};
 let dayTitleState = {};
 let dayStayState = {};
 let openDays = new Set();
+// One-shot marker for the next render: which element (if any) should play
+// a brief "saved" flash. Set right before a save's renderItinerary() call,
+// consumed and cleared at the top of the next render.
+let justSavedKey = null;
 
 async function loadItineraryState(){
   await loadCityDeltas();
@@ -1031,6 +1051,8 @@ function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlace
 function renderItinerary(){
   const el = document.getElementById('panel-itinerary');
   const days = buildEffectiveDays();
+  const flashKey = justSavedKey;
+  justSavedKey = null;
 
   el.innerHTML = days.map((d,i)=>{
     const stops = dayStopsState[d.id] || [];
@@ -1045,13 +1067,16 @@ function renderItinerary(){
       return `
         <div class="stop-row">
           <div class="stop-info">
-            <a class="stop-name" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
+            <a class="stop-name${flashKey==='stop:'+d.id+':'+si?' flash-save':''}" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
             <div class="stop-desc">${escapeHtml(s.desc)}</div>
           </div>
           <div class="stop-actions">
-            <a class="stop-map secondary" href="${directionsUrl(stay.place,s.place)}" target="_blank">FROM STAY</a>
-            <a class="stop-map secondary" href="${directionsUrl(s.place,stay.place)}" target="_blank">TO STAY</a>
-            <a class="stop-map secondary" href="${directionsUrl(lastStop,s.place)}" target="_blank">FROM LAST STOP</a>
+            <button class="stop-map secondary directions-toggle" type="button">🧭 DIRECTIONS ▾</button>
+            <div class="directions-menu" hidden>
+              <a class="stop-map secondary" href="${directionsUrl(stay.place,s.place)}" target="_blank">FROM STAY</a>
+              <a class="stop-map secondary" href="${directionsUrl(s.place,stay.place)}" target="_blank">TO STAY</a>
+              <a class="stop-map secondary" href="${directionsUrl(lastStop,s.place)}" target="_blank">FROM LAST STOP</a>
+            </div>
           </div>
           <div class="stop-controls-row">
             <button class="ctrl-btn" data-act="up" data-id="${d.id}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
@@ -1067,7 +1092,7 @@ function renderItinerary(){
         <div class="stay-head">
           <div style="min-width:0;">
             <div class="stay-label">${escapeHtml(stay.type.toUpperCase())}</div>
-            <a class="stay-name" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
+            <a class="stay-name${flashKey==='stay:'+d.id?' flash-save':''}" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
           </div>
           <button class="icon-edit-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
         </div>
@@ -1091,7 +1116,7 @@ function renderItinerary(){
           <div style="flex:1;min-width:0;">
             <div class="day-date">${d.city} · ${d.date}</div>
             <div class="day-title-row">
-              <div class="day-title" data-id="${d.id}">${escapeHtml(title)}</div>
+              <div class="day-title${flashKey==='title:'+d.id?' flash-save':''}" data-id="${d.id}">${escapeHtml(title)}</div>
               <button class="icon-edit-btn" data-act="rename-day" data-id="${d.id}" title="Rename day">✎</button>
             </div>
           </div>
@@ -1160,7 +1185,9 @@ function renderItinerary(){
         if(saved) return;
         saved = true;
         const val = input.value.trim();
-        dayTitleState[id] = val || dayTitleState[id];
+        const prevTitle = dayTitleState[id];
+        dayTitleState[id] = val || prevTitle;
+        if(val && val !== prevTitle) justSavedKey = 'title:'+id;
         persistTitle(id);
         openDays.add(id);
         renderItinerary();
@@ -1178,7 +1205,7 @@ function renderItinerary(){
       e.stopPropagation();
       const id = btn.dataset.id;
       const city = btn.dataset.city;
-      const current = dayStayState[id];
+      const current = dayStayState[id] || days.find(x=>x.id===id).stay;
       const row = btn.closest('.stay-row');
       const form = createPlaceSearchForm({
         city,
@@ -1189,6 +1216,7 @@ function renderItinerary(){
         confirmLabel: 'SAVE',
         onConfirm: ({name, desc, place})=>{
           dayStayState[id] = {name, type: desc || current.type, place};
+          justSavedKey = 'stay:'+id;
           persistStay(id);
           openDays.add(id);
           renderItinerary();
@@ -1217,6 +1245,7 @@ function renderItinerary(){
         onConfirm: ({name, desc, place})=>{
           dayStopsState[id] = dayStopsState[id] || [];
           dayStopsState[id].push({name, desc: desc || 'Added stop', place});
+          justSavedKey = 'stop:'+id+':'+(dayStopsState[id].length-1);
           persistDay(id);
           openDays.add(id);
           renderItinerary();
@@ -1254,6 +1283,16 @@ function renderItinerary(){
       } else {
         doRemove();
       }
+    });
+  });
+
+  el.querySelectorAll('.directions-toggle').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const menu = btn.nextElementSibling;
+      const opening = menu.hasAttribute('hidden');
+      if(opening) menu.removeAttribute('hidden'); else menu.setAttribute('hidden','');
+      btn.textContent = opening ? '🧭 DIRECTIONS ▴' : '🧭 DIRECTIONS ▾';
     });
   });
 

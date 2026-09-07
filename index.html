@@ -80,7 +80,9 @@
   .nearby-item{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
   .nearby-item-info{min-width:0;}
   .nearby-item-name{font-size:13px;font-weight:500;}
-  .nearby-item-desc{font-size:11.5px;color:var(--muted);margin-top:2px;text-transform:capitalize;}
+  .nearby-item-kind{font-size:9.5px;color:var(--amber);font-family:var(--font-mono);letter-spacing:0.03em;text-transform:uppercase;}
+  .nearby-item-desc{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.4;}
+  .nearby-item-actions{display:flex;gap:6px;flex-shrink:0;}
   .nearby-loading,.nearby-empty{font-size:12px;color:var(--muted);padding:10px 2px;font-style:italic;}
 
   .journey{background:var(--paper);color:var(--ink);border-radius:14px;margin-bottom:16px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,0.35);position:relative;}
@@ -125,11 +127,13 @@
   .day-card.open .day-detail{display:block;}
   .stop-row{padding:11px 0;border-top:1px solid var(--line);}
   .stop-info{min-width:0;}
-  .stop-name{font-size:13.5px;font-weight:500;}
+  .stop-name{display:block;font-size:13.5px;font-weight:500;color:var(--cream);text-decoration:none;}
+  .stop-name:hover,.stop-name:active{text-decoration:underline;}
   .stop-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
   .stop-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;}
   .stop-map{font-family:var(--font-mono);font-size:10.5px;font-weight:600;border-radius:16px;padding:6px 11px;cursor:pointer;text-decoration:none;white-space:nowrap;background:var(--amber);color:var(--ink);border:1px solid var(--amber);}
   .stop-map.secondary{background:none;color:var(--amber);}
+  .stop-map.ghost{background:none;color:var(--muted);border-color:var(--line);}
   .stop-controls{display:flex;gap:4px;margin-left:auto;}
   .ctrl-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
@@ -148,8 +152,10 @@
   .add-stop-actions .confirm{background:var(--amber);color:var(--ink);}
   .add-stop-actions .cancel{background:var(--line);color:#EDE7D9;}
   .stay-row{padding:12px 0 0;margin-top:6px;border-top:1px dashed var(--line);}
+  .stay-row.top{padding:0 0 12px;margin-top:0;border-top:none;border-bottom:1px dashed var(--line);margin-bottom:10px;}
   .stay-label{font-family:var(--font-mono);font-size:11px;color:var(--amber);}
-  .stay-name{font-size:12.5px;margin-top:2px;}
+  .stay-name{display:block;font-size:14px;font-weight:600;margin-top:3px;color:var(--cream);text-decoration:none;font-family:var(--font-display);}
+  .stay-name:hover,.stay-name:active{text-decoration:underline;}
 
   /* ---- Checklist tab ---- */
   .checklist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
@@ -255,9 +261,19 @@ const store = {
   }
 };
 
-function mapsUrl(lat,lng){return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;}
 function placeUrl(place){return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(place)}`;}
 function directionsUrl(from,to){return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(from)}&destination=${encodeURIComponent(to)}`;}
+
+// Opens the App Store search for the given app name so a tap can jump
+// straight into installing/opening it, without hardcoding a guessed app id.
+function appSearchUrl(appName){
+  const term = appName.split(/\s+or\s+/i)[0].replace(/\bapp\b/i,'').trim();
+  return `https://apps.apple.com/us/search?term=${encodeURIComponent(term)}`;
+}
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 // ---- Grouped journeys (connecting legs shown together) ----
 const JOURNEYS = [
@@ -280,7 +296,7 @@ const JOURNEYS = [
       {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',meta:'Basel SBB → Interlaken Ost · ~2h',
        note:'No reservation needed, runs roughly hourly. Same-station transfer.',
        from:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},to:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},
-       book:'https://www.sbb.ch/en', app:'SBB Mobile'}
+       book:'https://www.sbb.ch/en', app:'Eurail Rail Planner'}
     ]
   },
   {
@@ -289,11 +305,11 @@ const JOURNEYS = [
       {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',meta:'Interlaken Ost → Zurich HB · ~2h',
        note:'No reservation needed.',
        from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
-       book:'https://www.sbb.ch/en', app:'SBB Mobile'},
+       book:'https://www.sbb.ch/en', app:'Eurail Rail Planner'},
       {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',meta:'Zurich HB → Vienna Hbf · ~8h',
        note:'Long day - reservation optional but worth it for comfort.',
        from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
-       book:'https://www.oebb.at/en/', app:'ÖBB app'}
+       book:'https://www.oebb.at/en/', app:'Eurail Rail Planner'}
     ]
   },
   {
@@ -302,7 +318,7 @@ const JOURNEYS = [
       {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',meta:'Vienna Hbf → Budapest Keleti · ~2h40m',
        note:'Hourly-ish, optional reservation. Direct, no transfer.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},
-       book:'https://www.oebb.at/en/', app:'ÖBB app or MÁV app'}
+       book:'https://www.oebb.at/en/', app:'Eurail Rail Planner'}
     ]
   },
   {
@@ -311,7 +327,7 @@ const JOURNEYS = [
       {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',meta:'Budapest Keleti → Vienna Hbf · ~2h40m',
        note:'Connects to the overnight sleeper in Vienna.',
        from:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
-       book:'https://www.oebb.at/en/', app:'ÖBB app or MÁV app'},
+       book:'https://www.oebb.at/en/', app:'Eurail Rail Planner'},
       {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',meta:'Vienna Hbf → Roma Termini · 19:30–09:30, ~14h',
        note:'Fewest berths of any leg - historically sells out 60+ days ahead. Book earliest of all.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
@@ -536,13 +552,13 @@ function renderLocalTransport(){
             <div class="flight-date" style="font-family:var(--font-display);font-weight:600;font-size:14.5px;color:var(--ink);">${t.title}</div>
             <div class="flight-date">${t.meta}</div>
             <div class="seg-note" style="margin-top:6px;">${t.note}</div>
-            ${t.app ? `<div class="seg-note" style="color:#8a6d3b;font-weight:600;">📱 ${t.app}</div>` : ''}
             ${t.pay ? `<div class="pay-badge ${t.pay}">${t.pay==='yes'?'✓ APPLE PAY / TAP WORKS':t.pay==='no'?'✗ NO DIRECT TAP':'⚠ UNCONFIRMED'}</div><div class="seg-note">${t.payNote}</div>` : ''}
             <div class="flight-links">
               ${t.from ? `<a class="pill-link" href="${placeUrl(t.from)}" target="_blank">📍 ${t.from.split(',')[0]}</a>` : ''}
               ${t.to ? `<a class="pill-link" href="${placeUrl(t.to)}" target="_blank">📍 ${t.to.split(',')[0]}</a>` : ''}
               ${t.from && t.to ? `<a class="pill-link" href="${directionsUrl(t.from,t.to)}" target="_blank">🧭 ROUTE</a>` : ''}
               <a class="pill-link book" href="${t.link}" target="_blank">INFO ↗</a>
+              ${t.app ? `<a class="pill-link book" href="${appSearchUrl(t.app)}" target="_blank">📱 ${t.app.split(/\s+or\s+/i)[0]} ↗</a>` : ''}
             </div>
           </div>
         `).join('')}
@@ -568,12 +584,12 @@ function renderTransport(){
             <div class="seg-title">${s.title}</div>
             <div class="seg-meta">${s.meta}</div>
             <div class="seg-note">${s.note}</div>
-            ${s.app ? `<div class="seg-note" style="color:#8a6d3b;font-weight:600;">📱 ${s.app}</div>` : ''}
             <div class="seg-links">
               <a class="pill-link" href="${placeUrl(s.from.place)}" target="_blank">📍 ${s.from.name}</a>
               <a class="pill-link" href="${placeUrl(s.to.place)}" target="_blank">📍 ${s.to.name}</a>
               <a class="pill-link" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank">🧭 ROUTE</a>
               <a class="pill-link book" href="${s.book}" target="_blank">BOOK ↗</a>
+              ${s.app ? `<a class="pill-link book" href="${appSearchUrl(s.app)}" target="_blank">📱 ${s.app.split(/\s+or\s+/i)[0]} ↗</a>` : ''}
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>
@@ -606,27 +622,90 @@ async function geocodePlace(place){
   return null;
 }
 
+// One-sentence descriptions per OSM category, so nearby results read as
+// a real recommendation instead of a single raw tag value.
+const KIND_DESC = {
+  museum:'A museum worth browsing for an hour or two.',
+  gallery:'An art gallery with rotating exhibits.',
+  viewpoint:'A scenic viewpoint worth the detour.',
+  attraction:'A notable local attraction.',
+  artwork:'A public artwork or landmark piece.',
+  zoo:'A zoo with a variety of animals.',
+  theme_park:'A theme park with rides and attractions.',
+  aquarium:'An aquarium showcasing marine life.',
+  park:'A green space, good for a relaxing walk.',
+  garden:'A landscaped garden, good for a relaxing walk.',
+  historic:'A historic site with local significance.',
+  theatre:'A theatre hosting live performances.',
+  cinema:'A cinema showing films.',
+  marketplace:'A local market with stalls and vendors.',
+  mall:'A shopping mall with a range of stores.',
+  restaurant:'A local restaurant.',
+  cafe:'A cozy cafe for coffee or a light bite.',
+  bar:'A bar, good for a drink.',
+  pub:'A pub with a casual, low-key atmosphere.',
+  fast_food:'A quick, casual spot for fast food.',
+  place:'A nearby spot worth checking out.'
+};
+function describeKind(kind, tags){
+  if(kind==='restaurant' && tags.cuisine){
+    return `A restaurant serving ${tags.cuisine.replace(/_/g,' ')} food.`;
+  }
+  return KIND_DESC[kind] || KIND_DESC.place;
+}
+function kindOfTags(tags){
+  return tags.tourism || tags.historic && 'historic' || tags.leisure || tags.amenity || tags.shop || 'place';
+}
+
+// Groups results by category and round-robins through the groups so the
+// list comes back varied (not five museums in a row).
+function diversify(elements, limit){
+  const seenNames = new Set();
+  const groups = new Map();
+  for(const e of elements){
+    if(!e.tags || !e.tags.name) continue;
+    const name = e.tags.name;
+    if(seenNames.has(name)) continue;
+    seenNames.add(name);
+    const kind = kindOfTags(e.tags);
+    if(!groups.has(kind)) groups.set(kind, []);
+    groups.get(kind).push({name, kind, tags:e.tags, lat:e.lat, lon:e.lon});
+  }
+  const buckets = [...groups.values()];
+  const out = [];
+  let i = 0;
+  while(out.length < limit && buckets.some(b=>b.length)){
+    const bucket = buckets[i % buckets.length];
+    if(bucket.length) out.push(bucket.shift());
+    i++;
+  }
+  return out.map(item=>({
+    name: item.name,
+    kind: item.kind,
+    desc: describeKind(item.kind, item.tags),
+    lat: item.lat, lon: item.lon
+  }));
+}
+
 async function fetchNearby(lat, lon, kind){
   const tags = kind==='food'
-    ? `node["amenity"="restaurant"](around:800,${lat},${lon});node["amenity"="cafe"](around:800,${lat},${lon});`
-    : `node["tourism"~"attraction|museum|viewpoint|gallery|artwork"](around:1000,${lat},${lon});node["leisure"="park"](around:1000,${lat},${lon});`;
-  const query = `[out:json][timeout:15];(${tags});out body 8;`;
+    ? `node["amenity"~"restaurant|cafe|bar|pub|fast_food"](around:900,${lat},${lon});`
+    : `node["tourism"~"museum|gallery|viewpoint|attraction|artwork|zoo|theme_park|aquarium"](around:1200,${lat},${lon});
+       node["historic"](around:1200,${lat},${lon});
+       node["leisure"~"park|garden"](around:1200,${lat},${lon});
+       node["amenity"~"theatre|cinema|marketplace"](around:1200,${lat},${lon});
+       node["shop"="mall"](around:1200,${lat},${lon});`;
+  const query = `[out:json][timeout:20];(${tags});out body 40;`;
   const res = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body: query});
   const data = await res.json();
-  return (data.elements||[])
-    .filter(e=>e.tags && e.tags.name)
-    .slice(0,5)
-    .map(e=>({
-      name: e.tags.name,
-      desc: e.tags.cuisine ? e.tags.cuisine.replace(/_/g,' ')+' restaurant' : (e.tags.tourism || e.tags.amenity || e.tags.leisure || '').replace(/_/g,' '),
-      lat: e.lat, lon: e.lon
-    }));
+  return diversify(data.elements||[], 6);
 }
 
 function wireNearbyButtons(el){
   el.querySelectorAll('.nearby-btn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
       const date = btn.dataset.date, type = btn.dataset.type, place = btn.dataset.place;
+      const city = ITINERARY.find(x=>x.date===date).city;
       const resultsEl = document.getElementById('nearby-'+date);
       const siblingBtns = btn.parentElement.querySelectorAll('.nearby-btn');
       siblingBtns.forEach(b=>b.classList.remove('active'));
@@ -637,15 +716,28 @@ function wireNearbyButtons(el){
         if(!coords){ resultsEl.innerHTML = '<div class="nearby-empty">Could not locate this place.</div>'; return; }
         const items = await fetchNearby(coords.lat, coords.lon, type);
         if(!items.length){ resultsEl.innerHTML = '<div class="nearby-empty">Nothing found nearby - try Google Maps directly.</div>'; return; }
-        resultsEl.innerHTML = items.map(it=>`
+        resultsEl.innerHTML = items.map((it,idx)=>`
           <div class="nearby-item">
             <div class="nearby-item-info">
-              <div class="nearby-item-name">${it.name}</div>
-              <div class="nearby-item-desc">${it.desc||'-'}</div>
+              <div class="nearby-item-kind">${escapeHtml(it.kind.replace(/_/g,' '))}</div>
+              <div class="nearby-item-name">${escapeHtml(it.name)}</div>
+              <div class="nearby-item-desc">${escapeHtml(it.desc)}</div>
             </div>
-            <a class="stop-map" href="${mapsUrl(it.lat,it.lon)}" target="_blank">MAP</a>
+            <div class="nearby-item-actions">
+              <a class="stop-map secondary" href="${placeUrl(it.name+', '+city)}" target="_blank">MAP</a>
+              <button class="stop-map nearby-add-btn" data-date="${date}" data-idx="${idx}">+ ADD</button>
+            </div>
           </div>
         `).join('');
+        resultsEl.querySelectorAll('.nearby-add-btn').forEach(addBtn=>{
+          addBtn.addEventListener('click', ()=>{
+            const it = items[+addBtn.dataset.idx];
+            dayStopsState[date].push({name: it.name, desc: it.desc, place: `${it.lat},${it.lon}`});
+            persistDay(date);
+            openDays.add(date);
+            renderItinerary();
+          });
+        });
       } catch(e){
         resultsEl.innerHTML = '<div class="nearby-empty">Search unavailable right now - try again in a moment.</div>';
       }
@@ -679,39 +771,29 @@ function renderItinerary(){
 
   el.innerHTML = ITINERARY.map((d,i)=>{
     const stops = dayStopsState[d.date] || [];
-    let cursor = d.arrivalPlace || (i>0 ? ITINERARY[i-1].stay.place : d.stay.place);
 
-    const stopsHtml = stops.map((s,si)=>{
-      const from = cursor;
-      cursor = s.place;
-      return `
-        <div class="stop-row">
-          <div class="stop-info">
-            <div class="stop-name">${s.name}</div>
-            <div class="stop-desc">${s.desc}</div>
-          </div>
-          <div class="stop-actions">
-            <a class="stop-map secondary" href="${directionsUrl(from,s.place)}" target="_blank">FROM LAST STOP</a>
-            <a class="stop-map" href="${placeUrl(s.place)}" target="_blank">VIEW PLACE</a>
-            <div class="stop-controls">
-              <button class="ctrl-btn" data-act="up" data-date="${d.date}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
-              <button class="ctrl-btn" data-act="down" data-date="${d.date}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
-              <button class="ctrl-btn danger" data-act="remove" data-date="${d.date}" data-idx="${si}">&#10005;</button>
-            </div>
-          </div>
+    const stopsHtml = stops.map((s,si)=>`
+      <div class="stop-row">
+        <div class="stop-info">
+          <a class="stop-name" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
+          <div class="stop-desc">${escapeHtml(s.desc)}</div>
         </div>
-      `;
-    }).join('');
-
-    const stayFrom = cursor;
-    const stayHtml = `
-      <div class="stay-row">
-        <div class="stay-label">${d.stay.type.toUpperCase()}</div>
-        <div class="stay-name">${d.stay.name}</div>
         <div class="stop-actions">
-          <a class="stop-map secondary" href="${directionsUrl(stayFrom,d.stay.place)}" target="_blank">FROM LAST STOP</a>
-          <a class="stop-map" href="${placeUrl(d.stay.place)}" target="_blank">VIEW PLACE</a>
+          <a class="stop-map secondary" href="${directionsUrl(d.stay.place,s.place)}" target="_blank">FROM STAY</a>
+          <a class="stop-map secondary" href="${directionsUrl(s.place,d.stay.place)}" target="_blank">TO STAY</a>
+          <div class="stop-controls">
+            <button class="ctrl-btn" data-act="up" data-date="${d.date}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
+            <button class="ctrl-btn" data-act="down" data-date="${d.date}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
+            <button class="ctrl-btn danger" data-act="remove" data-date="${d.date}" data-idx="${si}">&#10005;</button>
+          </div>
         </div>
+      </div>
+    `).join('');
+
+    const stayHtml = `
+      <div class="stay-row top">
+        <div class="stay-label">${escapeHtml(d.stay.type.toUpperCase())}</div>
+        <a class="stay-name" href="${placeUrl(d.stay.place)}" target="_blank">${escapeHtml(d.stay.name)}</a>
       </div>
     `;
 
@@ -729,12 +811,13 @@ function renderItinerary(){
           <span class="day-chevron">&#9660;</span>
         </div>
         <div class="day-detail">
+          ${stayHtml}
           <div class="nearby-row">
             <button class="nearby-btn" data-type="things" data-place="${d.stay.place}" data-date="${d.date}">🎡 THINGS TO DO NEARBY</button>
             <button class="nearby-btn" data-type="food" data-place="${d.stay.place}" data-date="${d.date}">🍽️ FOOD NEARBY</button>
           </div>
           <div class="nearby-results" id="nearby-${d.date}"></div>
-          ${stopsHtml}${stayHtml}
+          ${stopsHtml}
           <button class="add-stop-btn" data-date="${d.date}">+ ADD STOP</button>
         </div>
       </div>
@@ -801,7 +884,7 @@ function renderItinerary(){
               resultsEl.innerHTML = '<div class="search-empty">No matches - will use what you typed</div>';
               return;
             }
-            resultsEl.innerHTML = data.map((r,i)=>`<div class="search-item" data-idx="${i}">${r.display_name}</div>`).join('');
+            resultsEl.innerHTML = data.map((r,i)=>`<div class="search-item" data-idx="${i}">${escapeHtml(r.display_name)}</div>`).join('');
             resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
               el2.addEventListener('click', ()=>{
                 const r = data[i];
@@ -812,7 +895,7 @@ function renderItinerary(){
                 if(!descField.value.trim() && kind){
                   descField.value = kind.charAt(0).toUpperCase()+kind.slice(1)+' - '+r.display_name.split(',').slice(1,3).join(',').trim();
                 }
-                resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${r.display_name}</div>`;
+                resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${escapeHtml(r.display_name)}</div>`;
               });
             });
           } catch(err){

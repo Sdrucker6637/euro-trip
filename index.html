@@ -73,9 +73,11 @@
   .pay-badge.yes{background:#d7ecd4;color:#1f5c2e;}
   .pay-badge.no{background:#f2d7d0;color:#7a2c1c;}
   .pay-badge.unknown{background:#f0e6c8;color:#6b5410;}
-  .nearby-row{display:flex;gap:8px;margin-bottom:4px;}
-  .nearby-btn{flex:1;font-family:var(--font-mono);font-size:11px;font-weight:600;text-align:center;padding:10px;border-radius:8px;color:#EDE7D9;background:#3A4568;border:1px solid var(--line);cursor:pointer;}
-  .nearby-btn.active{background:var(--amber);color:var(--ink);border-color:var(--amber);}
+  .nearby-row{display:flex;gap:10px;margin-bottom:4px;}
+  .nearby-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:0.03em;text-align:center;padding:13px 8px;border-radius:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);cursor:pointer;transition:border-color .15s,background .15s,color .15s;}
+  .nearby-btn-icon{font-size:21px;line-height:1;}
+  .nearby-btn[data-type="things"].active{background:rgba(79,168,156,0.15);border-color:var(--teal);color:var(--teal);}
+  .nearby-btn[data-type="food"].active{background:rgba(227,165,66,0.15);border-color:var(--amber);color:var(--amber);}
   .nearby-results{margin-bottom:4px;}
   .nearby-item{background:var(--surface);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;}
   .nearby-item-info{min-width:0;}
@@ -106,6 +108,8 @@
   .seg-links{display:flex;gap:8px;margin-top:9px;flex-wrap:wrap;}
   .pill-link{font-family:var(--font-mono);font-size:10.5px;font-weight:600;padding:6px 10px;border-radius:16px;text-decoration:none;color:var(--ink);background:#e2d7bd;}
   .pill-link.book{background:var(--amber);}
+  .pill-link.primary{background:var(--amber);font-size:11px;padding:7px 13px;}
+  .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:none;border:1px solid #c9bd9e;color:var(--ink);text-decoration:none;font-size:13px;flex-shrink:0;}
   .flag-tag{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.02em;padding:2px 8px;border-radius:12px;margin-bottom:5px;}
   .flag-tag.red{background:var(--red);color:#fff;}
   .flag-tag.amber{background:var(--amber);color:var(--ink);}
@@ -120,7 +124,10 @@
   .stamp-badge .mon{font-size:8.5px;letter-spacing:0.05em;}
   .stamp-badge .day{font-size:15px;font-weight:600;}
   .day-date{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);}
-  .day-title{font-family:var(--font-display);font-size:15px;font-weight:600;margin-top:2px;}
+  .day-title-row{display:flex;align-items:center;gap:6px;margin-top:2px;}
+  .day-title{font-family:var(--font-display);font-size:15px;font-weight:600;min-width:0;}
+  .day-title-input{font-family:var(--font-display);font-size:15px;font-weight:600;background:var(--bg);color:var(--cream);border:1px solid var(--amber);border-radius:5px;padding:2px 6px;min-width:0;flex:1;}
+  .icon-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .day-chevron{font-size:13px;color:var(--muted);transition:transform 0.2s;flex-shrink:0;margin-left:8px;}
   .day-card.open .day-chevron{transform:rotate(180deg);}
   .day-detail{display:none;padding:0 14px 14px;}
@@ -130,11 +137,10 @@
   .stop-name{display:block;font-size:13.5px;font-weight:500;color:var(--cream);text-decoration:none;}
   .stop-name:hover,.stop-name:active{text-decoration:underline;}
   .stop-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4;}
-  .stop-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;}
-  .stop-map{font-family:var(--font-mono);font-size:10.5px;font-weight:600;border-radius:16px;padding:6px 11px;cursor:pointer;text-decoration:none;white-space:nowrap;background:var(--amber);color:var(--ink);border:1px solid var(--amber);}
+  .stop-actions{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:9px;row-gap:6px;}
+  .stop-map{font-family:var(--font-mono);font-size:10px;font-weight:600;border-radius:16px;padding:6px 10px;cursor:pointer;text-decoration:none;white-space:nowrap;background:var(--amber);color:var(--ink);border:1px solid var(--amber);}
   .stop-map.secondary{background:none;color:var(--amber);}
-  .stop-map.ghost{background:none;color:var(--muted);border-color:var(--line);}
-  .stop-controls{display:flex;gap:4px;margin-left:auto;}
+  .stop-controls-row{display:flex;justify-content:flex-end;gap:4px;margin-top:6px;}
   .ctrl-btn{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
   .add-stop-btn{width:100%;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--amber);background:none;border:1px dashed var(--amber);border-radius:8px;padding:10px;margin-top:10px;cursor:pointer;}
@@ -153,6 +159,7 @@
   .add-stop-actions .cancel{background:var(--line);color:#EDE7D9;}
   .stay-row{padding:12px 0 0;margin-top:6px;border-top:1px dashed var(--line);}
   .stay-row.top{padding:0 0 12px;margin-top:0;border-top:none;border-bottom:1px dashed var(--line);margin-bottom:10px;}
+  .stay-row.top .stay-head{display:flex;align-items:center;justify-content:space-between;gap:8px;}
   .stay-label{font-family:var(--font-mono);font-size:11px;color:var(--amber);}
   .stay-name{display:block;font-size:14px;font-weight:600;margin-top:3px;color:var(--cream);text-decoration:none;font-family:var(--font-display);}
   .stay-name:hover,.stay-name:active{text-decoration:underline;}
@@ -211,14 +218,14 @@ window.addEventListener('unhandledrejection', function(e){
       </div>
       <div class="modal-body">
         <h4>Between countries</h4>
-        <p>Your Eurail pass covers most inter-city legs - just show it on board, no ticket needed. Four legs need a separate paid reservation regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking.</p>
+        <p>Your Eurail pass covers most inter-city legs - just show it (or the Eurail Rail Planner app) on board, no ticket needed. Three legs need a separate paid reservation booked directly with the operator, regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV Lyria), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking - just open the Eurail app for schedules.</p>
         <h4>Inside each city</h4>
         <p><b>Amsterdam & Rome & Budapest:</b> tap your card or Apple Pay directly on trams/metro/buses - no ticket needed.</p>
         <p><b>Paris:</b> no direct tap yet - add a Navigo Easy pass to Apple Wallet instead.</p>
         <p><b>Vienna:</b> contactless isn't confirmed - buy through the WienMobil app to be safe.</p>
         <p><b>Switzerland (Interlaken):</b> no gates at all - it's honor-based. Use the SBB Mobile app (EasyRide) or your Eurail pass.</p>
         <h4>Apps worth having</h4>
-        <p>Eurostar, SBB Mobile, ÖBB, Nightjet, NS International, WienMobil, BudapestGO, and Moovit/Citymapper for general city navigation.</p>
+        <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
       </div>
     </div>
   </div>
@@ -231,7 +238,7 @@ window.addEventListener('unhandledrejection', function(e){
 
   <nav>
     <button class="tab-btn active" data-tab="transport">
-      <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 19h19M6 19l1.5-9.5a2 2 0 0 1 2-1.7h5a2 2 0 0 1 2 1.7L18 19M9 7.8V4.5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v3.3"/></svg>
+      <svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="12.5" rx="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 9.5h12M9 3v6.5M9 16.5l-2.5 4M15 16.5l2.5 4"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg>
       Transport
     </button>
     <button class="tab-btn" data-tab="itinerary">
@@ -283,7 +290,7 @@ const JOURNEYS = [
       {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',meta:'Amsterdam Centraal → Paris Gare du Nord · ~3h20m',
        note:'Mandatory reservation, quota-limited for pass holders. Direct, no transfer.',
        from:{name:'Amsterdam Centraal',place:'Amsterdam Centraal, Amsterdam'},to:{name:'Paris Gare du Nord',place:'Paris Gare du Nord, Paris'},
-       book:'https://www.eurostar.com/uk-en', app:'Eurostar app'}
+       book:'https://www.eurostar.com/uk-en', bookLabel:'Eurostar'}
     ]
   },
   {
@@ -292,11 +299,11 @@ const JOURNEYS = [
       {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',meta:'Paris Gare de Lyon → Basel SBB · ~3h',
        note:'Mandatory reservation. 90-day window already open.',
        from:{name:'Paris Gare de Lyon',place:'Paris Gare de Lyon, Paris'},to:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},
-       book:'https://www.tgv-lyria.com/en', app:'TGV Lyria app or SNCF Connect'},
+       book:'https://www.tgv-lyria.com/en', bookLabel:'TGV Lyria'},
       {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',meta:'Basel SBB → Interlaken Ost · ~2h',
        note:'No reservation needed, runs roughly hourly. Same-station transfer.',
        from:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},to:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},
-       book:'https://www.sbb.ch/en', app:'Eurail Rail Planner'}
+       book:'https://www.sbb.ch/en'}
     ]
   },
   {
@@ -305,11 +312,11 @@ const JOURNEYS = [
       {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',meta:'Interlaken Ost → Zurich HB · ~2h',
        note:'No reservation needed.',
        from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
-       book:'https://www.sbb.ch/en', app:'Eurail Rail Planner'},
+       book:'https://www.sbb.ch/en'},
       {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',meta:'Zurich HB → Vienna Hbf · ~8h',
        note:'Long day - reservation optional but worth it for comfort.',
        from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
-       book:'https://www.oebb.at/en/', app:'Eurail Rail Planner'}
+       book:'https://www.oebb.at/en/'}
     ]
   },
   {
@@ -318,7 +325,7 @@ const JOURNEYS = [
       {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',meta:'Vienna Hbf → Budapest Keleti · ~2h40m',
        note:'Hourly-ish, optional reservation. Direct, no transfer.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},
-       book:'https://www.oebb.at/en/', app:'Eurail Rail Planner'}
+       book:'https://www.oebb.at/en/'}
     ]
   },
   {
@@ -327,11 +334,11 @@ const JOURNEYS = [
       {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',meta:'Budapest Keleti → Vienna Hbf · ~2h40m',
        note:'Connects to the overnight sleeper in Vienna.',
        from:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
-       book:'https://www.oebb.at/en/', app:'Eurail Rail Planner'},
+       book:'https://www.oebb.at/en/'},
       {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',meta:'Vienna Hbf → Roma Termini · 19:30–09:30, ~14h',
        note:'Fewest berths of any leg - historically sells out 60+ days ahead. Book earliest of all.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
-       book:'https://www.nightjet.com/en', app:'Nightjet app'}
+       book:'https://www.nightjet.com/en', bookLabel:'Nightjet'}
     ]
   }
 ];
@@ -554,11 +561,9 @@ function renderLocalTransport(){
             <div class="seg-note" style="margin-top:6px;">${t.note}</div>
             ${t.pay ? `<div class="pay-badge ${t.pay}">${t.pay==='yes'?'✓ APPLE PAY / TAP WORKS':t.pay==='no'?'✗ NO DIRECT TAP':'⚠ UNCONFIRMED'}</div><div class="seg-note">${t.payNote}</div>` : ''}
             <div class="flight-links">
-              ${t.from ? `<a class="pill-link" href="${placeUrl(t.from)}" target="_blank">📍 ${t.from.split(',')[0]}</a>` : ''}
-              ${t.to ? `<a class="pill-link" href="${placeUrl(t.to)}" target="_blank">📍 ${t.to.split(',')[0]}</a>` : ''}
-              ${t.from && t.to ? `<a class="pill-link" href="${directionsUrl(t.from,t.to)}" target="_blank">🧭 ROUTE</a>` : ''}
               <a class="pill-link book" href="${t.link}" target="_blank">INFO ↗</a>
               ${t.app ? `<a class="pill-link book" href="${appSearchUrl(t.app)}" target="_blank">📱 ${t.app.split(/\s+or\s+/i)[0]} ↗</a>` : ''}
+              ${t.from && t.to ? `<a class="icon-btn" href="${directionsUrl(t.from,t.to)}" target="_blank" title="Directions ${t.from.split(',')[0]} → ${t.to.split(',')[0]}">🧭</a>` : ''}
             </div>
           </div>
         `).join('')}
@@ -585,11 +590,9 @@ function renderTransport(){
             <div class="seg-meta">${s.meta}</div>
             <div class="seg-note">${s.note}</div>
             <div class="seg-links">
-              <a class="pill-link" href="${placeUrl(s.from.place)}" target="_blank">📍 ${s.from.name}</a>
-              <a class="pill-link" href="${placeUrl(s.to.place)}" target="_blank">📍 ${s.to.name}</a>
-              <a class="pill-link" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank">🧭 ROUTE</a>
-              <a class="pill-link book" href="${s.book}" target="_blank">BOOK ↗</a>
-              ${s.app ? `<a class="pill-link book" href="${appSearchUrl(s.app)}" target="_blank">📱 ${s.app.split(/\s+or\s+/i)[0]} ↗</a>` : ''}
+              <a class="pill-link primary" href="${appSearchUrl('Eurail Rail Planner')}" target="_blank">🚆 EURAIL APP ↗</a>
+              ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
+              <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>
@@ -746,24 +749,104 @@ function wireNearbyButtons(el){
 }
 
 let dayStopsState = {};
+let dayTitleState = {};
+let dayStayState = {};
 let openDays = new Set();
 
 async function loadItineraryState(){
   for (const d of ITINERARY) {
-    const key = 'stops:'+d.date;
-    let loaded = null;
-    if (true) {
-      try {
-        const r = await store.get(key);
-        if (r && r.value) loaded = JSON.parse(r.value);
-      } catch(e) { /* no saved edits yet, or storage unavailable */ }
-    }
-    dayStopsState[d.date] = loaded || JSON.parse(JSON.stringify(d.stops));
+    try {
+      const r = await store.get('stops:'+d.date);
+      dayStopsState[d.date] = (r && r.value) ? JSON.parse(r.value) : JSON.parse(JSON.stringify(d.stops));
+    } catch(e) { dayStopsState[d.date] = JSON.parse(JSON.stringify(d.stops)); }
+
+    try {
+      const r = await store.get('title:'+d.date);
+      dayTitleState[d.date] = (r && r.value) ? r.value : d.title;
+    } catch(e) { dayTitleState[d.date] = d.title; }
+
+    try {
+      const r = await store.get('stay:'+d.date);
+      dayStayState[d.date] = (r && r.value) ? JSON.parse(r.value) : JSON.parse(JSON.stringify(d.stay));
+    } catch(e) { dayStayState[d.date] = JSON.parse(JSON.stringify(d.stay)); }
   }
 }
 
 function persistDay(date){
   store.set('stops:'+date, JSON.stringify(dayStopsState[date]));
+}
+function persistTitle(date){
+  store.set('title:'+date, dayTitleState[date]);
+}
+function persistStay(date){
+  store.set('stay:'+date, JSON.stringify(dayStayState[date]));
+}
+
+// Shared Nominatim-backed place search, used both for adding a stop and
+// for editing a day's accommodation.
+function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlaceholder='Search a place', descPlaceholder='One-line description (optional)', confirmLabel='ADD TO DAY', deriveDesc=null, onConfirm, onCancel }){
+  const form = document.createElement('div');
+  form.className = 'add-stop-form';
+  form.innerHTML = `
+    <input type="text" placeholder="${escapeHtml(namePlaceholder)}" class="f-name" autocomplete="off" value="${escapeHtml(initialName)}">
+    <div class="search-results"></div>
+    <textarea placeholder="${escapeHtml(descPlaceholder)}">${escapeHtml(initialDesc)}</textarea>
+    <div class="add-stop-actions">
+      <button class="cancel">CANCEL</button>
+      <button class="confirm">${escapeHtml(confirmLabel)}</button>
+    </div>
+  `;
+
+  const nameInput = form.querySelector('.f-name');
+  const resultsEl = form.querySelector('.search-results');
+  let selectedPlace = null;
+  let debounceTimer;
+
+  nameInput.addEventListener('input', ()=>{
+    selectedPlace = null;
+    clearTimeout(debounceTimer);
+    const q = nameInput.value.trim();
+    if(q.length < 3){ resultsEl.innerHTML = ''; return; }
+    resultsEl.innerHTML = '<div class="search-empty">Searching…</div>';
+    debounceTimer = setTimeout(async ()=>{
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q+', '+city)}`);
+        const data = await res.json();
+        if(!data.length){
+          resultsEl.innerHTML = '<div class="search-empty">No matches - will use what you typed</div>';
+          return;
+        }
+        resultsEl.innerHTML = data.map((r,i)=>`<div class="search-item" data-idx="${i}">${escapeHtml(r.display_name)}</div>`).join('');
+        resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
+          el2.addEventListener('click', ()=>{
+            const r = data[i];
+            selectedPlace = `${r.lat},${r.lon}`;
+            nameInput.value = r.display_name.split(',')[0];
+            const descField = form.querySelector('textarea');
+            if(deriveDesc && !descField.value.trim()){
+              const derived = deriveDesc(r);
+              if(derived) descField.value = derived;
+            }
+            resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${escapeHtml(r.display_name)}</div>`;
+          });
+        });
+      } catch(err){
+        resultsEl.innerHTML = '<div class="search-empty">Search unavailable right now - will use what you typed</div>';
+      }
+    }, 450);
+  });
+
+  form.querySelector('.cancel').addEventListener('click', ()=>{ if(onCancel) onCancel(); });
+  form.querySelector('.confirm').addEventListener('click', ()=>{
+    const name = nameInput.value.trim();
+    const desc = form.querySelector('textarea').value.trim();
+    if(!name) return;
+    // Use the matched place if one was picked, otherwise fall back to "name, city"
+    const place = selectedPlace || `${name}, ${city}`;
+    onConfirm({name, desc, place});
+  });
+
+  return form;
 }
 
 function renderItinerary(){
@@ -771,29 +854,43 @@ function renderItinerary(){
 
   el.innerHTML = ITINERARY.map((d,i)=>{
     const stops = dayStopsState[d.date] || [];
+    const stay = dayStayState[d.date] || d.stay;
+    const title = dayTitleState[d.date] || d.title;
+    const prevStay = i>0 ? (dayStayState[ITINERARY[i-1].date] || ITINERARY[i-1].stay) : stay;
+    let cursor = d.arrivalPlace || prevStay.place;
 
-    const stopsHtml = stops.map((s,si)=>`
-      <div class="stop-row">
-        <div class="stop-info">
-          <a class="stop-name" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
-          <div class="stop-desc">${escapeHtml(s.desc)}</div>
-        </div>
-        <div class="stop-actions">
-          <a class="stop-map secondary" href="${directionsUrl(d.stay.place,s.place)}" target="_blank">FROM STAY</a>
-          <a class="stop-map secondary" href="${directionsUrl(s.place,d.stay.place)}" target="_blank">TO STAY</a>
-          <div class="stop-controls">
+    const stopsHtml = stops.map((s,si)=>{
+      const lastStop = cursor;
+      cursor = s.place;
+      return `
+        <div class="stop-row">
+          <div class="stop-info">
+            <a class="stop-name" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
+            <div class="stop-desc">${escapeHtml(s.desc)}</div>
+          </div>
+          <div class="stop-actions">
+            <a class="stop-map secondary" href="${directionsUrl(stay.place,s.place)}" target="_blank">FROM STAY</a>
+            <a class="stop-map secondary" href="${directionsUrl(s.place,stay.place)}" target="_blank">TO STAY</a>
+            <a class="stop-map secondary" href="${directionsUrl(lastStop,s.place)}" target="_blank">FROM LAST STOP</a>
+          </div>
+          <div class="stop-controls-row">
             <button class="ctrl-btn" data-act="up" data-date="${d.date}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
             <button class="ctrl-btn" data-act="down" data-date="${d.date}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
             <button class="ctrl-btn danger" data-act="remove" data-date="${d.date}" data-idx="${si}">&#10005;</button>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
 
     const stayHtml = `
-      <div class="stay-row top">
-        <div class="stay-label">${escapeHtml(d.stay.type.toUpperCase())}</div>
-        <a class="stay-name" href="${placeUrl(d.stay.place)}" target="_blank">${escapeHtml(d.stay.name)}</a>
+      <div class="stay-row top" data-date="${d.date}">
+        <div class="stay-head">
+          <div style="min-width:0;">
+            <div class="stay-label">${escapeHtml(stay.type.toUpperCase())}</div>
+            <a class="stay-name" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
+          </div>
+          <button class="icon-edit-btn" data-act="edit-stay" data-date="${d.date}" title="Edit accommodation">✎</button>
+        </div>
       </div>
     `;
 
@@ -806,15 +903,18 @@ function renderItinerary(){
           </div>
           <div style="flex:1;min-width:0;">
             <div class="day-date">${d.city}</div>
-            <div class="day-title">${d.title}</div>
+            <div class="day-title-row">
+              <div class="day-title" data-date="${d.date}">${escapeHtml(title)}</div>
+              <button class="icon-edit-btn" data-act="rename-day" data-date="${d.date}" title="Rename day">✎</button>
+            </div>
           </div>
           <span class="day-chevron">&#9660;</span>
         </div>
         <div class="day-detail">
           ${stayHtml}
           <div class="nearby-row">
-            <button class="nearby-btn" data-type="things" data-place="${d.stay.place}" data-date="${d.date}">🎡 THINGS TO DO NEARBY</button>
-            <button class="nearby-btn" data-type="food" data-place="${d.stay.place}" data-date="${d.date}">🍽️ FOOD NEARBY</button>
+            <button class="nearby-btn" data-type="things" data-place="${stay.place}" data-date="${d.date}"><span class="nearby-btn-icon">🎡</span><span>THINGS TO DO</span></button>
+            <button class="nearby-btn" data-type="food" data-place="${stay.place}" data-date="${d.date}"><span class="nearby-btn-icon">🍽️</span><span>FOOD NEARBY</span></button>
           </div>
           <div class="nearby-results" id="nearby-${d.date}"></div>
           ${stopsHtml}
@@ -833,7 +933,7 @@ function renderItinerary(){
     });
   });
 
-  el.querySelectorAll('[data-act]').forEach(btn=>{
+  el.querySelectorAll('[data-act="up"],[data-act="down"],[data-act="remove"]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       const date = btn.dataset.date, idx = +btn.dataset.idx, act = btn.dataset.act;
@@ -847,75 +947,86 @@ function renderItinerary(){
     });
   });
 
+  el.querySelectorAll('[data-act="rename-day"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const date = btn.dataset.date;
+      const titleEl = btn.parentElement.querySelector('.day-title');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'day-title-input';
+      input.value = dayTitleState[date];
+      titleEl.replaceWith(input);
+      input.focus();
+      input.select();
+      let saved = false;
+      const save = ()=>{
+        if(saved) return;
+        saved = true;
+        const val = input.value.trim();
+        dayTitleState[date] = val || dayTitleState[date];
+        persistTitle(date);
+        openDays.add(date);
+        renderItinerary();
+      };
+      input.addEventListener('keydown', (ev)=>{
+        if(ev.key==='Enter'){ ev.preventDefault(); save(); }
+        if(ev.key==='Escape'){ ev.preventDefault(); saved = true; openDays.add(date); renderItinerary(); }
+      });
+      input.addEventListener('blur', save);
+    });
+  });
+
+  el.querySelectorAll('[data-act="edit-stay"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const date = btn.dataset.date;
+      const city = ITINERARY.find(x=>x.date===date).city;
+      const current = dayStayState[date];
+      const row = btn.closest('.stay-row');
+      const form = createPlaceSearchForm({
+        city,
+        initialName: current.name,
+        initialDesc: current.type,
+        namePlaceholder: 'Search accommodation',
+        descPlaceholder: 'Stay type (e.g. Hostel · 2 nights)',
+        confirmLabel: 'SAVE',
+        onConfirm: ({name, desc, place})=>{
+          dayStayState[date] = {name, type: desc || current.type, place};
+          persistStay(date);
+          openDays.add(date);
+          renderItinerary();
+        },
+        onCancel: ()=>{ openDays.add(date); renderItinerary(); }
+      });
+      row.replaceWith(form);
+    });
+  });
+
   el.querySelectorAll('.add-stop-btn').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       const date = btn.dataset.date;
       const city = ITINERARY.find(x=>x.date===date).city;
-      const form = document.createElement('div');
-      form.className = 'add-stop-form';
-      form.innerHTML = `
-        <input type="text" placeholder="Search a place (e.g. Louvre Museum)" class="f-name" autocomplete="off">
-        <div class="search-results"></div>
-        <textarea placeholder="One-line description (optional)"></textarea>
-        <div class="add-stop-actions">
-          <button class="cancel">CANCEL</button>
-          <button class="confirm">ADD TO DAY</button>
-        </div>
-      `;
+      const form = createPlaceSearchForm({
+        city,
+        namePlaceholder: 'Search a place (e.g. Louvre Museum)',
+        descPlaceholder: 'One-line description (optional)',
+        confirmLabel: 'ADD TO DAY',
+        deriveDesc: (r)=>{
+          const kind = (r.type||r.class||'').replace(/_/g,' ');
+          if(!kind) return null;
+          return kind.charAt(0).toUpperCase()+kind.slice(1)+' - '+r.display_name.split(',').slice(1,3).join(',').trim();
+        },
+        onConfirm: ({name, desc, place})=>{
+          dayStopsState[date].push({name, desc: desc || 'Added stop', place});
+          persistDay(date);
+          openDays.add(date);
+          renderItinerary();
+        },
+        onCancel: ()=>{ openDays.add(date); renderItinerary(); }
+      });
       btn.replaceWith(form);
-
-      const nameInput = form.querySelector('.f-name');
-      const resultsEl = form.querySelector('.search-results');
-      let selectedPlace = null;
-      let debounceTimer;
-
-      nameInput.addEventListener('input', ()=>{
-        selectedPlace = null;
-        clearTimeout(debounceTimer);
-        const q = nameInput.value.trim();
-        if(q.length < 3){ resultsEl.innerHTML = ''; return; }
-        resultsEl.innerHTML = '<div class="search-empty">Searching…</div>';
-        debounceTimer = setTimeout(async ()=>{
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q+', '+city)}`);
-            const data = await res.json();
-            if(!data.length){
-              resultsEl.innerHTML = '<div class="search-empty">No matches - will use what you typed</div>';
-              return;
-            }
-            resultsEl.innerHTML = data.map((r,i)=>`<div class="search-item" data-idx="${i}">${escapeHtml(r.display_name)}</div>`).join('');
-            resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
-              el2.addEventListener('click', ()=>{
-                const r = data[i];
-                selectedPlace = `${r.lat},${r.lon}`;
-                nameInput.value = r.display_name.split(',')[0];
-                const kind = (r.type||r.class||'').replace(/_/g,' ');
-                const descField = form.querySelector('textarea');
-                if(!descField.value.trim() && kind){
-                  descField.value = kind.charAt(0).toUpperCase()+kind.slice(1)+' - '+r.display_name.split(',').slice(1,3).join(',').trim();
-                }
-                resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${escapeHtml(r.display_name)}</div>`;
-              });
-            });
-          } catch(err){
-            resultsEl.innerHTML = '<div class="search-empty">Search unavailable right now - will use what you typed</div>';
-          }
-        }, 450);
-      });
-
-      form.querySelector('.cancel').addEventListener('click', ()=>{ openDays.add(date); renderItinerary(); });
-      form.querySelector('.confirm').addEventListener('click', ()=>{
-        const name = nameInput.value.trim();
-        const desc = form.querySelector('textarea').value.trim();
-        if(!name) return;
-        // Use the matched place if one was picked, otherwise fall back to "name, city"
-        const place = selectedPlace || `${name}, ${city}`;
-        dayStopsState[date].push({name, desc: desc || 'Added stop', place});
-        persistDay(date);
-        openDays.add(date);
-        renderItinerary();
-      });
     });
   });
 

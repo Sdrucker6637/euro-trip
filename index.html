@@ -49,9 +49,9 @@
     --font-body:'IBM Plex Sans',sans-serif;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html{background:var(--bg);height:100%;overflow:hidden;}
-  body{font-family:var(--font-body);background:var(--bg);color:var(--cream);display:flex;justify-content:center;height:100%;overflow:hidden;position:relative;}
-  .map-bg{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  html{background:var(--bg);}
+  body{font-family:var(--font-body);background:var(--bg);color:var(--cream);display:flex;justify-content:center;}
+  .map-bg{width:auto;height:340px;margin:-16px -16px 16px;overflow:hidden;pointer-events:none;}
   .map-bg svg{display:block;width:100%;height:100%;}
   .app{position:relative;z-index:1;width:100%;max-width:460px;height:100vh;height:100dvh;display:flex;flex-direction:column;background:transparent;overflow:hidden;}
   header{padding:22px 20px 18px;border-bottom:1px solid var(--glass-line);position:relative;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
@@ -264,8 +264,52 @@ window.addEventListener('unhandledrejection', function(e){
   showErrBanner();
 });
 </script>
-<div class="map-bg" aria-hidden="true">
-  <svg viewBox="0 0 460 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+<div class="app">
+  <div id="err-banner" class="err-banner" role="alert" style="display:none;">
+    <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and checklist are safe - try reloading the page.</span>
+    <button id="err-banner-dismiss" class="err-banner-dismiss" aria-label="Dismiss">&#10005;</button>
+  </div>
+  <header>
+    <div class="eyebrow">
+      <span class="stamp">✈ EUROPE · 6 COUNTRIES</span>
+      <button id="howto-btn" class="info-btn" aria-label="How to use transport">ⓘ HOW-TO</button>
+    </div>
+    <h1 aria-label="Amsterdam to Rome">
+      <span class="h1-from">Amsterdam</span>
+      <span class="h1-rule" aria-hidden="true"></span>
+      <span class="h1-to">Rome</span>
+    </h1>
+    <div class="subline">Oct 9 – 27 · flight home Tue 27th, 10:30am · <span id="countdown">—</span></div>
+    <div class="route-line">
+      <div class="route-track"></div>
+      <div id="route-plane" class="route-plane">✈</div>
+      <div class="route-dots" id="route-dots"></div>
+    </div>
+  </header>
+
+  <div id="howto-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>Getting Around - Quick Guide</span>
+        <button id="howto-close" class="modal-close">&#10005;</button>
+      </div>
+      <div class="modal-body">
+        <h2>Between countries</h2>
+        <p>Your Eurail pass covers most inter-city legs - just show it (or the Eurail Rail Planner app) on board, no ticket needed. Three legs need a separate paid reservation booked directly with the operator, regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV Lyria), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking - just open the Eurail app for schedules.</p>
+        <h2>Inside each city</h2>
+        <p><b>Amsterdam & Rome & Budapest:</b> tap your card or Apple Pay directly on trams/metro/buses - no ticket needed.</p>
+        <p><b>Paris:</b> no direct tap yet - add a Navigo Easy pass to Apple Wallet instead.</p>
+        <p><b>Vienna:</b> contactless isn't confirmed - buy through the WienMobil app to be safe.</p>
+        <p><b>Switzerland (Interlaken):</b> no gates at all - it's honor-based. Use the SBB Mobile app (EasyRide) or your Eurail pass.</p>
+        <h2>Apps worth having</h2>
+        <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <div class="map-bg" aria-hidden="true">
+  <svg viewBox="0 0 460 900" preserveAspectRatio="xMidYMin slice" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <radialGradient id="mapVignette" cx="50%" cy="30%" r="78%">
         <stop offset="0%" stop-color="#1a2c46"/>
@@ -394,50 +438,6 @@ window.addEventListener('unhandledrejection', function(e){
     </g>
   </svg>
 </div>
-<div class="app">
-  <div id="err-banner" class="err-banner" role="alert" style="display:none;">
-    <span class="err-banner-text">Something didn't load correctly. Your saved itinerary and checklist are safe - try reloading the page.</span>
-    <button id="err-banner-dismiss" class="err-banner-dismiss" aria-label="Dismiss">&#10005;</button>
-  </div>
-  <header>
-    <div class="eyebrow">
-      <span class="stamp">✈ EUROPE · 6 COUNTRIES</span>
-      <button id="howto-btn" class="info-btn" aria-label="How to use transport">ⓘ HOW-TO</button>
-    </div>
-    <h1 aria-label="Amsterdam to Rome">
-      <span class="h1-from">Amsterdam</span>
-      <span class="h1-rule" aria-hidden="true"></span>
-      <span class="h1-to">Rome</span>
-    </h1>
-    <div class="subline">Oct 9 – 27 · flight home Tue 27th, 10:30am · <span id="countdown">—</span></div>
-    <div class="route-line">
-      <div class="route-track"></div>
-      <div id="route-plane" class="route-plane">✈</div>
-      <div class="route-dots" id="route-dots"></div>
-    </div>
-  </header>
-
-  <div id="howto-modal" class="modal-overlay">
-    <div class="modal-card">
-      <div class="modal-head">
-        <span>Getting Around - Quick Guide</span>
-        <button id="howto-close" class="modal-close">&#10005;</button>
-      </div>
-      <div class="modal-body">
-        <h2>Between countries</h2>
-        <p>Your Eurail pass covers most inter-city legs - just show it (or the Eurail Rail Planner app) on board, no ticket needed. Three legs need a separate paid reservation booked directly with the operator, regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV Lyria), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking - just open the Eurail app for schedules.</p>
-        <h2>Inside each city</h2>
-        <p><b>Amsterdam & Rome & Budapest:</b> tap your card or Apple Pay directly on trams/metro/buses - no ticket needed.</p>
-        <p><b>Paris:</b> no direct tap yet - add a Navigo Easy pass to Apple Wallet instead.</p>
-        <p><b>Vienna:</b> contactless isn't confirmed - buy through the WienMobil app to be safe.</p>
-        <p><b>Switzerland (Interlaken):</b> no gates at all - it's honor-based. Use the SBB Mobile app (EasyRide) or your Eurail pass.</p>
-        <h2>Apps worth having</h2>
-        <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
-      </div>
-    </div>
-  </div>
-
-  <main>
     <section class="panel active" id="panel-transport"></section>
     <section class="panel" id="panel-itinerary"></section>
     <section class="panel" id="panel-checklist"></section>

@@ -132,7 +132,7 @@
       "Dashed borders and circular notch cutouts standing in for perforation and stamps",
       "One accent (amber) reserved for primary action and current state; a small red/green/amber status vocabulary for booking urgency",
       "Six named per-city hues used only as wayfinding accents (day-card left border, route dots), never as UI chrome",
-      "A fixed, near-invisible vintage rail-map layer behind the whole app (route Amsterdam→Paris→Interlaken→Vienna→Budapest→Rome), visible through translucent 'glass' app-chrome; paper document cards stay fully opaque",
+      "A vintage rail-map banner (route Amsterdam→Paris→Interlaken→Vienna→Budapest→Rome) as normal-flow content at the top of the scroll area on every tab - it scrolls away with the rest of the page rather than staying pinned to the viewport, deliberately, after fixed/absolute variants proved unreliable on real iOS/WebKit",
       "An asymmetric 'ticket-stub' corner radius (one sharp corner, one rounded) on primary content cards and primary buttons, paired with a plain text-link style (no fill/border) for secondary actions"
     ],
     "rules": [
@@ -142,7 +142,8 @@
       { "name": "The Document Lift Rule", "body": "Only paper-toned cards get a pronounced shadow. A dark-surface card never carries more than the ambient level, no matter its importance.", "section": "elevation" },
       { "name": "The Perforation Rule", "body": "Dashed and dotted borders and circular notch cutouts are reserved for elements that represent a physical, tearable, or stampable document, or the rules that separate its internal rows. A purely digital control never borrows this motif for its own sake.", "section": "shapes" },
       { "name": "The Ticket-Stub Rule", "body": "The asymmetric one-sharp/one-round corner radius is reserved for elements that represent a torn or issued document/action: primary content cards and primary buttons. A container that isn't standing in for a physical object uses a plain symmetric radius or none.", "section": "shapes" },
-      { "name": "The Single-Scroll Rule", "body": ".app never scrolls as a document; main is the one internal scroll container (flex: 1; min-height: 0; overflow-y: auto), and .app is a true fixed-height shell (height: 100dvh; overflow: hidden) so it can never grow past the viewport. Header, nav, and the background map layer stay visually anchored to the viewport while only main's content moves.", "section": "layout" }
+      { "name": "The Single-Scroll Rule", "body": ".app never scrolls as a document; main is the one internal scroll container (flex: 1; min-height: 0; overflow-y: auto), and .app is a true fixed-height shell (height: 100dvh; overflow: hidden) so it can never grow past the viewport. Header and nav stay visually anchored to the viewport while only main's content moves.", "section": "layout" },
+      { "name": "The Map Rides With Content Rule", "body": "The map is position:static, the first child of main, not viewport-pinned. Fixed/absolute variants were tried and both visibly dragged during a real iOS/WebKit touch-scroll gesture - a documented WebKit bug class no GPU-layer hint reliably prevents. Do not reintroduce position:fixed/absolute (or transform/will-change hints in service of one) for this element.", "section": "layout" }
     ],
     "dos": [
       "Do put any code, date, status, or label-length string in IBM Plex Mono; put any name, title, or sentence-length string in Space Grotesk or IBM Plex Sans.",

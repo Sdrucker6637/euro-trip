@@ -1,0 +1,132 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-07T00:00:00Z",
+  "title": "Design System: Europe Trip (Amsterdam → Rome)",
+  "extensions": {
+    "colorMeta": {
+      "night-navy": { "role": "neutral-shell", "displayName": "Night Navy", "canonical": "#0F1B2D", "tonalRamp": ["#132239", "#24406B", "#345E9D", "#4F7EC4", "#81A2D5", "#ABC1E3", "#CDDBEE", "#ECF1F9"] },
+      "surface": { "role": "neutral-shell", "displayName": "Surface", "canonical": "#17263D", "tonalRamp": ["#152338", "#274168", "#395F98", "#557FBF", "#85A3D1", "#AEC2E0", "#CFDBED", "#ECF1F8"] },
+      "surface-raised": { "role": "neutral-shell", "displayName": "Surface Raised", "canonical": "#1E3049", "tonalRamp": ["#162436", "#2A4365", "#3D6194", "#5982BB", "#88A5CE", "#AFC3DE", "#D0DCEC", "#EDF1F8"] },
+      "line": { "role": "neutral-shell", "displayName": "Line", "canonical": "#2E4763", "tonalRamp": ["#182534", "#2D4661", "#42668F", "#5F87B5", "#8CA9CA", "#B2C6DB", "#D2DDEA", "#EEF2F7"] },
+      "muted": { "role": "neutral-shell", "displayName": "Muted", "canonical": "#8598AD", "tonalRamp": ["#1F262E", "#394755", "#54687D", "#7389A1", "#9AAABB", "#BCC6D2", "#D7DEE4", "#F0F2F5"] },
+      "cream": { "role": "neutral-shell", "displayName": "Cream", "canonical": "#EDE7D9", "tonalRamp": ["#342C19", "#61522E", "#8E7743", "#B49A60", "#C9B78D", "#DBCFB3", "#EAE3D2", "#F7F4EE"] },
+      "paper": { "role": "neutral-paper", "displayName": "Paper", "canonical": "#F3EBD8", "tonalRamp": ["#3A2E12", "#6D5722", "#A07F31", "#C8A34C", "#D7BD7E", "#E5D3A9", "#EFE5CC", "#F9F5EB"] },
+      "ink": { "role": "neutral-paper", "displayName": "Ink", "canonical": "#241F14", "tonalRamp": ["#312A1B", "#5C4F33", "#86744B", "#AB9668", "#C3B493", "#D7CDB7", "#E7E1D4", "#F6F4EF"] },
+      "amber": { "role": "primary", "displayName": "Departure Amber", "canonical": "#E3A542", "tonalRamp": ["#432D0A", "#7C5412", "#B67A1B", "#E19E33", "#E9B96C", "#F1D09D", "#F6E4C5", "#FCF4E9"] },
+      "teal": { "role": "secondary", "displayName": "Boarding Teal", "canonical": "#4FA89C", "tonalRamp": ["#183430", "#2E615A", "#438E84", "#5FB4A9", "#8DC9C1", "#B3DBD6", "#D2EAE7", "#EEF7F6"] },
+      "status-green": { "role": "status", "displayName": "Hop-On Green", "canonical": "#7FAE7A", "tonalRamp": ["#1F301D", "#395936", "#54824F", "#73A66D", "#9ABF96", "#BCD5B9", "#D7E6D6", "#F0F5EF"] },
+      "status-red": { "role": "status", "displayName": "Book-Now Red", "canonical": "#C96A52", "tonalRamp": ["#3A1A12", "#6D3122", "#9F4832", "#C7654C", "#D7917F", "#E4B5A9", "#EFD3CC", "#F9EEEC"] },
+      "city-amsterdam": { "role": "accent-city", "displayName": "Amsterdam Teal", "canonical": "#4FA8A0", "tonalRamp": ["#183432", "#2E615D", "#438E87", "#5FB4AC", "#8DC9C4", "#B3DBD7", "#D2EAE8", "#EEF7F6"] },
+      "city-paris": { "role": "accent-city", "displayName": "Paris Terracotta", "canonical": "#D8735A", "tonalRamp": ["#3E180F", "#742D1B", "#A94228", "#D25E41", "#DF8C77", "#EAB2A4", "#F2D2C9", "#FAEDEA"] },
+      "city-interlaken": { "role": "accent-city", "displayName": "Interlaken Green", "canonical": "#7FA85C", "tonalRamp": ["#25321B", "#465D32", "#668849", "#87AD66", "#A9C491", "#C6D8B6", "#DDE8D4", "#F2F6EE"] },
+      "city-vienna": { "role": "accent-city", "displayName": "Vienna Violet", "canonical": "#9B7FBF", "tonalRamp": ["#251A33", "#44305F", "#64468B", "#8563B1", "#A78FC7", "#C5B4DA", "#DCD3E9", "#F2EEF6"] },
+      "city-budapest": { "role": "accent-city", "displayName": "Budapest Gold", "canonical": "#D9A441", "tonalRamp": ["#402E0D", "#775618", "#AE7E23", "#D8A13C", "#E3BC73", "#ECD2A2", "#F4E5C8", "#FBF5EA"] },
+      "city-rome": { "role": "accent-city", "displayName": "Rome Clay", "canonical": "#C75C4A", "tonalRamp": ["#3A1812", "#6D2D22", "#A04131", "#C85E4C", "#D78B7E", "#E4B2A9", "#EFD1CC", "#F9EDEC"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The single h1 route title only." },
+      "title": { "displayName": "Title (mono)", "purpose": "Route codes and city-pair headers, set in mono at display scale." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, notes, and form input text." },
+      "label": { "displayName": "Label (mono)", "purpose": "Pill buttons, status flags, nav labels, badges, field labels - anything functional or code-like." }
+    },
+    "shadows": [
+      { "name": "ambient-app", "value": "0 3px 10px rgba(0,0,0,0.2)", "purpose": "Dark app-shell cards (day-card, check-item) - reads as part of the app, not an object." },
+      { "name": "lifted-document", "value": "0 8px 20px rgba(0,0,0,0.35)", "purpose": "Journey (inter-city train) cards - reads as a physical ticket resting on the screen." },
+      { "name": "lifted-document-light", "value": "0 6px 16px rgba(0,0,0,0.28)", "purpose": "Local-transit flight-cards - the lighter variant of the paper-card lift." }
+    ],
+    "motion": [
+      { "name": "route-transition", "value": "left 0.3s ease", "purpose": "Route-timeline plane icon sliding to the trip's current progress position." },
+      { "name": "toggle-transition", "value": "border-color .15s ease, background .15s ease, color .15s ease", "purpose": "Nearby-search toggle buttons switching to their active tinted state." },
+      { "name": "chevron-transition", "value": "transform 0.2s ease", "purpose": "Day-card chevron rotating on expand/collapse." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one solid-amber call-to-action pill per row (BOOK, ADD, SAVE, the Eurail app CTA).",
+      "html": "<button class=\"ds-btn-primary\">BOOK ↗</button>",
+      "css": ".ds-btn-primary { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; font-weight: 600; padding: 6px 11px; border-radius: 16px; border: none; background: #E3A542; color: #241F14; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: #EBB865; } .ds-btn-primary:focus-visible { outline: 2px solid #241F14; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A same-row secondary action next to a primary pill (FROM STAY, TO STAY) - transparent with amber text, same shape as the primary pill.",
+      "html": "<button class=\"ds-btn-ghost\">FROM STAY</button>",
+      "css": ".ds-btn-ghost { font-family: 'IBM Plex Mono', monospace; font-size: 10px; font-weight: 600; padding: 6px 10px; border-radius: 16px; border: none; background: transparent; color: #E3A542; cursor: pointer; transition: color 0.15s; } .ds-btn-ghost:hover { color: #F1C170; } .ds-btn-ghost:focus-visible { outline: 2px solid #E3A542; outline-offset: 2px; }"
+    },
+    {
+      "name": "Icon Button",
+      "kind": "button",
+      "refersTo": "icon-btn",
+      "description": "A circular single-purpose action button (directions) with no text label, used on paper document cards.",
+      "html": "<button class=\"ds-icon-btn\" aria-label=\"Directions\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\"><circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M16 8l-2.5 6.5L8 17l2.5-6.5z\" fill=\"currentColor\" stroke=\"none\"/></svg></button>",
+      "css": ".ds-icon-btn { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: none; border: 1px solid #c9bd9e; color: #241F14; cursor: pointer; } .ds-icon-btn:hover { background: rgba(36,31,20,0.06); } .ds-icon-btn:focus-visible { outline: 2px solid #241F14; outline-offset: 2px; }"
+    },
+    {
+      "name": "Paper Document Card",
+      "kind": "card",
+      "refersTo": "card-paper",
+      "description": "A real booked/bookable object (a train leg, a local-transit card) - cream paper background, ink text, pronounced lifted shadow.",
+      "html": "<div class=\"ds-card-paper\"><div class=\"ds-card-paper-title\">Eurostar / Thalys</div><div class=\"ds-card-paper-meta\">Amsterdam Centraal → Paris Gare du Nord · ~3h20m</div></div>",
+      "css": ".ds-card-paper { background: #F3EBD8; color: #241F14; border-radius: 14px; padding: 14px 16px; box-shadow: 0 8px 20px rgba(0,0,0,0.35); } .ds-card-paper-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14.5px; } .ds-card-paper-meta { font-size: 12px; color: #5c5340; margin-top: 2px; }"
+    },
+    {
+      "name": "App Shell Card",
+      "kind": "card",
+      "refersTo": "card-dark",
+      "description": "App-native content (an itinerary day, a checklist row) - dark surface background, cream text, ambient shadow only.",
+      "html": "<div class=\"ds-card-dark\"><div class=\"ds-card-dark-title\">Eiffel Tower + Seine cruise</div><div class=\"ds-card-dark-meta\">Paris · Mon Oct 12</div></div>",
+      "css": ".ds-card-dark { background: #17263D; color: #EDE7D9; border-radius: 12px; padding: 14px 15px; box-shadow: 0 3px 10px rgba(0,0,0,0.2); border-left: 4px solid #8598AD; } .ds-card-dark-title { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 15px; } .ds-card-dark-meta { font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; color: #8598AD; margin-top: 2px; }"
+    },
+    {
+      "name": "Bottom Navigation",
+      "kind": "nav",
+      "refersTo": "nav-tab-bar",
+      "description": "Fixed 3-tab bottom bar, icon over mono label, muted at rest and amber when active.",
+      "html": "<nav class=\"ds-nav\"><button class=\"ds-nav-tab ds-nav-tab--active\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\"><rect x=\"6\" y=\"3\" width=\"12\" height=\"12.5\" rx=\"4\"/><path stroke-linecap=\"round\" d=\"M6 9.5h12M9 3v6.5M9 16.5l-2.5 4M15 16.5l2.5 4\"/><circle cx=\"9\" cy=\"13\" r=\"1\"/><circle cx=\"15\" cy=\"13\" r=\"1\"/></svg>Transport</button><button class=\"ds-nav-tab\">Itinerary</button></nav>",
+      "css": ".ds-nav { display: flex; background: #1E3049; border-top: 1px solid #2E4763; padding: 8px 6px; } .ds-nav-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: none; color: #8598AD; font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 6px 0; cursor: pointer; } .ds-nav-tab--active, .ds-nav-tab:hover { color: #E3A542; } .ds-nav-tab:focus-visible { outline: 2px solid #E3A542; outline-offset: -2px; }"
+    },
+    {
+      "name": "Stamp Badge",
+      "kind": "custom",
+      "refersTo": "stamp-badge",
+      "description": "Signature component: a dashed-border circle rotated -6deg showing a day's date, colored by that day's city - the strongest expression of the ink-stamp metaphor.",
+      "html": "<div class=\"ds-stamp-badge\" style=\"color:#D8735A\"><span class=\"ds-stamp-badge-mon\">OCT</span><span class=\"ds-stamp-badge-day\">12</span></div>",
+      "css": ".ds-stamp-badge { width: 46px; height: 46px; border-radius: 50%; border: 2px dashed currentColor; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; line-height: 1.05; transform: rotate(-6deg); } .ds-stamp-badge-mon { font-size: 8.5px; letter-spacing: 0.05em; } .ds-stamp-badge-day { font-size: 15px; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Night Train Passport",
+    "overview": "The app is a dark, after-dark travel-app shell that holds physical travel documents inside it. Everything native to the app itself (the itinerary days, the packing checklist, the tab bar) lives in flat navy surfaces, as if you're looking at a phone screen on a night train. Everything that represents a real booked or bookable object (a train leg, a local-transit info card) is rendered as a warm cream-paper card with ink-colored text, dropped onto that dark shell with a pronounced shadow, as if a paper ticket or boarding pass were physically lying on top of the glass. The two-tone contrast between \"app chrome\" and \"paper document\" is the single organizing idea; nothing else in the system competes with it. Monospace type (IBM Plex Mono) is used everywhere something reads like it was printed by a ticket machine: route codes, dates, status flags, nav labels, pill buttons. A geometric display face (Space Grotesk) carries headlines and titles. Circular ink-stamp badges, dashed cut-lines, and punched-notch cutouts on ticket cards complete the passport-and-boarding-pass vocabulary. Nothing in the system is decorative for its own sake; every recurring motif (dashes, notches, stamps) directly references a physical travel-document detail.",
+    "keyCharacteristics": [
+      "Dark navy app shell vs. warm cream-paper document cards, always ink-on-paper / cream-on-navy, never mixed",
+      "Monospace for anything ticket-like (codes, dates, statuses, labels); a display face only for headlines/titles",
+      "Dashed borders and circular notch cutouts standing in for perforation and stamps",
+      "One accent (amber) reserved for primary action and current state; a small red/green/amber status vocabulary for booking urgency",
+      "Six named per-city hues used only as wayfinding accents (day-card left border, route dots), never as UI chrome"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Amber is the only color used for a primary call-to-action or an active/selected control. Teal, the status colors, and the city colors are all narrowly scoped to one specific job each and never substitute for amber.", "section": "colors" },
+      { "name": "The Paper-or-Navy Rule", "body": "A card is either a paper-document card (paper background, ink text, warm-toned shadow) or an app-shell card (surface background, cream text, cool ambient shadow). The two never blend on the same element.", "section": "colors" },
+      { "name": "The Printed-Label Rule", "body": "Any text that represents a code, date, status, or short machine-legible fact (not a sentence) is set in IBM Plex Mono, regardless of where it appears in the hierarchy. Any text that represents a name, title, or description is set in Space Grotesk or IBM Plex Sans.", "section": "typography" },
+      { "name": "The Document Lift Rule", "body": "Only paper-toned cards get a pronounced shadow. A dark-surface card never carries more than the ambient level, no matter its importance.", "section": "elevation" },
+      { "name": "The Perforation Rule", "body": "Dashed borders and circular notch cutouts are reserved for elements that represent a physical, tearable, or stampable document (ticket cards, date stamps). A purely digital control (a button, an input) never borrows this motif.", "section": "shapes" }
+    ],
+    "dos": [
+      "Do put any code, date, status, or label-length string in IBM Plex Mono; put any name, title, or sentence-length string in Space Grotesk or IBM Plex Sans.",
+      "Do keep the paper/navy split absolute: paper background always pairs with ink text and a lifted shadow; navy/surface background always pairs with cream text and an ambient shadow.",
+      "Do reserve full-pill radius for interactive controls and card/section radii (12-18px) for containers; nothing sits between those two scales.",
+      "Do reserve dashed borders and circular notches for content that represents a physical, perforated, or stamped document.",
+      "Do limit a card's action row to one primary (amber, solid) action plus ghost/icon secondary actions - never two solid amber buttons side by side."
+    ],
+    "donts": [
+      "Don't use amber for anything other than the single primary action or current/active state in a given row or tab.",
+      "Don't introduce a fourth type family; the display/body/mono trio covers every case in the system.",
+      "Don't give a dark-surface (app-chrome) element the pronounced \"lifted\" shadow reserved for paper document cards.",
+      "Don't use a city color anywhere except the day-card left border and the route-timeline dots."
+    ]
+  }
+}

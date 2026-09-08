@@ -146,7 +146,9 @@
   .seg-flag.green{background:var(--green);}
   .seg-body{flex:1;min-width:0;}
   .seg-title{font-family:var(--font-display);font-weight:600;font-size:14.5px;}
-  .seg-meta{font-size:12px;color:var(--paper-ink-secondary);margin-top:2px;}
+  .seg-meta{font-size:12px;color:var(--paper-ink-secondary);margin-top:2px;display:flex;align-items:center;flex-wrap:wrap;gap:4px;}
+  .seg-station{color:var(--paper-ink-secondary);}
+  .seg-meta-arrow{color:var(--paper-ink-faint);}
   .seg-note{font-size:12px;color:var(--paper-ink-secondary);margin-top:5px;line-height:1.4;}
   .seg-links{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;align-items:center;}
   .pill-link{font-family:var(--font-mono);font-size:10.5px;font-weight:600;text-decoration:none;color:var(--red-deep);background:none;border-bottom:1px dotted var(--red-deep);padding:2px 1px;}
@@ -786,7 +788,7 @@ const JOURNEYS = [
   {
     id:'j1', from:'Amsterdam', to:'Paris', fromCode:'AMS', toCode:'PAR', date:'Tue Oct 13',
     segments:[
-      {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',meta:'Amsterdam Centraal → Paris Gare du Nord · ~3h20m',
+      {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',duration:'~3h20m',
        note:'Mandatory reservation, quota-limited for pass holders. Direct, no transfer.',
        from:{name:'Amsterdam Centraal',place:'Amsterdam Centraal, Amsterdam'},to:{name:'Paris Gare du Nord',place:'Paris Gare du Nord, Paris'},
        book:'https://www.eurostar.com/uk-en', bookLabel:'Eurostar'}
@@ -795,11 +797,11 @@ const JOURNEYS = [
   {
     id:'j2', from:'Paris', to:'Interlaken', fromCode:'PAR', toCode:'INT', date:'Fri Oct 16', via:'via Basel',
     segments:[
-      {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',meta:'Paris Gare de Lyon → Basel SBB · ~3h',
+      {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',duration:'~3h',
        note:'Mandatory reservation. 90-day window already open.',
        from:{name:'Paris Gare de Lyon',place:'Paris Gare de Lyon, Paris'},to:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},
        book:'https://www.tgv-lyria.com/en', bookLabel:'TGV Lyria'},
-      {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',meta:'Basel SBB → Interlaken Ost · ~2h',
+      {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',duration:'~2h',
        note:'No reservation needed, runs roughly hourly. Same-station transfer.',
        from:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},to:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},
        book:'https://www.sbb.ch/en', transitApp:'sbb'}
@@ -808,11 +810,11 @@ const JOURNEYS = [
   {
     id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Sun Oct 18', via:'via Zurich',
     segments:[
-      {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',meta:'Interlaken Ost → Zurich HB · ~2h',
+      {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',duration:'~2h',
        note:'No reservation needed.',
        from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
        book:'https://www.sbb.ch/en', transitApp:'sbb'},
-      {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',meta:'Zurich HB → Vienna Hbf · ~8h',
+      {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',duration:'~8h',
        note:'Long day - reservation optional but worth it for comfort.',
        from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
        book:'https://www.oebb.at/en/'}
@@ -821,7 +823,7 @@ const JOURNEYS = [
   {
     id:'j4', from:'Vienna', to:'Budapest', fromCode:'VIE', toCode:'BUD', date:'Wed Oct 21',
     segments:[
-      {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',meta:'Vienna Hbf → Budapest Keleti · ~2h40m',
+      {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',duration:'~2h40m',
        note:'Hourly-ish, optional reservation. Direct, no transfer.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},
        book:'https://www.oebb.at/en/'}
@@ -830,11 +832,11 @@ const JOURNEYS = [
   {
     id:'j5', from:'Budapest', to:'Rome', fromCode:'BUD', toCode:'ROM', date:'Fri Oct 23', via:'via Vienna, overnight',
     segments:[
-      {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',meta:'Budapest Keleti → Vienna Hbf · ~2h40m',
+      {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',duration:'~2h40m',
        note:'Connects to the overnight sleeper in Vienna.',
        from:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
        book:'https://www.oebb.at/en/'},
-      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',meta:'Vienna Hbf → Roma Termini · 19:30–09:30, ~14h',
+      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',duration:'19:30–09:30, ~14h',
        note:'Fewest berths of any leg - historically sells out 60+ days ahead. Book earliest of all.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
        book:'https://www.nightjet.com/en', bookLabel:'Nightjet'}
@@ -1535,9 +1537,38 @@ function persistJourneyDate(id){
   store.set('journey-date:'+id, journeyDateOverrides[id] || '');
 }
 
+// Per-journey start/end station override. Only the journey's overall
+// start (the first segment's `from`) and end (the last segment's `to`)
+// are ever editable - a transfer point in the middle of a multi-leg
+// journey (e.g. Basel, on the Paris -> Interlaken journey) is never
+// touched, matching how the traveler described these journeys (one start,
+// one end) rather than exposing every individual leg.
+let journeyStationOverrides = {};
+async function loadJourneyStations(){
+  for(const j of JOURNEYS){
+    try {
+      const r = await store.get('journey-stations:'+j.id);
+      if(r && r.value) journeyStationOverrides[j.id] = JSON.parse(r.value);
+    } catch(e){ /* keep the defaults */ }
+  }
+}
+function persistJourneyStations(id){
+  store.set('journey-stations:'+id, JSON.stringify(journeyStationOverrides[id] || {}));
+}
+function effectiveJourneyEndpoints(j){
+  const override = journeyStationOverrides[j.id] || {};
+  const first = j.segments[0], last = j.segments[j.segments.length-1];
+  return {
+    start: override.start || first.from,
+    end: override.end || last.to
+  };
+}
+
 function renderTransport(){
   const el = document.getElementById('panel-transport');
-  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div><div class="reserve-rollup" id="reserve-rollup"></div>` + JOURNEYS.map(j => `
+  el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div><div class="reserve-rollup" id="reserve-rollup"></div>` + JOURNEYS.map(j => {
+    const {start: journeyStart, end: journeyEnd} = effectiveJourneyEndpoints(j);
+    return `
     <div class="journey">
       <div class="journey-head">
         <div class="journey-route">${j.fromCode}<span class="journey-arrow">&#8594;</span>${j.toCode}</div>
@@ -1546,27 +1577,39 @@ function renderTransport(){
           <button class="date-edit-btn" type="button" data-act="edit-journey-date" data-id="${j.id}" title="Edit date" aria-label="Edit date for ${j.from} to ${j.to}">✎</button>
         </div>
       </div>
-      ${j.segments.map(s => `
+      ${j.segments.map((s,si) => {
+        const isFirst = si === 0, isLast = si === j.segments.length-1;
+        const effFrom = isFirst ? journeyStart : s.from;
+        const effTo = isLast ? journeyEnd : s.to;
+        return `
         <div class="segment">
           <div class="seg-flag ${s.flag}"></div>
           <div class="seg-body">
             <span class="flag-tag ${s.flag}">${s.flagLabel}</span>
             <div class="seg-title">${s.title}</div>
-            <div class="seg-meta">${s.meta}</div>
+            <div class="seg-meta">
+              <span class="seg-station">${escapeHtml(effFrom.name)}</span>
+              ${isFirst ? `<button class="date-edit-btn" type="button" data-act="edit-station" data-id="${j.id}" data-role="start" data-anchor="${escapeHtml(j.from)}" title="Edit start station" aria-label="Edit start station">✎</button>` : ''}
+              <span class="seg-meta-arrow">→</span>
+              <span class="seg-station">${escapeHtml(effTo.name)}</span>
+              ${isLast ? `<button class="date-edit-btn" type="button" data-act="edit-station" data-id="${j.id}" data-role="end" data-anchor="${escapeHtml(j.to)}" title="Edit end station" aria-label="Edit end station">✎</button>` : ''}
+              · ${s.duration}
+            </div>
             <div class="seg-note">${s.note}</div>
+            <div class="seg-station-edit-slot"></div>
             <div class="seg-links">
               ${s.flag==='red' ? `<a class="pill-link book" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               ${s.transitApp ? transitAppButtonHtml(s.transitApp) : ''}
               <a class="pill-link secondary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
-              <a class="pill-link secondary" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭 DIRECTIONS</a>
+              <a class="pill-link secondary" href="${directionsUrl(effFrom.place,effTo.place)}" target="_blank" title="Directions ${effFrom.name} → ${effTo.name}">🧭 DIRECTIONS</a>
               <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>
         </div>
-      `).join('')}
+      `;}).join('')}
     </div>
-  `).join('');
+  `;}).join('');
 
   el.querySelectorAll('input[type=checkbox]').forEach(cb=>{
     const key = 'booked:'+cb.dataset.leg;
@@ -1604,6 +1647,29 @@ function renderTransport(){
         if(ev.key==='Escape'){ ev.preventDefault(); done = true; renderTransport(); }
       });
       input.addEventListener('blur', save);
+    });
+  });
+
+  el.querySelectorAll('[data-act="edit-station"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id, role = btn.dataset.role, anchorCity = btn.dataset.anchor;
+      const journey = JOURNEYS.find(j=>j.id===id);
+      const {start, end} = effectiveJourneyEndpoints(journey);
+      const current = role === 'start' ? start : end;
+      const slot = btn.closest('.seg-body').querySelector('.seg-station-edit-slot');
+      const countryIso = CITY_COUNTRY_ISO[anchorCity];
+      const form = createStationSearchForm({
+        anchorCity, countryIso, initialName: current.name,
+        onSelect: (station)=>{
+          journeyStationOverrides[id] = journeyStationOverrides[id] || {};
+          journeyStationOverrides[id][role] = station;
+          persistJourneyStations(id);
+          renderTransport();
+        },
+        onCancel: ()=>{ slot.innerHTML = ''; }
+      });
+      slot.appendChild(form);
     });
   });
 
@@ -1730,6 +1796,62 @@ async function fetchNearby(lat, lon, kind){
   const res = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body: query});
   const data = await res.json();
   return diversify(data.elements||[], 6);
+}
+
+// ---- Train station search (for editing a journey's start/end station) ----
+// Reuses the same Overpass endpoint as the nearby-search above, but with a
+// query built specifically to satisfy "only real train stations, filtered
+// to the relevant country, prioritized by relevance to the journey" -
+// without building any actual rail-routing/connectivity data:
+//   - railway=station/halt is OSM's own tagging for a real train station,
+//     so results can never be an arbitrary city, POI, or address.
+//   - area["ISO3166-1"=...] restricts results to one country - the
+//     journey's origin country when editing the start station, the
+//     destination country when editing the end station.
+//   - around:<radius>,lat,lon anchors the search near that endpoint's
+//     city and sorts by distance, so nearby, obviously-relevant stations
+//     (the ones a real traveler would use) surface first instead of every
+//     station in the country.
+// If the country-scoped search comes up empty (e.g. the ISO3166-1 area
+// fails to resolve on Overpass's end), it retries proximity-only rather
+// than showing nothing.
+const STATION_SEARCH_RADIUS_M = 60000;
+const CITY_COUNTRY_ISO = {
+  Amsterdam:'NL', Paris:'FR', Interlaken:'CH', Vienna:'AT', Budapest:'HU', Rome:'IT'
+};
+function escapeOverpassRegex(str){
+  return String(str).replace(/[.*+?^${}()|[\]\\"]/g, '\\$&');
+}
+function haversineKm(lat1, lon1, lat2, lon2){
+  const R = 6371, toRad = d => d*Math.PI/180;
+  const dLat = toRad(lat2-lat1), dLon = toRad(lon2-lon1);
+  const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+async function runStationQuery(countryIso, lat, lon, nameFilter){
+  const nameClause = nameFilter ? `["name"~"${escapeOverpassRegex(nameFilter)}",i]` : '';
+  const scope = countryIso
+    ? `area["ISO3166-1"="${countryIso}"]->.country;\n       node(area.country)(around:${STATION_SEARCH_RADIUS_M},${lat},${lon})["railway"~"^(station|halt)$"]${nameClause};`
+    : `node(around:${STATION_SEARCH_RADIUS_M},${lat},${lon})["railway"~"^(station|halt)$"]${nameClause};`;
+  const query = `[out:json][timeout:15];\n       ${scope}\n       out body 25;`;
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body: query});
+    const data = await res.json();
+    return data.elements || [];
+  } catch(e){ return []; }
+}
+async function searchTrainStations(query, lat, lon, countryIso){
+  let elements = await runStationQuery(countryIso, lat, lon, query);
+  if(!elements.length && countryIso) elements = await runStationQuery(null, lat, lon, query);
+  const seen = new Set();
+  const out = [];
+  for(const e of elements){
+    if(!e.tags || !e.tags.name || seen.has(e.tags.name)) continue;
+    seen.add(e.tags.name);
+    out.push({name: e.tags.name, lat: e.lat, lon: e.lon, km: haversineKm(lat, lon, e.lat, e.lon)});
+  }
+  out.sort((a,b) => a.km - b.km);
+  return out.slice(0, 8);
 }
 
 function wireNearbyButtons(el){
@@ -1912,6 +2034,68 @@ function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlace
     onConfirm({name, desc, place});
   });
 
+  return form;
+}
+
+// Station picker for editing a journey's start/end station - deliberately
+// select-only (see searchTrainStations above for how results are
+// restricted to real, country/proximity-relevant stations): there is no
+// free-text confirm path here, so a new station can only ever be one of
+// the suggested results, never arbitrary typed text. Shows the nearest
+// stations immediately on open (empty query), then narrows as the
+// traveler types.
+function createStationSearchForm({ anchorCity, countryIso, initialName='', onSelect, onCancel }){
+  const form = document.createElement('div');
+  form.className = 'add-stop-form';
+  form.innerHTML = `
+    <input type="text" placeholder="Search ${escapeHtml(anchorCity)}-area stations" class="f-station-name" autocomplete="off" value="${escapeHtml(initialName)}">
+    <div class="search-results station-search-results"></div>
+    <div class="add-stop-actions">
+      <button class="cancel" type="button">CANCEL</button>
+    </div>
+  `;
+
+  const nameInput = form.querySelector('.f-station-name');
+  const resultsEl = form.querySelector('.station-search-results');
+  let anchorCoords = null;
+  let debounceTimer;
+  let requestSeq = 0;
+
+  const runSearch = async (q)=>{
+    const seq = ++requestSeq;
+    resultsEl.innerHTML = '<div class="search-empty">Searching…</div>';
+    try {
+      if(!anchorCoords) anchorCoords = await geocodePlace(anchorCity, anchorCity);
+      if(!anchorCoords){
+        if(seq === requestSeq) resultsEl.innerHTML = '<div class="search-empty">Could not locate this area right now - try again in a moment.</div>';
+        return;
+      }
+      const stations = await searchTrainStations(q, anchorCoords.lat, anchorCoords.lon, countryIso);
+      if(seq !== requestSeq) return;
+      if(!stations.length){
+        resultsEl.innerHTML = '<div class="search-empty">No matching stations found nearby.</div>';
+        return;
+      }
+      resultsEl.innerHTML = stations.map((s,i)=>`<div class="search-item" data-idx="${i}">${escapeHtml(s.name)} <span style="color:var(--muted);">· ${s.km.toFixed(1)} km</span></div>`).join('');
+      resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
+        el2.addEventListener('click', ()=>{
+          const s = stations[i];
+          onSelect({name: s.name, place: `${s.lat},${s.lon}`});
+        });
+      });
+    } catch(e){
+      if(seq === requestSeq) resultsEl.innerHTML = '<div class="search-empty">Search unavailable right now - try again in a moment.</div>';
+    }
+  };
+
+  runSearch(initialName ? '' : '');
+  nameInput.addEventListener('input', ()=>{
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(()=>runSearch(nameInput.value.trim()), 400);
+  });
+
+  form.querySelector('.cancel').addEventListener('click', ()=>{ if(onCancel) onCancel(); });
+  nameInput.focus();
   return form;
 }
 
@@ -2275,6 +2459,7 @@ document.getElementById('booking-modal').addEventListener('click', (e)=>{
 
 async function init(){
   await loadJourneyDates();
+  await loadJourneyStations();
   renderTransport();
   await loadItineraryState();
   renderItinerary();

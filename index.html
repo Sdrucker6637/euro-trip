@@ -2604,6 +2604,59 @@ init().catch(e=>{
   console.error('INIT ERROR:', e);
   showErrBanner();
 });
+
+// ---- Service worker: keeps the iPhone Home Screen icon from getting
+// stuck on a stale deploy ----
+//
+// Without this, the standalone shell iOS uses for a Home-Screen-added
+// site can keep showing a previously loaded copy of this page instead of
+// fetching a new one on every open, the way a normal Safari tab would.
+// sw.js uses a network-first strategy for the page itself (see that file
+// for the full explanation), so once it's in control, every open checks
+// the network first and only falls back to the last good copy offline -
+// no manual cache-version bump needed on future deploys, and no need to
+// delete/re-add the Home Screen icon.
+if('serviceWorker' in navigator){
+  // Whether this load already had an active service worker controlling it
+  // (true on every normal return visit once the SW is installed; false
+  // only on the very first-ever load, before any service worker exists
+  // yet). Read before registering, so it reflects the page's state at
+  // load time - used below to tell "a new deploy replaced the worker
+  // that was already running this page" from "this is the first time a
+  // worker has ever taken control," which needs no reload since nothing
+  // was showing stale content yet.
+  const hadController = !!navigator.serviceWorker.controller;
+
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      // A Home Screen app is effectively always "open," so proactively
+      // ask the browser to check sw.js for changes whenever the app is
+      // brought back to the foreground, rather than waiting on its own
+      // internal update-check timing.
+      document.addEventListener('visibilitychange', ()=>{
+        if(document.visibilityState === 'visible') reg.update().catch(()=>{});
+      });
+    }).catch(e=>{
+      console.error('SW registration failed:', e);
+    });
+  });
+
+  // Once a new service worker has finished installing and taken over
+  // (see sw.js's skipWaiting/clients.claim) from one that was already
+  // running this page, reload once so this already-open page actually
+  // shows the new version instead of just having a new worker sitting
+  // there unused until the next manual relaunch. Skipped on the very
+  // first-ever install (hadController was false) - there's no stale
+  // content to replace yet, and reloading then would just be an
+  // unnecessary flash on someone's first visit. The `refreshed` guard is
+  // the standard safeguard against a reload loop.
+  let refreshed = false;
+  navigator.serviceWorker.addEventListener('controllerchange', ()=>{
+    if(!hadController || refreshed) return;
+    refreshed = true;
+    window.location.reload();
+  });
+}
 </script>
 </body>
 </html>

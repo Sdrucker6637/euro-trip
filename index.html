@@ -794,7 +794,7 @@ const JOURNEYS = [
       {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',meta:'Basel SBB → Interlaken Ost · ~2h',
        note:'No reservation needed, runs roughly hourly. Same-station transfer.',
        from:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},to:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},
-       book:'https://www.sbb.ch/en'}
+       book:'https://www.sbb.ch/en', transitApp:'sbb'}
     ]
   },
   {
@@ -803,7 +803,7 @@ const JOURNEYS = [
       {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',meta:'Interlaken Ost → Zurich HB · ~2h',
        note:'No reservation needed.',
        from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
-       book:'https://www.sbb.ch/en'},
+       book:'https://www.sbb.ch/en', transitApp:'sbb'},
       {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',meta:'Zurich HB → Vienna Hbf · ~8h',
        note:'Long day - reservation optional but worth it for comfort.',
        from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
@@ -847,30 +847,30 @@ const LOCAL_TRANSPORT = [
 
   {city:'Paris', title:'Getting around the city', meta:'Metro / RATP',
    note:'Buy a Navigo Easy card or day passes; the metro covers nearly everything.',
-   link:'https://www.ratp.fr/en', app:'Bonjour RATP app or Citymapper',
+   link:'https://www.ratp.fr/en', app:'Bonjour RATP app or Citymapper', transitApp:'ratp',
    pay:'no', payNote:'No direct tap-to-pay yet - add a Navigo Easy pass to Apple Wallet instead, or buy paper tickets.'},
   {city:'Paris', title:'Paris → Versailles', meta:'RER C · ~40min',
    note:'Hop-on, no reservation. Get off at Versailles Château Rive Gauche, short walk to the palace.',
-   from:'Paris, France', to:'Palace of Versailles, Versailles, France', link:'https://www.ratp.fr/en', app:'SNCF Connect or Bonjour RATP',
+   from:'Paris, France', to:'Palace of Versailles, Versailles, France', link:'https://www.ratp.fr/en', app:'SNCF Connect or Bonjour RATP', transitApp:'ratp',
    pay:'no', payNote:'Same as city transit - use a Navigo Easy pass in Apple Wallet, not direct card tap.'},
 
   {city:'Interlaken', title:'Getting around town', meta:'Walkable, plus local buses',
    note:'Interlaken itself is small and walkable. Regional buses/trains connect to the surrounding villages.',
-   link:'https://www.sbb.ch/en', app:'SBB Mobile',
+   link:'https://www.sbb.ch/en', app:'SBB Mobile', transitApp:'sbb',
    pay:'no', payNote:'Switzerland has no tap gates - it\'s an open, honor-based network. Use the SBB Mobile app\'s EasyRide (check in/out, charges a saved card or Twint automatically), or just ride on your Eurail pass for the legs it covers.'},
   {city:'Interlaken', title:'Interlaken → Grindelwald / Kleine Scheidegg', meta:'Jungfrau Railways',
    note:'No reservation needed, but tickets are separate from the Eurail pass (partial discount only).',
-   from:'Interlaken Ost, Interlaken, Switzerland', to:'Kleine Scheidegg, Switzerland', link:'https://www.jungfrau.ch/en-gb/', app:'SBB Mobile',
+   from:'Interlaken Ost, Interlaken, Switzerland', to:'Kleine Scheidegg, Switzerland', link:'https://www.jungfrau.ch/en-gb/', app:'SBB Mobile', transitApp:'sbb',
    pay:'no', payNote:'No tap-in gates here either - buy through the Jungfrau website/app in advance (Apple Pay works fine there for checkout), or at the station.'},
 
   {city:'Vienna', title:'Getting around the city', meta:'U-Bahn / Wiener Linien',
    note:'Fast, frequent subway network - a 24/48/72h ticket is cheapest for a multi-day stay.',
-   link:'https://www.wienerlinien.at/en', app:'WienMobil app',
+   link:'https://www.wienerlinien.at/en', app:'WienMobil app', transitApp:'wienmobil',
    pay:'unknown', payNote:'Contactless tap-to-pay isn\'t confirmed as of writing - buy via the WienMobil app to be safe.'},
 
   {city:'Budapest', title:'Getting around the city', meta:'BKK metro / tram',
    note:'M1-M4 metro lines plus trams cover the city well; buy a travel card at any station.',
-   link:'https://bkk.hu/en/', app:'BudapestGO app',
+   link:'https://bkk.hu/en/', app:'BudapestGO app', transitApp:'budapestgo',
    pay:'yes', payNote:'Tap your card or Apple Pay at the "Pay&GO" readers - live on all metro lines. Fare caps aren\'t automatic yet, so it\'s pay-per-ride.'},
 
   {city:'Rome', title:'Getting around the city', meta:'Metro / bus (ATAC)',
@@ -911,6 +911,39 @@ const HOSTELWORLD_CITY_PATH = {
 function hostelworldCityUrl(city){
   const path = HOSTELWORLD_CITY_PATH[city];
   return path ? `https://www.hostelworld.com/hostels/${path}/` : 'https://www.hostelworld.com/';
+}
+
+// Local transit apps the traveler already has installed. Same standard as
+// United/Hostelworld/Rail Planner: every url below is the app's own real,
+// dedicated site - never a guessed custom scheme like "sbb://" - and a
+// plain https link like this is exactly how iOS decides whether to open
+// the installed app (via Universal Links, if the operator has that
+// configured for the domain) or the website. This app's outbound network
+// is sandboxed, so none of these domains' apple-app-site-association
+// files could be fetched to directly confirm Universal Link registration
+// one way or the other - that's disclosed in the UI rather than assumed:
+//   - SBB Mobile: sbb.ch is SBB's own primary site (already used
+//     elsewhere in this app as the operator link for its train legs).
+//   - Bonjour RATP: ships its own dedicated domain, bonjour-ratp.fr,
+//     distinct from RATP's general corporate site (ratp.fr) - the more
+//     likely Universal Link target since it's the app's own branded site.
+//   - WienMobil: wienmobil.at is described by Wiener Linien as "the web
+//     version" of the WienMobil app - same product, most likely pairing.
+//   - BudapestGO: go.bkk.hu is likewise BKK's own "web version" of the
+//     BudapestGO app.
+// No journey- or route-specific parameters are appended to any of these -
+// per instruction, an unconfirmed deep-link path is not invented, so each
+// link opens the app/site at its home screen only.
+const TRANSIT_APPS = {
+  sbb:        {label:'SBB',        emoji:'🚆', url:'https://www.sbb.ch/en'},
+  ratp:       {label:'RATP',       emoji:'🚇', url:'https://www.bonjour-ratp.fr'},
+  wienmobil:  {label:'WienMobil',  emoji:'🚇', url:'https://www.wienmobil.at'},
+  budapestgo: {label:'BudapestGO', emoji:'🚇', url:'https://go.bkk.hu'}
+};
+function transitAppButtonHtml(key, extraClass){
+  const app = TRANSIT_APPS[key];
+  if(!app) return '';
+  return `<a class="pill-link secondary${extraClass ? ' '+extraClass : ''}" href="${app.url}" target="_blank" title="Opens ${app.label} if it's installed, otherwise ${app.label}'s website">${app.emoji} ${escapeHtml(app.label)} ↗</a>`;
 }
 function bookingComSearchUrl(term){
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
@@ -1421,7 +1454,19 @@ function renderLocalTransport(){
             ${t.pay ? `<div class="pay-badge ${t.pay}">${t.pay==='yes'?'✓ APPLE PAY / TAP WORKS':t.pay==='no'?'✗ NO DIRECT TAP':'⚠ UNCONFIRMED'}</div><div class="seg-note">${t.payNote}</div>` : ''}
             <div class="flight-links">
               <a class="pill-link book" href="${t.link}" target="_blank">INFO ↗</a>
-              ${t.app ? `<a class="pill-link book" href="${appSearchUrl(t.app)}" target="_blank">📱 ${t.app.split(/\s+or\s+/i)[0]} ↗</a>` : ''}
+              ${(() => {
+                // Where the traveler's own installed app IS the app this
+                // row already names first, the verified real-domain link
+                // replaces the generic App Store search - a strictly
+                // better version of the same action, not an extra button.
+                // Where it's a secondary alternative (e.g. Versailles
+                // names SNCF Connect first, RATP second), both show.
+                const primaryAppName = t.app ? t.app.split(/\s+or\s+/i)[0].toLowerCase() : '';
+                const primaryIsTransitApp = t.transitApp && primaryAppName.includes(TRANSIT_APPS[t.transitApp].label.toLowerCase());
+                const searchBtn = t.app ? `<a class="pill-link book" href="${appSearchUrl(t.app)}" target="_blank">📱 ${t.app.split(/\s+or\s+/i)[0]} ↗</a>` : '';
+                const transitBtn = t.transitApp ? transitAppButtonHtml(t.transitApp) : '';
+                return primaryIsTransitApp ? transitBtn : searchBtn + transitBtn;
+              })()}
               ${t.from && t.to ? `<a class="icon-btn" href="${directionsUrl(t.from,t.to)}" target="_blank" title="Directions ${t.from.split(',')[0]} → ${t.to.split(',')[0]}">🧭</a>` : ''}
             </div>
           </div>
@@ -1480,6 +1525,7 @@ function renderTransport(){
             <div class="seg-note">${s.note}</div>
             <div class="seg-links">
               ${s.flag==='red' ? `<a class="pill-link book" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
+              ${s.transitApp ? transitAppButtonHtml(s.transitApp) : ''}
               <a class="pill-link secondary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
               <a class="pill-link secondary" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭 DIRECTIONS</a>
               <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>

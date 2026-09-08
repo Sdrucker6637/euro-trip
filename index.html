@@ -54,6 +54,11 @@
   body{font-family:var(--font-body);background:var(--bg);color:var(--cream);display:flex;justify-content:center;}
   .map-bg{position:absolute;top:-16px;left:-16px;right:-16px;height:850px;overflow:hidden;pointer-events:none;z-index:0;}
   .map-bg svg{display:block;width:100%;height:100%;}
+  /* Fades the map into whatever plain background follows it, instead of
+     relying on an exact color match at a hard 850px cutoff - a gradient
+     blend hides any mismatch regardless of where the map's own vignette
+     lands at that edge. */
+  .map-bg::after{content:'';position:absolute;left:0;right:0;bottom:0;height:220px;background:linear-gradient(to bottom, transparent, var(--bg-deep));pointer-events:none;}
   .app{position:relative;z-index:1;width:100%;max-width:460px;height:100vh;height:100dvh;display:flex;flex-direction:column;background:transparent;overflow:hidden;}
   header{padding:22px 20px 18px;border-bottom:1px solid var(--glass-line);position:relative;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
   .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--amber);display:flex;justify-content:space-between;align-items:center;}
@@ -142,7 +147,12 @@
   .seg-links{display:flex;gap:14px;margin-top:10px;flex-wrap:wrap;align-items:center;}
   .pill-link{font-family:var(--font-mono);font-size:10.5px;font-weight:600;text-decoration:none;color:var(--red-deep);background:none;border-bottom:1px dotted var(--red-deep);padding:2px 1px;}
   .pill-link.book{background:var(--amber);color:var(--ink);border:none;border-radius:2px 9px 2px 9px;padding:7px 12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);}
-  .pill-link.primary{background:var(--amber);border:none;border-radius:2px 9px 2px 9px;font-size:11px;padding:8px 14px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);}
+  .pill-link.primary{background:var(--amber);color:var(--ink);border:none;border-radius:2px 9px 2px 9px;font-size:11px;padding:8px 14px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);}
+  /* Outlined counterpart to .primary/.book - same pill shape/size so every
+     action in a row reads as one button family, but unfilled to signal
+     "reference/utility" rather than "do this now". */
+  .pill-link.secondary{display:inline-flex;align-items:center;gap:5px;background:none;color:var(--ink);border:1px solid var(--paper-line);border-radius:2px 9px 2px 9px;font-size:11px;padding:7px 13px;box-shadow:none;}
+  .pill-link.secondary:hover,.pill-link.secondary:focus-visible{border-color:var(--ink);}
   .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:none;border:1px dashed var(--paper-line);color:var(--ink);text-decoration:none;font-size:13px;flex-shrink:0;}
   .flag-tag{display:inline-block;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.03em;padding:2px 8px;border-radius:2px 8px 2px 8px;margin-bottom:6px;}
   .flag-tag.red{background:var(--red);color:#fff;}
@@ -1469,10 +1479,10 @@ function renderTransport(){
             <div class="seg-meta">${s.meta}</div>
             <div class="seg-note">${s.note}</div>
             <div class="seg-links">
-              <a class="pill-link primary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
-              ${s.flag==='red' ? `<a class="pill-link" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
-              <a class="icon-btn" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭</a>
-              <button class="icon-btn" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}" title="Ticket / booking screenshot">🎫</button>
+              ${s.flag==='red' ? `<a class="pill-link book" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
+              <a class="pill-link secondary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
+              <a class="pill-link secondary" href="${directionsUrl(s.from.place,s.to.place)}" target="_blank" title="Directions ${s.from.name} → ${s.to.name}">🧭 DIRECTIONS</a>
+              <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>

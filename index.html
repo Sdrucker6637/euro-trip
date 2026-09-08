@@ -174,7 +174,7 @@
   .stamp-badge .mon{font-size:8.5px;letter-spacing:0.05em;}
   .stamp-badge .day{font-size:15px;font-weight:600;}
   .day-date{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);letter-spacing:0.02em;}
-  .day-title-row{display:flex;align-items:center;gap:6px;margin-top:2px;}
+  .day-title-row{display:flex;align-items:center;gap:10px;margin-top:2px;}
   .day-title{font-family:var(--font-display);font-size:15px;font-weight:600;min-width:0;}
   .day-title-input{font-family:var(--font-display);font-size:15px;font-weight:600;background:var(--bg);color:var(--cream);border:1px solid var(--amber);border-radius:5px;padding:2px 6px;min-width:0;flex:1;}
   .icon-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:2px 6px;border:1px dashed var(--glass-line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -203,6 +203,8 @@
   .stop-flight-date-value{color:var(--cream);}
   .flight-date-input{font-family:var(--font-mono);font-size:11px;padding:3px 6px;border-radius:5px;border:1px solid var(--amber);background:var(--bg);color:var(--cream);width:110px;}
   .stop-actions{margin-top:10px;}
+  .stop-actions-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 10px;}
+  .stop-actions-buttons{display:flex;flex-wrap:wrap;gap:8px;}
   .directions-menu{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px;}
   .directions-menu[hidden]{display:none;}
   @keyframes flash-save{0%{background:rgba(127,174,122,0.4);}100%{background:transparent;}}
@@ -217,7 +219,7 @@
   .stop-map.nearby-add-btn{background:var(--amber);color:var(--ink);border:1px solid transparent;}
   .stop-map.nearby-add-btn:hover,.stop-map.nearby-add-btn:focus-visible{border-color:var(--ink);}
   .stop-map.secondary{background:var(--surface);color:var(--amber);}
-  .stop-controls-row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:2px;margin-top:6px;}
+  .stop-controls-row{display:flex;flex-wrap:nowrap;gap:2px;flex-shrink:0;}
   .inline-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:var(--font-mono);font-size:10.5px;color:var(--cream);padding:6px 8px;border-radius:2px 8px;background:rgba(201,106,82,0.12);border:1px dashed var(--red);}
   .inline-confirm.full-row{margin-top:10px;padding:10px;}
   .inline-confirm-text{flex:1;min-width:100px;}
@@ -257,7 +259,7 @@
   .checklist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
   .checklist-sub{font-size:12.5px;color:var(--muted);}
   .reset-btn{font-family:var(--font-mono);font-size:11px;font-weight:600;letter-spacing:0.02em;color:var(--red);background:none;border:none;border-bottom:1px dotted var(--red);padding:7px 1px;cursor:pointer;}
-  .check-item{display:flex;align-items:center;gap:14px;background:none;border:none;border-bottom:1px dashed var(--glass-line);border-radius:0;padding:13px 2px;margin-bottom:0;cursor:pointer;}
+  .check-item{display:flex;align-items:center;gap:14px;background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:none;border-bottom:1px dashed var(--glass-line);border-radius:0;padding:13px 10px;margin-bottom:0;cursor:pointer;}
   .check-item input{width:18px;height:18px;accent-color:var(--amber);flex-shrink:0;}
   .check-item span{font-size:14.5px;flex:1;}
   .check-item.checked span{color:var(--muted);text-decoration:line-through;}
@@ -365,10 +367,6 @@ window.addEventListener('unhandledrejection', function(e){
         <stop offset="55%" stop-color="#101d31"/>
         <stop offset="100%" stop-color="#080f1c"/>
       </radialGradient>
-      <filter id="mapGrain" x="-20%" y="-20%" width="140%" height="140%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" result="noise"/>
-        <feColorMatrix in="noise" type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0.2126 0.7152 0.0722 0 0"/>
-      </filter>
     </defs>
 
     <rect width="460" height="900" fill="url(#mapVignette)"/>
@@ -376,8 +374,6 @@ window.addEventListener('unhandledrejection', function(e){
     <!-- aged-paper corner stain -->
     <ellipse cx="40" cy="860" rx="180" ry="140" fill="#3a2c14" opacity="0.05"/>
     <ellipse cx="440" cy="60" rx="160" ry="120" fill="#3a2c14" opacity="0.04"/>
-
-    <rect width="460" height="900" filter="url(#mapGrain)" opacity="0.05"/>
 
     <!-- lat/long graticule -->
     <g stroke="rgba(133,152,173,0.09)" stroke-width="1">
@@ -573,12 +569,12 @@ function escapeHtml(str){
 // to the itinerary since that's every existing caller but a caller
 // removing something from a different panel (e.g. the packing list)
 // passes its own re-render function.
-function confirmInline(target, message, onConfirm, extraClass, onCancel){
+function confirmInline(target, message, onConfirm, extraClass, onCancel, confirmLabel){
   const wrap = document.createElement('div');
   wrap.className = 'inline-confirm' + (extraClass ? ' '+extraClass : '');
   wrap.innerHTML = `
     <span class="inline-confirm-text">${escapeHtml(message)}</span>
-    <button class="inline-confirm-yes">REMOVE</button>
+    <button class="inline-confirm-yes">${escapeHtml(confirmLabel || 'REMOVE')}</button>
     <button class="inline-confirm-cancel">CANCEL</button>
   `;
   target.replaceWith(wrap);
@@ -1492,13 +1488,16 @@ function renderChecklist(){
     });
   });
 
-  document.getElementById('reset-checklist').addEventListener('click', ()=>{
-    el.querySelectorAll('.check-item').forEach(row=>{
-      const cb = row.querySelector('input');
-      cb.checked = false;
-      row.classList.remove('checked');
-      store.set('packing:'+row.dataset.key, '0');
-    });
+  document.getElementById('reset-checklist').addEventListener('click', (e)=>{
+    confirmInline(e.currentTarget, 'Reset all checkmarks?', ()=>{
+      el.querySelectorAll('.check-item').forEach(row=>{
+        const cb = row.querySelector('input');
+        cb.checked = false;
+        row.classList.remove('checked');
+        store.set('packing:'+row.dataset.key, '0');
+      });
+      renderChecklist();
+    }, null, renderChecklist, 'RESET');
   });
 
   document.getElementById('add-packing-item-btn').addEventListener('click', (e)=>{
@@ -2261,18 +2260,22 @@ function renderItinerary(){
             ` : ''}
           </div>
           <div class="stop-actions">
-            <button class="stop-map secondary directions-toggle" type="button">🧭 DIRECTIONS ▾</button>
-            ${s.booking ? `<button class="stop-map" type="button" data-act="booking" data-key="stop:${slugify(s.name)}" data-title="${escapeHtml(s.name)}" data-url="${escapeHtml(s.booking.url||'')}" data-label="${escapeHtml(s.booking.label||'')}">🎫 BOOKING</button>` : ''}
+            <div class="stop-actions-row">
+              <div class="stop-actions-buttons">
+                <button class="stop-map secondary directions-toggle" type="button">🧭 DIRECTIONS ▾</button>
+                ${s.booking ? `<button class="stop-map" type="button" data-act="booking" data-key="stop:${slugify(s.name)}" data-title="${escapeHtml(s.name)}" data-url="${escapeHtml(s.booking.url||'')}" data-label="${escapeHtml(s.booking.label||'')}">🎫 BOOKING</button>` : ''}
+              </div>
+              <div class="stop-controls-row">
+                <button class="ctrl-btn" data-act="up" data-id="${d.id}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
+                <button class="ctrl-btn" data-act="down" data-id="${d.id}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
+                <button class="ctrl-btn danger" data-act="remove" data-id="${d.id}" data-idx="${si}">&#10005;</button>
+              </div>
+            </div>
             <div class="directions-menu" hidden>
               <a class="stop-map secondary" href="${directionsUrl(stay.place,s.place)}" target="_blank">FROM STAY</a>
               <a class="stop-map secondary" href="${directionsUrl(s.place,stay.place)}" target="_blank">TO STAY</a>
               <a class="stop-map secondary" href="${directionsUrl(lastStop,s.place)}" target="_blank">FROM LAST STOP</a>
             </div>
-          </div>
-          <div class="stop-controls-row">
-            <button class="ctrl-btn" data-act="up" data-id="${d.id}" data-idx="${si}" ${si===0?'disabled style="opacity:.3"':''}>&#9650;</button>
-            <button class="ctrl-btn" data-act="down" data-id="${d.id}" data-idx="${si}" ${si===stops.length-1?'disabled style="opacity:.3"':''}>&#9660;</button>
-            <button class="ctrl-btn danger" data-act="remove" data-id="${d.id}" data-idx="${si}">&#10005;</button>
           </div>
         </div>
       `;
@@ -2522,7 +2525,7 @@ function renderItinerary(){
   el.querySelectorAll('.directions-toggle').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
-      const menu = btn.nextElementSibling;
+      const menu = btn.closest('.stop-actions').querySelector('.directions-menu');
       const opening = menu.hasAttribute('hidden');
       if(opening) menu.removeAttribute('hidden'); else menu.setAttribute('hidden','');
       btn.textContent = opening ? '🧭 DIRECTIONS ▴' : '🧭 DIRECTIONS ▾';

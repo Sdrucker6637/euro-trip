@@ -134,6 +134,10 @@
   .journey-route{font-family:var(--font-mono);font-size:20px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
   .journey-arrow{color:var(--paper-ink-faint);font-size:15px;}
   .journey-date{font-size:12.5px;color:var(--paper-ink-secondary);margin-top:4px;}
+  .journey-date-row{display:flex;align-items:center;gap:6px;margin-top:4px;}
+  .journey-date-row .journey-date{margin-top:0;}
+  .date-edit-btn{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;border-radius:2px 6px;border:1px dashed var(--paper-line);background:none;color:var(--paper-ink-secondary);font-size:9.5px;cursor:pointer;flex-shrink:0;padding:0;}
+  .date-edit-input{font-family:var(--font-mono);font-size:12px;padding:3px 6px;border-radius:4px;border:1px solid var(--red-deep);background:#fff;color:var(--ink);width:110px;}
   .segment{padding:13px 16px;display:flex;gap:10px;border-bottom:1px dashed var(--paper-line);}
   .segment:last-child{border-bottom:none;}
   .seg-flag{width:5px;border-radius:3px;flex-shrink:0;}
@@ -185,6 +189,10 @@
   .stop-name{display:block;font-size:14px;font-weight:600;color:var(--cream);text-decoration:none;}
   .stop-name:hover,.stop-name:active{text-decoration:underline;}
   .stop-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;}
+  .stop-flight-date{display:flex;align-items:center;gap:6px;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;}
+  .stop-flight-date-label{color:var(--amber);letter-spacing:0.03em;}
+  .stop-flight-date-value{color:var(--cream);}
+  .flight-date-input{font-family:var(--font-mono);font-size:11px;padding:3px 6px;border-radius:5px;border:1px solid var(--amber);background:var(--bg);color:var(--cream);width:110px;}
   .stop-actions{margin-top:10px;}
   .directions-menu{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px;}
   .directions-menu[hidden]{display:none;}
@@ -776,7 +784,7 @@ async function openBookingModal({key, title, bookingUrl, bookingLabel, kind}){
 // ---- Grouped journeys (connecting legs shown together) ----
 const JOURNEYS = [
   {
-    id:'j1', from:'Amsterdam', to:'Paris', fromCode:'AMS', toCode:'PAR', date:'Sun Oct 11',
+    id:'j1', from:'Amsterdam', to:'Paris', fromCode:'AMS', toCode:'PAR', date:'Tue Oct 13',
     segments:[
       {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',meta:'Amsterdam Centraal → Paris Gare du Nord · ~3h20m',
        note:'Mandatory reservation, quota-limited for pass holders. Direct, no transfer.',
@@ -785,7 +793,7 @@ const JOURNEYS = [
     ]
   },
   {
-    id:'j2', from:'Paris', to:'Interlaken', fromCode:'PAR', toCode:'INT', date:'Wed Oct 14', via:'via Basel',
+    id:'j2', from:'Paris', to:'Interlaken', fromCode:'PAR', toCode:'INT', date:'Fri Oct 16', via:'via Basel',
     segments:[
       {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',meta:'Paris Gare de Lyon → Basel SBB · ~3h',
        note:'Mandatory reservation. 90-day window already open.',
@@ -798,7 +806,7 @@ const JOURNEYS = [
     ]
   },
   {
-    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Fri Oct 16', via:'via Zurich',
+    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Sun Oct 18', via:'via Zurich',
     segments:[
       {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',meta:'Interlaken Ost → Zurich HB · ~2h',
        note:'No reservation needed.',
@@ -811,7 +819,7 @@ const JOURNEYS = [
     ]
   },
   {
-    id:'j4', from:'Vienna', to:'Budapest', fromCode:'VIE', toCode:'BUD', date:'Mon Oct 19',
+    id:'j4', from:'Vienna', to:'Budapest', fromCode:'VIE', toCode:'BUD', date:'Wed Oct 21',
     segments:[
       {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',meta:'Vienna Hbf → Budapest Keleti · ~2h40m',
        note:'Hourly-ish, optional reservation. Direct, no transfer.',
@@ -1022,6 +1030,7 @@ const ITINERARY = [
    arrivalPlace:'Newark Liberty International Airport, Newark, NJ',
    stops:[
      {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol',
+      flightDate:'Fri Oct 9',
       booking:{url:'https://www.united.com/en/us/manageres/mytrips', label:'United'}}
    ],
    stay:{name:'DoubleTree by Hilton Amsterdam Centraal',type:'Hotel · 1 night',place:'DoubleTree by Hilton Amsterdam Centraal Station'}},
@@ -1124,6 +1133,7 @@ const ITINERARY = [
   {id:'d19',date:'Tue Oct 27',city:'Rome',title:'Fly home',
    stops:[
      {name:'Flight UA 41 (United)',desc:'Departs Rome Fiumicino 10:30am for Newark (EWR).',place:'Rome Fiumicino Airport',
+      flightDate:'Tue Oct 27',
       booking:{url:'https://www.united.com/en/us/manageres/mytrips', label:'United'}}
    ],
    stay:{name:'Yes Hotel Rome',type:'Leave ~7am for Fiumicino',place:'Yes Hotel Rome'}},
@@ -1507,13 +1517,34 @@ function updateBookingRollup(){
   }
 }
 
+// Per-journey date override, kept entirely separate from the Itinerary
+// tab's own day-by-day dates (which stay sequential from TRIP_START, see
+// buildEffectiveDays). Editing a journey's date here only changes the
+// label shown on this one card - it never shifts any other date, in
+// either tab, by design.
+let journeyDateOverrides = {};
+async function loadJourneyDates(){
+  for(const j of JOURNEYS){
+    try {
+      const r = await store.get('journey-date:'+j.id);
+      if(r && r.value) journeyDateOverrides[j.id] = r.value;
+    } catch(e){ /* keep the default */ }
+  }
+}
+function persistJourneyDate(id){
+  store.set('journey-date:'+id, journeyDateOverrides[id] || '');
+}
+
 function renderTransport(){
   const el = document.getElementById('panel-transport');
   el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div><div class="reserve-rollup" id="reserve-rollup"></div>` + JOURNEYS.map(j => `
     <div class="journey">
       <div class="journey-head">
         <div class="journey-route">${j.fromCode}<span class="journey-arrow">&#8594;</span>${j.toCode}</div>
-        <div class="journey-date">${j.from} to ${j.to}${j.via ? ' · '+j.via : ''} · ${j.date}</div>
+        <div class="journey-date-row">
+          <div class="journey-date">${j.from} to ${j.to}${j.via ? ' · '+j.via : ''} · <span class="journey-date-value" data-id="${j.id}">${escapeHtml(journeyDateOverrides[j.id] || j.date)}</span></div>
+          <button class="date-edit-btn" type="button" data-act="edit-journey-date" data-id="${j.id}" title="Edit date" aria-label="Edit date for ${j.from} to ${j.to}">✎</button>
+        </div>
       </div>
       ${j.segments.map(s => `
         <div class="segment">
@@ -1544,6 +1575,37 @@ function renderTransport(){
   });
   updateBookingRollup();
   wireBookingButtons(el);
+
+  el.querySelectorAll('[data-act="edit-journey-date"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      const id = btn.dataset.id;
+      const valueEl = btn.parentElement.querySelector('.journey-date-value');
+      const current = journeyDateOverrides[id] || (JOURNEYS.find(j=>j.id===id) || {}).date || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'date-edit-input';
+      input.value = current;
+      input.placeholder = 'e.g. Tue Oct 13';
+      valueEl.replaceWith(input);
+      btn.style.display = 'none';
+      input.focus();
+      input.select();
+      let done = false;
+      const save = ()=>{
+        if(done) return;
+        done = true;
+        const val = input.value.trim();
+        if(val) journeyDateOverrides[id] = val;
+        persistJourneyDate(id);
+        renderTransport();
+      };
+      input.addEventListener('keydown', (ev)=>{
+        if(ev.key==='Enter'){ ev.preventDefault(); save(); }
+        if(ev.key==='Escape'){ ev.preventDefault(); done = true; renderTransport(); }
+      });
+      input.addEventListener('blur', save);
+    });
+  });
 
   renderLocalTransport();
 }
@@ -1874,6 +1936,13 @@ function renderItinerary(){
           <div class="stop-info">
             <a class="stop-name${flashKey==='stop:'+d.id+':'+si?' flash-save':''}" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
             <div class="stop-desc">${escapeHtml(s.desc)}</div>
+            ${s.flightDate !== undefined ? `
+              <div class="stop-flight-date">
+                <span class="stop-flight-date-label">DATE</span>
+                <span class="stop-flight-date-value">${escapeHtml(s.flightDate)}</span>
+                <button class="icon-edit-btn" type="button" data-act="edit-flight-date" data-id="${d.id}" data-idx="${si}" title="Edit flight date" aria-label="Edit date for ${escapeHtml(s.name)}">✎</button>
+              </div>
+            ` : ''}
           </div>
           <div class="stop-actions">
             <button class="stop-map secondary directions-toggle" type="button">🧭 DIRECTIONS ▾</button>
@@ -1999,6 +2068,43 @@ function renderItinerary(){
         dayTitleState[id] = val || prevTitle;
         if(val && val !== prevTitle) justSavedKey = 'title:'+id;
         persistTitle(id);
+        openDays.add(id);
+        renderItinerary();
+      };
+      input.addEventListener('keydown', (ev)=>{
+        if(ev.key==='Enter'){ ev.preventDefault(); save(); }
+        if(ev.key==='Escape'){ ev.preventDefault(); saved = true; openDays.add(id); renderItinerary(); }
+      });
+      input.addEventListener('blur', save);
+    });
+  });
+
+  // A flight's date is stored on its stop object, in dayStopsState -
+  // exactly like any other edited stop field - so it persists the same
+  // way and never touches which day the flight is listed under or any
+  // other day's date.
+  el.querySelectorAll('[data-act="edit-flight-date"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id, idx = +btn.dataset.idx;
+      const valueEl = btn.parentElement.querySelector('.stop-flight-date-value');
+      const current = dayStopsState[id][idx].flightDate || '';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'flight-date-input';
+      input.value = current;
+      input.placeholder = 'e.g. Fri Oct 9';
+      valueEl.replaceWith(input);
+      btn.style.display = 'none';
+      input.focus();
+      input.select();
+      let saved = false;
+      const save = ()=>{
+        if(saved) return;
+        saved = true;
+        const val = input.value.trim();
+        if(val) dayStopsState[id][idx].flightDate = val;
+        persistDay(id);
         openDays.add(id);
         renderItinerary();
       };
@@ -2168,6 +2274,7 @@ document.getElementById('booking-modal').addEventListener('click', (e)=>{
 });
 
 async function init(){
+  await loadJourneyDates();
   renderTransport();
   await loadItineraryState();
   renderItinerary();

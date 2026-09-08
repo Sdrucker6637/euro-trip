@@ -550,6 +550,11 @@ function appSearchUrl(appName){
 // size), tapping it opens Rail Planner directly; if not, the traveler
 // lands on Eurail's own official page for the app rather than a dead end.
 const RAIL_PLANNER_URL = 'https://www.eurail.com/en/plan-your-trip/rail-planner-app';
+// Manually verified the same way as the 4 apps in TRANSIT_APPS below:
+// Europe Planner -> shortcuts://run-shortcut?name=Open%20Rail%20Planner ->
+// Shortcuts app -> Rail Planner opens. Requires a Shortcut with this exact
+// name already set up on the traveler's phone; see shortcutRunUrl.
+const RAIL_PLANNER_SHORTCUT_NAME = 'Open Rail Planner';
 
 function escapeHtml(str){
   return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -588,7 +593,8 @@ function wireBookingButtons(container){
         bookingUrl: btn.dataset.url || null,
         bookingLabel: btn.dataset.label || null,
         kind: btn.dataset.kind || null,
-        contextLine: btn.dataset.context || null
+        contextLine: btn.dataset.context || null,
+        shortcutUrl: btn.dataset.shortcut || null
       });
     });
   });
@@ -669,10 +675,22 @@ const TRANSIT_KIND_CONFIG = {
     shareHint: `Already have a trip saved in Rail Planner? Use its "Share as link" option (in the app, on the trip's menu) and paste that link below - it'll be tried before the operator's site above.`,
     overrideNote: `This is your saved Rail Planner link. Eurail hasn't published whether "Share as link" trips open the app directly on iOS, so this may open the app or the website depending on your phone - the screenshot below is the guaranteed fallback either way.`
   },
+  // The 🚆 RAIL PLANNER button - distinct from the plain 🎫 BOOKING button
+  // above (kind 'train'), which keeps opening the operator's own booking
+  // link untouched. This one's default action is the "Open Rail Planner"
+  // iOS Shortcut (see RAIL_PLANNER_SHORTCUT_NAME) - both buttons still
+  // read/write the same saved-link override (same data-key), so pasting a
+  // Rail Planner share link via either one works exactly as before.
+  railplanner: {
+    providerDefaultLabel: 'Rail Planner',
+    linkNoun: 'RAIL PLANNER LINK',
+    shareHint: `Already have a trip saved in Rail Planner? Use its "Share as link" option (in the app, on the trip's menu) and paste that link below - it'll be tried before the Shortcut above.`,
+    overrideNote: `This is your saved Rail Planner link. Eurail hasn't published whether "Share as link" trips open the app directly on iOS, so this may open the app or the website depending on your phone - the screenshot below is the guaranteed fallback either way.`
+  },
   sbb: {
     providerDefaultLabel: 'SBB',
     linkNoun: 'SBB SHARE LINK',
-    shareHint: `Already have this connection saved in SBB Mobile? Use "Share" (⋯ menu on the connection) in the app and paste that link below - it'll be tried before the SBB website above.`,
+    shareHint: `Already have this connection saved in SBB Mobile? Use "Share" (⋯ menu on the connection) in the app and paste that link below - it'll be tried before the Shortcut above.`,
     overrideNote: `This is your saved SBB share link. SBB's own community forum confirms these links (a.sbbmobile.ch/s/...) only work on a device with the app installed, with no confirmed website fallback otherwise - the screenshot below is your guaranteed backup either way.`
   },
   ratp: {
@@ -695,17 +713,34 @@ const TRANSIT_KIND_CONFIG = {
   }
 };
 
-function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind, contextLine){
+// `shortcutUrl`, when present, is a shortcuts://run-shortcut?name=... URL
+// (see shortcutRunUrl/TRANSIT_APPS/RAIL_PLANNER_SHORTCUT_NAME) that a
+// manually-tested iOS Shortcut turns into the native app opening. It's
+// only ever passed for the 5 transit-app buttons - never for a plain
+// booking link (stays, flights, the operator "RESERVE"/"BOOKING" links) -
+// so nothing else changes behavior. A saved override link (a real share
+// link the traveler pasted in) still wins over the Shortcut, exactly as
+// before this Shortcut support existed; the Shortcut only replaces what
+// used to be a bare website link as the *default*, un-overridden action.
+// The website itself is never removed - it's always shown as a plain
+// fallback link underneath, since shortcuts:// silently does nothing on
+// a platform without Shortcuts (desktop browsers, Android) and this app
+// has no way to detect that without adding a dependency.
+function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind, contextLine, shortcutUrl){
   const bodyEl = document.getElementById('booking-modal-body');
-  const url = (override && override.url) || defaultUrl || '';
-  const label = (override && override.label) || defaultLabel || '';
   const cfg = TRANSIT_KIND_CONFIG[kind] || null;
+  const hasOverride = !!(override && override.url);
+  const hasShortcut = !!shortcutUrl;
+  const url = hasOverride ? override.url : (shortcutUrl || defaultUrl || '');
+  const label = (override && override.label) || defaultLabel || '';
 
   const openBookingNote = !url
     ? 'No booking link set yet.'
-    : (cfg && override)
-      ? cfg.overrideNote
-      : `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.`;
+    : hasOverride
+      ? (cfg ? cfg.overrideNote : `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.`)
+      : hasShortcut
+        ? `Opens the Shortcuts app, which then switches to${label ? ' '+escapeHtml(label) : ''} - expect a brief stop in Shortcuts before it hands off, that's iOS itself and not a bug. Prefer to skip that? Use the website link below instead.`
+        : `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.`;
 
   const editLinkBtnLabel = override
     ? (cfg ? '✎ EDIT '+cfg.linkNoun : '✎ EDIT LINK')
@@ -716,6 +751,7 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     ${contextLine ? `<p style="font-size:11.5px;color:var(--amber);margin-bottom:4px;">${escapeHtml(contextLine)}</p>` : ''}
     <p style="font-size:11.5px;color:var(--paper-ink-secondary,var(--muted));margin-bottom:8px;">${openBookingNote}</p>
     ${url ? `<a class="pill-link book" href="${escapeHtml(url)}" target="_blank">OPEN BOOKING${label ? ' · '+escapeHtml(label) : ''} ↗</a>` : ''}
+    ${hasShortcut && defaultUrl ? `<div><a class="pill-link" href="${escapeHtml(defaultUrl)}" target="_blank">Open ${escapeHtml(defaultLabel || (cfg ? cfg.providerDefaultLabel : 'the'))}'s website instead ↗</a></div>` : ''}
     ${cfg && cfg.shareHint && !override ? `<p style="font-size:11.5px;color:var(--muted);margin:8px 0 0;">${cfg.shareHint}</p>` : ''}
     <div>
       <button class="stop-map" type="button" id="booking-edit-link-btn" style="margin-top:10px;">${editLinkBtnLabel}</button>
@@ -742,15 +778,15 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     try {
       const dataUrl = await resizeImageFile(file);
       await store.set(bookingShotKey(itemKey), dataUrl);
-      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override, kind, contextLine);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override, kind, contextLine, shortcutUrl);
     } catch(err){
-      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind, contextLine);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind, contextLine, shortcutUrl);
     }
   });
   const removeShotBtn = bodyEl.querySelector('#booking-shot-remove');
   if(removeShotBtn) removeShotBtn.addEventListener('click', async ()=>{
     await store.set(bookingShotKey(itemKey), '');
-    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override, kind, contextLine);
+    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override, kind, contextLine, shortcutUrl);
   });
 
   bodyEl.querySelector('#booking-edit-link-btn').addEventListener('click', (e)=>{
@@ -791,17 +827,17 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
       if(newUrl && !/^https?:\/\//i.test(newUrl)) newUrl = 'https://'+newUrl;
       if(newUrl){
         await store.set(bookingUrlKey(itemKey), JSON.stringify({url: newUrl, label: newLabel}));
-        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel}, kind, contextLine);
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel}, kind, contextLine, shortcutUrl);
       } else {
         // Empty URL clears the override and reverts to the computed default.
         await store.set(bookingUrlKey(itemKey), '');
-        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null, kind, contextLine);
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null, kind, contextLine, shortcutUrl);
       }
     });
   });
 }
 
-async function openBookingModal({key, title, bookingUrl, bookingLabel, kind, contextLine}){
+async function openBookingModal({key, title, bookingUrl, bookingLabel, kind, contextLine, shortcutUrl}){
   document.getElementById('booking-modal-title').textContent = title;
   document.getElementById('booking-modal-body').innerHTML = '<div class="nearby-empty">Loading…</div>';
   document.getElementById('booking-modal').classList.add('open');
@@ -814,7 +850,7 @@ async function openBookingModal({key, title, bookingUrl, bookingLabel, kind, con
     const r = await store.get(bookingUrlKey(key));
     override = (r && r.value) ? JSON.parse(r.value) : null;
   } catch(e){ /* no saved link override */ }
-  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override, kind, contextLine || null);
+  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override, kind, contextLine || null, shortcutUrl || null);
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
@@ -989,26 +1025,40 @@ function hostelworldCityUrl(city){
 // No journey- or route-specific parameters are appended to any default
 // URL below - per instruction, an unconfirmed deep-link path is not
 // invented.
+// Manually verified: Europe Planner -> shortcuts://run-shortcut?name=... ->
+// Shortcuts app -> the native app opens. This does mean a brief visible
+// stop in the Shortcuts app before it hands off to the target app - that's
+// how iOS itself does this handoff, not something this app can skip or
+// hide. Each name below must exactly match a Shortcut the traveler has
+// already created (Shortcuts app, one shortcut per row, named exactly
+// this) that opens the corresponding native app - this config only
+// supplies the name iOS needs, run through encodeURIComponent so a name
+// with spaces (or any future name with other special characters) stays a
+// valid URL.
+function shortcutRunUrl(name){
+  return `shortcuts://run-shortcut?name=${encodeURIComponent(name)}`;
+}
 const TRANSIT_APPS = {
-  sbb:        {label:'SBB',        emoji:'🚆', url:'https://www.sbb.ch/en'},
-  ratp:       {label:'RATP',       emoji:'🚇', url:'https://www.bonjour-ratp.fr/en/itineraires/'},
-  wienmobil:  {label:'WienMobil',  emoji:'🚇', url:'https://www.wienerlinien.at/route-planen'},
-  budapestgo: {label:'BudapestGO', emoji:'🚇', url:'https://go.bkk.hu'}
+  sbb:        {label:'SBB',        emoji:'🚆', url:'https://www.sbb.ch/en', shortcutName:'Open SBB Mobile'},
+  ratp:       {label:'RATP',       emoji:'🚇', url:'https://www.bonjour-ratp.fr/en/itineraires/', shortcutName:'Open Bonjour RATP'},
+  wienmobil:  {label:'WienMobil',  emoji:'🚇', url:'https://www.wienerlinien.at/route-planen', shortcutName:'Open WienMobil'},
+  budapestgo: {label:'BudapestGO', emoji:'🚇', url:'https://go.bkk.hu', shortcutName:'Open BudapestGO'}
 };
 // Renders a transit-app button as the same shared booking/share-link
 // modal used for bookings (see wireBookingButtons/openBookingModal),
 // rather than a plain <a> straight to the default URL - the modal is what
-// lets the traveler paste in a real per-journey share link (SBB Mobile) or
-// just see the honest "unconfirmed" note (the other three) instead of
-// this app silently claiming the button opens the app. `dataKey` must be
-// unique per distinct journey/context so overrides don't collide (e.g.
-// the Interlaken->Grindelwald SBB button and the Basel->Interlaken train
-// leg's SBB button are different journeys and get different saved links).
+// makes the Shortcut (see shortcutRunUrl above) the default/primary action
+// while still keeping the real website underneath as a fallback, and lets
+// the traveler paste in a real per-journey share link (SBB Mobile) that
+// takes priority over both. `dataKey` must be unique per distinct
+// journey/context so overrides don't collide (e.g. the
+// Interlaken->Grindelwald SBB button and the Basel->Interlaken train leg's
+// SBB button are different journeys and get different saved links).
 function transitAppButtonHtml(appKey, opts){
   const app = TRANSIT_APPS[appKey];
   if(!app) return '';
   const {dataKey, title, contextLine, extraClass} = opts || {};
-  return `<button class="pill-link secondary${extraClass ? ' '+extraClass : ''}" type="button" data-act="booking" data-kind="${appKey}" data-key="${escapeHtml(dataKey)}" data-title="${escapeHtml(title || app.label)}" data-url="${escapeHtml(app.url)}" data-label="${escapeHtml(app.label)}"${contextLine ? ` data-context="${escapeHtml(contextLine)}"` : ''} title="Opens ${escapeHtml(app.label)} if it's installed, otherwise ${escapeHtml(app.label)}'s website">${app.emoji} ${escapeHtml(app.label)} ↗</button>`;
+  return `<button class="pill-link secondary${extraClass ? ' '+extraClass : ''}" type="button" data-act="booking" data-kind="${appKey}" data-key="${escapeHtml(dataKey)}" data-title="${escapeHtml(title || app.label)}" data-url="${escapeHtml(app.url)}" data-label="${escapeHtml(app.label)}" data-shortcut="${escapeHtml(shortcutRunUrl(app.shortcutName))}"${contextLine ? ` data-context="${escapeHtml(contextLine)}"` : ''} title="Opens the ${escapeHtml(app.shortcutName)} Shortcut, which opens ${escapeHtml(app.label)} - falls back to ${escapeHtml(app.label)}'s website">${app.emoji} ${escapeHtml(app.label)} ↗</button>`;
 }
 function bookingComSearchUrl(term){
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
@@ -1664,7 +1714,7 @@ function renderTransport(){
                 title: s.title,
                 contextLine: `${effFrom.name} → ${effTo.name} · ${journeyDateOverrides[j.id] || j.date}`
               }) : ''}
-              <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner">🚆 RAIL PLANNER ↗</button>
+              <button class="pill-link secondary" type="button" data-act="booking" data-kind="railplanner" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner" data-shortcut="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}">🚆 RAIL PLANNER ↗</button>
               <a class="pill-link secondary" href="${directionsUrl(effFrom.place,effTo.place)}" target="_blank" title="Directions ${effFrom.name} → ${effTo.name}">🧭 DIRECTIONS</a>
               <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
             </div>

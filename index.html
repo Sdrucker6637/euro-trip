@@ -178,6 +178,13 @@
   .day-title{font-family:var(--font-display);font-size:15px;font-weight:600;min-width:0;}
   .day-title-input{font-family:var(--font-display);font-size:15px;font-weight:600;background:var(--bg);color:var(--cream);border:1px solid var(--amber);border-radius:5px;padding:2px 6px;min-width:0;flex:1;}
   .icon-edit-btn{flex-shrink:0;width:22px;height:22px;border-radius:2px 6px;border:1px dashed var(--glass-line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  /* Bigger tap target for the accommodation card's own Edit/Booking
+     buttons specifically - the shared 22px .icon-edit-btn size above is
+     too small to tap reliably on a phone. Combined with .icon-edit-btn
+     (for the shared border/color/cursor styling), applied only on the
+     stay-head buttons - the other .icon-edit-btn use sites (flight-date
+     edit, day rename) keep their original compact size untouched. */
+  .stay-action-btn{width:44px;height:44px;font-size:18px;border-radius:2px 10px;}
   .day-chevron{font-size:13px;color:var(--muted);transition:transform 0.2s;flex-shrink:0;margin-left:8px;}
   .day-card.open .day-chevron{transform:rotate(180deg);}
   .day-detail{display:none;padding:0 14px 14px;}
@@ -717,8 +724,9 @@ const TRANSIT_KIND_CONFIG = {
 // (see shortcutRunUrl/TRANSIT_APPS/RAIL_PLANNER_SHORTCUT_NAME) that a
 // manually-tested iOS Shortcut turns into the native app opening. It's
 // only ever passed for the 5 transit-app buttons - never for a plain
-// booking link (stays, flights, the operator "RESERVE"/"BOOKING" links) -
-// so nothing else changes behavior. A saved override link (a real share
+// booking link (stays, flights, the operator "BOOKING" link on a train
+// leg) - so nothing else changes behavior. A saved override link (a real
+// share
 // link the traveler pasted in) still wins over the Shortcut, exactly as
 // before this Shortcut support existed; the Shortcut only replaces what
 // used to be a bare website link as the *default*, un-overridden action.
@@ -1044,21 +1052,29 @@ const TRANSIT_APPS = {
   wienmobil:  {label:'WienMobil',  emoji:'🚇', url:'https://www.wienerlinien.at/route-planen', shortcutName:'Open WienMobil'},
   budapestgo: {label:'BudapestGO', emoji:'🚇', url:'https://go.bkk.hu', shortcutName:'Open BudapestGO'}
 };
-// Renders a transit-app button as the same shared booking/share-link
-// modal used for bookings (see wireBookingButtons/openBookingModal),
-// rather than a plain <a> straight to the default URL - the modal is what
-// makes the Shortcut (see shortcutRunUrl above) the default/primary action
-// while still keeping the real website underneath as a fallback, and lets
-// the traveler paste in a real per-journey share link (SBB Mobile) that
-// takes priority over both. `dataKey` must be unique per distinct
-// journey/context so overrides don't collide (e.g. the
-// Interlaken->Grindelwald SBB button and the Basel->Interlaken train leg's
-// SBB button are different journeys and get different saved links).
+// Renders a transit-app button as two parts, not one: a plain <a> straight
+// to the Shortcut URL (see shortcutRunUrl above) - a real link, no click
+// handler, so tapping it is a single direct navigation with no menu in the
+// way - plus a small "✎" beside it that opens the same shared booking
+// modal used elsewhere (wireBookingButtons/openBookingModal) for the
+// traveler's saved share-link override and the website fallback, exactly
+// as before. Splitting it this way means the main button is the fast,
+// no-menu path to the Shortcut the traveler asked for, while the override/
+// fallback machinery (unchanged) stays one tap away instead of gone.
+// `dataKey` must be unique per distinct journey/context so overrides don't
+// collide (e.g. the Interlaken->Grindelwald SBB button and the
+// Basel->Interlaken train leg's SBB button are different journeys and get
+// different saved links).
 function transitAppButtonHtml(appKey, opts){
   const app = TRANSIT_APPS[appKey];
   if(!app) return '';
   const {dataKey, title, contextLine, extraClass} = opts || {};
-  return `<button class="pill-link secondary${extraClass ? ' '+extraClass : ''}" type="button" data-act="booking" data-kind="${appKey}" data-key="${escapeHtml(dataKey)}" data-title="${escapeHtml(title || app.label)}" data-url="${escapeHtml(app.url)}" data-label="${escapeHtml(app.label)}" data-shortcut="${escapeHtml(shortcutRunUrl(app.shortcutName))}"${contextLine ? ` data-context="${escapeHtml(contextLine)}"` : ''} title="Opens the ${escapeHtml(app.shortcutName)} Shortcut, which opens ${escapeHtml(app.label)} - falls back to ${escapeHtml(app.label)}'s website">${app.emoji} ${escapeHtml(app.label)} ↗</button>`;
+  const shortcutHref = shortcutRunUrl(app.shortcutName);
+  const primaryTitle = `Runs the "${app.shortcutName}" Shortcut, which opens ${app.label}`;
+  return `<span style="display:inline-flex;align-items:center;gap:4px;">` +
+    `<a class="pill-link secondary${extraClass ? ' '+extraClass : ''}" href="${escapeHtml(shortcutHref)}" title="${escapeHtml(primaryTitle)}">${app.emoji} ${escapeHtml(app.label)} ↗</a>` +
+    `<button class="date-edit-btn" type="button" data-act="booking" data-kind="${appKey}" data-key="${escapeHtml(dataKey)}" data-title="${escapeHtml(title || app.label)}" data-url="${escapeHtml(app.url)}" data-label="${escapeHtml(app.label)}" data-shortcut="${escapeHtml(shortcutHref)}"${contextLine ? ` data-context="${escapeHtml(contextLine)}"` : ''} title="${escapeHtml(app.label)} website / saved link" aria-label="${escapeHtml(app.label)} website and saved-link options">✎</button>` +
+  `</span>`;
 }
 function bookingComSearchUrl(term){
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
@@ -1708,13 +1724,15 @@ function renderTransport(){
             <div class="seg-note">${s.note}</div>
             <div class="seg-station-edit-slot"></div>
             <div class="seg-links">
-              ${s.flag==='red' ? `<a class="pill-link book" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
               ${s.transitApp ? transitAppButtonHtml(s.transitApp, {
                 dataKey: `transit:${s.transitApp}:${s.id}`,
                 title: s.title,
                 contextLine: `${effFrom.name} → ${effTo.name} · ${journeyDateOverrides[j.id] || j.date}`
               }) : ''}
-              <button class="pill-link secondary" type="button" data-act="booking" data-kind="railplanner" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner" data-shortcut="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}">🚆 RAIL PLANNER ↗</button>
+              <span style="display:inline-flex;align-items:center;gap:4px;">
+                <a class="pill-link secondary" href="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}" title="${escapeHtml('Runs the "'+RAIL_PLANNER_SHORTCUT_NAME+'" Shortcut, which opens Rail Planner')}">🚆 RAIL PLANNER ↗</a>
+                <button class="date-edit-btn" type="button" data-act="booking" data-kind="railplanner" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner" data-shortcut="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}" title="Rail Planner website / saved link" aria-label="Rail Planner website and saved-link options">✎</button>
+              </span>
               <a class="pill-link secondary" href="${directionsUrl(effFrom.place,effTo.place)}" target="_blank" title="Directions ${effFrom.name} → ${effTo.name}">🧭 DIRECTIONS</a>
               <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
             </div>
@@ -2268,9 +2286,9 @@ function renderItinerary(){
             <div class="stay-label">${escapeHtml(stay.type.toUpperCase())}</div>
             <a class="stay-name${flashKey==='stay:'+d.id?' flash-save':''}" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
           </div>
-          <div style="display:flex;gap:6px;flex-shrink:0;">
-            <button class="icon-edit-btn" type="button" data-act="booking" data-key="stay:${slugify(stay.name)}" data-title="${escapeHtml(stay.name)}" data-url="${escapeHtml(stayBooking.url)}" data-label="${escapeHtml(stayBooking.label)}" title="Booking / screenshot" aria-label="Booking details for ${escapeHtml(stay.name)}">🎫</button>
-            <button class="icon-edit-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
+          <div style="display:flex;gap:10px;flex-shrink:0;">
+            <button class="icon-edit-btn stay-action-btn" type="button" data-act="booking" data-key="stay:${slugify(stay.name)}" data-title="${escapeHtml(stay.name)}" data-url="${escapeHtml(stayBooking.url)}" data-label="${escapeHtml(stayBooking.label)}" title="Booking / screenshot" aria-label="Booking details for ${escapeHtml(stay.name)}">🎫</button>
+            <button class="icon-edit-btn stay-action-btn" data-act="edit-stay" data-id="${d.id}" data-city="${escapeHtml(d.city)}" title="Edit accommodation">✎</button>
           </div>
         </div>
       </div>

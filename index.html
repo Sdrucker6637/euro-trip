@@ -578,7 +578,8 @@ function confirmInline(target, message, onConfirm, extraClass, onCancel){
 // shared by the transport (train legs) and itinerary (stays, flights)
 // panels so each one opens its own booking modal.
 function wireBookingButtons(container){
-  container.querySelectorAll('[data-act="booking"]').forEach(btn=>{
+  container.querySelectorAll('[data-act="booking"]:not([data-wired])').forEach(btn=>{
+    btn.dataset.wired = '1';
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();
       openBookingModal({
@@ -586,7 +587,8 @@ function wireBookingButtons(container){
         title: btn.dataset.title,
         bookingUrl: btn.dataset.url || null,
         bookingLabel: btn.dataset.label || null,
-        kind: btn.dataset.kind || null
+        kind: btn.dataset.kind || null,
+        contextLine: btn.dataset.context || null
       });
     });
   });
@@ -651,38 +653,70 @@ async function openImageLarge(dataUrl){
   }
 }
 
-// Train legs get Rail Planner-specific copy and a prefilled provider name
-// in the link editor, since - unlike Hostelworld/United/hotels - there's
-// no confirmed Universal Link for eurail.com to rely on for the default
-// link. What Rail Planner *does* offer, per Eurail's own community forum,
-// is an in-app "Share as link" export of a saved trip that the recipient
-// can import - a real, user-generated link, not a guessed one. Whether
-// that link is itself configured to open the app via Universal Link isn't
-// published anywhere findable, so the copy below says so plainly instead
-// of asserting it.
-function isTrainKind(kind){ return kind === 'train'; }
+// Transit-app kinds (trains' Rail Planner link, plus the 5 installed
+// transit apps) all share the same shape of problem: no confirmed
+// Universal Link/custom-scheme lets this app construct a URL that's
+// verified to open the native app for an arbitrary journey, but each
+// app's own in-app "share" feature (where one exists) produces a real
+// link a human can generate and paste in. This config drives that copy
+// per app instead of hardcoding one app's wording as a boolean special
+// case - see TRANSIT_APP_RESEARCH below for what was actually verified
+// for each one.
+const TRANSIT_KIND_CONFIG = {
+  train: {
+    providerDefaultLabel: 'Rail Planner',
+    linkNoun: 'RAIL PLANNER LINK',
+    shareHint: `Already have a trip saved in Rail Planner? Use its "Share as link" option (in the app, on the trip's menu) and paste that link below - it'll be tried before the operator's site above.`,
+    overrideNote: `This is your saved Rail Planner link. Eurail hasn't published whether "Share as link" trips open the app directly on iOS, so this may open the app or the website depending on your phone - the screenshot below is the guaranteed fallback either way.`
+  },
+  sbb: {
+    providerDefaultLabel: 'SBB',
+    linkNoun: 'SBB SHARE LINK',
+    shareHint: `Already have this connection saved in SBB Mobile? Use "Share" (⋯ menu on the connection) in the app and paste that link below - it'll be tried before the SBB website above.`,
+    overrideNote: `This is your saved SBB share link. SBB's own community forum confirms these links (a.sbbmobile.ch/s/...) only work on a device with the app installed, with no confirmed website fallback otherwise - the screenshot below is your guaranteed backup either way.`
+  },
+  ratp: {
+    providerDefaultLabel: 'Bonjour RATP',
+    linkNoun: 'RATP LINK',
+    shareHint: null,
+    overrideNote: `This is your saved link. Whether bonjour-ratp.fr is configured to open the app on your phone isn't publicly confirmed - the screenshot below is your guaranteed backup.`
+  },
+  wienmobil: {
+    providerDefaultLabel: 'WienMobil',
+    linkNoun: 'WIENMOBIL LINK',
+    shareHint: null,
+    overrideNote: `This is your saved link. WienMobil's previous route-sharing (Google Firebase Dynamic Links) was discontinued and no replacement is documented, so whether this opens the app on your phone isn't confirmed - the screenshot below is your guaranteed backup.`
+  },
+  budapestgo: {
+    providerDefaultLabel: 'BudapestGO',
+    linkNoun: 'BUDAPESTGO LINK',
+    shareHint: null,
+    overrideNote: `This is your saved link. Whether go.bkk.hu is configured to open the app on your phone isn't publicly confirmed - the screenshot below is your guaranteed backup.`
+  }
+};
 
-function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind){
+function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind, contextLine){
   const bodyEl = document.getElementById('booking-modal-body');
   const url = (override && override.url) || defaultUrl || '';
   const label = (override && override.label) || defaultLabel || '';
-  const isTrain = isTrainKind(kind);
+  const cfg = TRANSIT_KIND_CONFIG[kind] || null;
 
   const openBookingNote = !url
     ? 'No booking link set yet.'
-    : (isTrain && override)
-      ? `This is your saved Rail Planner link. Eurail hasn't published whether "Share as link" trips open the app directly on iOS, so this may open the app or the website depending on your phone - the screenshot below is the guaranteed fallback either way.`
+    : (cfg && override)
+      ? cfg.overrideNote
       : `Tries the${label ? ' '+escapeHtml(label) : ''} app first if it's installed, otherwise opens the website.`;
 
   const editLinkBtnLabel = override
-    ? (isTrain ? '✎ EDIT RAIL PLANNER LINK' : '✎ EDIT LINK')
-    : (isTrain ? '+ ADD RAIL PLANNER LINK' : '+ ADD EXACT BOOKING LINK');
+    ? (cfg ? '✎ EDIT '+cfg.linkNoun : '✎ EDIT LINK')
+    : (cfg ? '+ ADD '+cfg.linkNoun : '+ ADD EXACT BOOKING LINK');
 
   bodyEl.innerHTML = `
     <h2 style="margin-top:0;">OPEN BOOKING</h2>
+    ${contextLine ? `<p style="font-size:11.5px;color:var(--amber);margin-bottom:4px;">${escapeHtml(contextLine)}</p>` : ''}
     <p style="font-size:11.5px;color:var(--paper-ink-secondary,var(--muted));margin-bottom:8px;">${openBookingNote}</p>
     ${url ? `<a class="pill-link book" href="${escapeHtml(url)}" target="_blank">OPEN BOOKING${label ? ' · '+escapeHtml(label) : ''} ↗</a>` : ''}
-    ${isTrain && !override ? `<p style="font-size:11.5px;color:var(--muted);margin:8px 0 0;">Already have a trip saved in Rail Planner? Use its "Share as link" option (in the app, on the trip's menu) and paste that link below - it'll be tried before the operator's site above.</p>` : ''}
+    ${cfg && cfg.shareHint && !override ? `<p style="font-size:11.5px;color:var(--muted);margin:8px 0 0;">${cfg.shareHint}</p>` : ''}
     <div>
       <button class="stop-map" type="button" id="booking-edit-link-btn" style="margin-top:10px;">${editLinkBtnLabel}</button>
     </div>
@@ -708,15 +742,15 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     try {
       const dataUrl = await resizeImageFile(file);
       await store.set(bookingShotKey(itemKey), dataUrl);
-      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override, kind);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, dataUrl, override, kind, contextLine);
     } catch(err){
-      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind);
+      paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override, kind, contextLine);
     }
   });
   const removeShotBtn = bodyEl.querySelector('#booking-shot-remove');
   if(removeShotBtn) removeShotBtn.addEventListener('click', async ()=>{
     await store.set(bookingShotKey(itemKey), '');
-    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override, kind);
+    paintBookingModalBody(itemKey, defaultUrl, defaultLabel, null, override, kind, contextLine);
   });
 
   bodyEl.querySelector('#booking-edit-link-btn').addEventListener('click', (e)=>{
@@ -725,20 +759,20 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     const form = document.createElement('div');
     form.className = 'add-stop-form';
     form.style.margin = '10px 0';
-    const providerPlaceholder = isTrain ? 'Provider (defaults to Rail Planner)' : 'Provider (e.g. Booking.com, Marriott, United)';
-    // For trains, only prefill from an *override's* label (a link the
-    // traveler already saved). The segment's default label ("Eurostar",
-    // etc.) describes the fallback operator-site link, not the Rail
-    // Planner link being added here, so it must not leak into this field.
-    const providerValue = isTrain ? ((override && override.label) || 'Rail Planner') : label;
-    const urlPlaceholder = isTrain ? "https://... your Rail Planner 'Share as link' URL" : 'https://... exact booking/confirmation link';
-    // A train leg's default `url` is the unrelated operator-site fallback
-    // (e.g. eurostar.com), not a draft of the Rail Planner link being
-    // added - prefilling it here would invite pasting a link on top of it
-    // without noticing. Every other case prefills the current value
-    // (default or existing override) as something to refine, same as
-    // before.
-    const urlValue = (isTrain && !override) ? '' : url;
+    const providerPlaceholder = cfg ? `Provider (defaults to ${cfg.providerDefaultLabel})` : 'Provider (e.g. Booking.com, Marriott, United)';
+    // For transit kinds, only prefill from an *override's* label (a link
+    // the traveler already saved). The item's default label (an operator
+    // name, or the app's own name) describes the fallback website link,
+    // not the share link being added here, so it must not leak into this
+    // field.
+    const providerValue = cfg ? ((override && override.label) || cfg.providerDefaultLabel) : label;
+    const urlPlaceholder = cfg ? `https://... your ${cfg.providerDefaultLabel} share link` : 'https://... exact booking/confirmation link';
+    // A transit item's default `url` is the unrelated website fallback,
+    // not a draft of the share link being added - prefilling it here
+    // would invite pasting a link on top of it without noticing. Every
+    // other case prefills the current value (default or existing
+    // override) as something to refine, same as before.
+    const urlValue = (cfg && !override) ? '' : url;
     form.innerHTML = `
       <input type="text" class="f-booking-provider" placeholder="${escapeHtml(providerPlaceholder)}" value="${escapeHtml(providerValue)}">
       <input type="text" class="f-booking-url" placeholder="${escapeHtml(urlPlaceholder)}" value="${escapeHtml(urlValue)}">
@@ -753,21 +787,21 @@ function paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, override
     form.querySelector('.cancel').addEventListener('click', ()=>{ form.remove(); btn.style.display = ''; });
     form.querySelector('.confirm').addEventListener('click', async ()=>{
       let newUrl = form.querySelector('.f-booking-url').value.trim();
-      const newLabel = form.querySelector('.f-booking-provider').value.trim() || (isTrain ? 'Rail Planner' : '');
+      const newLabel = form.querySelector('.f-booking-provider').value.trim() || (cfg ? cfg.providerDefaultLabel : '');
       if(newUrl && !/^https?:\/\//i.test(newUrl)) newUrl = 'https://'+newUrl;
       if(newUrl){
         await store.set(bookingUrlKey(itemKey), JSON.stringify({url: newUrl, label: newLabel}));
-        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel}, kind);
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, {url: newUrl, label: newLabel}, kind, contextLine);
       } else {
         // Empty URL clears the override and reverts to the computed default.
         await store.set(bookingUrlKey(itemKey), '');
-        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null, kind);
+        paintBookingModalBody(itemKey, defaultUrl, defaultLabel, shot, null, kind, contextLine);
       }
     });
   });
 }
 
-async function openBookingModal({key, title, bookingUrl, bookingLabel, kind}){
+async function openBookingModal({key, title, bookingUrl, bookingLabel, kind, contextLine}){
   document.getElementById('booking-modal-title').textContent = title;
   document.getElementById('booking-modal-body').innerHTML = '<div class="nearby-empty">Loading…</div>';
   document.getElementById('booking-modal').classList.add('open');
@@ -780,7 +814,7 @@ async function openBookingModal({key, title, bookingUrl, bookingLabel, kind}){
     const r = await store.get(bookingUrlKey(key));
     override = (r && r.value) ? JSON.parse(r.value) : null;
   } catch(e){ /* no saved link override */ }
-  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override, kind);
+  paintBookingModalBody(key, bookingUrl, bookingLabel, shot, override, kind, contextLine || null);
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
@@ -923,37 +957,58 @@ function hostelworldCityUrl(city){
   return path ? `https://www.hostelworld.com/hostels/${path}/` : 'https://www.hostelworld.com/';
 }
 
-// Local transit apps the traveler already has installed. Same standard as
-// United/Hostelworld/Rail Planner: every url below is the app's own real,
-// dedicated site - never a guessed custom scheme like "sbb://" - and a
-// plain https link like this is exactly how iOS decides whether to open
-// the installed app (via Universal Links, if the operator has that
-// configured for the domain) or the website. This app's outbound network
-// is sandboxed, so none of these domains' apple-app-site-association
-// files could be fetched to directly confirm Universal Link registration
-// one way or the other - that's disclosed in the UI rather than assumed:
-//   - SBB Mobile: sbb.ch is SBB's own primary site (already used
-//     elsewhere in this app as the operator link for its train legs).
-//   - Bonjour RATP: ships its own dedicated domain, bonjour-ratp.fr,
-//     distinct from RATP's general corporate site (ratp.fr) - the more
-//     likely Universal Link target since it's the app's own branded site.
-//   - WienMobil: wienmobil.at is described by Wiener Linien as "the web
-//     version" of the WienMobil app - same product, most likely pairing.
-//   - BudapestGO: go.bkk.hu is likewise BKK's own "web version" of the
-//     BudapestGO app.
-// No journey- or route-specific parameters are appended to any of these -
-// per instruction, an unconfirmed deep-link path is not invented, so each
-// link opens the app/site at its home screen only.
+// Local transit apps the traveler already has installed. None of these
+// four has a documented, verifiable way for THIS app to construct a
+// journey-specific deep link (see the research notes on TRANSIT_KIND_CONFIG
+// above) - so tapping the button opens this default URL (which iOS will
+// hand to the installed app instead of Safari only if that operator has
+// Universal Links configured for the domain - unconfirmed for all four,
+// since this app's outbound network is sandboxed and none of their
+// apple-app-site-association files could be fetched to check), and the
+// same booking-modal "add your own link" override used for bookings lets
+// the traveler paste in a real share link from the app itself (SBB Mobile
+// has a documented in-app share feature; RATP/WienMobil/BudapestGO don't,
+// but the override field still accepts any URL, e.g. one copied from the
+// app's own share sheet if it ever offers one). What changed from a plain
+// homepage link per app, based on this session's research:
+//   - SBB Mobile: sbb.ch/en unchanged - already the operator's real site,
+//     also used elsewhere in this app as the train legs' operator link.
+//   - Bonjour RATP: upgraded from the bare homepage to its "itineraires"
+//     journey-search page - a specific origin/destination URL shape
+//     (bonjour-ratp.fr/en/itineraires/<from>/<to>/) was reported but
+//     couldn't be independently corroborated as a real, stable pattern
+//     (only one example seen, no second source, no AASA confirmation), so
+//     this app does not try to construct one - guessing a slug that turns
+//     out wrong is worse than the general search page.
+//   - WienMobil: upgraded from the bare homepage to wienerlinien.at's
+//     route-planner page. Its previous route-sharing mechanism (Google
+//     Firebase Dynamic Links) was shut down and no replacement is
+//     documented, so this is the most useful *un*-guessed link available.
+//   - BudapestGO: go.bkk.hu unchanged - no route-sharing, Universal Link,
+//     or query-parameter format is documented anywhere found.
+// No journey- or route-specific parameters are appended to any default
+// URL below - per instruction, an unconfirmed deep-link path is not
+// invented.
 const TRANSIT_APPS = {
   sbb:        {label:'SBB',        emoji:'🚆', url:'https://www.sbb.ch/en'},
-  ratp:       {label:'RATP',       emoji:'🚇', url:'https://www.bonjour-ratp.fr'},
-  wienmobil:  {label:'WienMobil',  emoji:'🚇', url:'https://www.wienmobil.at'},
+  ratp:       {label:'RATP',       emoji:'🚇', url:'https://www.bonjour-ratp.fr/en/itineraires/'},
+  wienmobil:  {label:'WienMobil',  emoji:'🚇', url:'https://www.wienerlinien.at/route-planen'},
   budapestgo: {label:'BudapestGO', emoji:'🚇', url:'https://go.bkk.hu'}
 };
-function transitAppButtonHtml(key, extraClass){
-  const app = TRANSIT_APPS[key];
+// Renders a transit-app button as the same shared booking/share-link
+// modal used for bookings (see wireBookingButtons/openBookingModal),
+// rather than a plain <a> straight to the default URL - the modal is what
+// lets the traveler paste in a real per-journey share link (SBB Mobile) or
+// just see the honest "unconfirmed" note (the other three) instead of
+// this app silently claiming the button opens the app. `dataKey` must be
+// unique per distinct journey/context so overrides don't collide (e.g.
+// the Interlaken->Grindelwald SBB button and the Basel->Interlaken train
+// leg's SBB button are different journeys and get different saved links).
+function transitAppButtonHtml(appKey, opts){
+  const app = TRANSIT_APPS[appKey];
   if(!app) return '';
-  return `<a class="pill-link secondary${extraClass ? ' '+extraClass : ''}" href="${app.url}" target="_blank" title="Opens ${app.label} if it's installed, otherwise ${app.label}'s website">${app.emoji} ${escapeHtml(app.label)} ↗</a>`;
+  const {dataKey, title, contextLine, extraClass} = opts || {};
+  return `<button class="pill-link secondary${extraClass ? ' '+extraClass : ''}" type="button" data-act="booking" data-kind="${appKey}" data-key="${escapeHtml(dataKey)}" data-title="${escapeHtml(title || app.label)}" data-url="${escapeHtml(app.url)}" data-label="${escapeHtml(app.label)}"${contextLine ? ` data-context="${escapeHtml(contextLine)}"` : ''} title="Opens ${escapeHtml(app.label)} if it's installed, otherwise ${escapeHtml(app.label)}'s website">${app.emoji} ${escapeHtml(app.label)} ↗</button>`;
 }
 function bookingComSearchUrl(term){
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
@@ -1476,7 +1531,11 @@ function renderLocalTransport(){
                 const primaryAppName = t.app ? t.app.split(/\s+or\s+/i)[0].toLowerCase() : '';
                 const primaryIsTransitApp = t.transitApp && primaryAppName.includes(TRANSIT_APPS[t.transitApp].label.toLowerCase());
                 const searchBtn = t.app ? `<a class="pill-link book" href="${appSearchUrl(t.app)}" target="_blank">📱 ${t.app.split(/\s+or\s+/i)[0]} ↗</a>` : '';
-                const transitBtn = t.transitApp ? transitAppButtonHtml(t.transitApp) : '';
+                const transitBtn = t.transitApp ? transitAppButtonHtml(t.transitApp, {
+                  dataKey: `transit:${t.transitApp}:${slugify(t.city+'-'+t.title)}`,
+                  title: t.title,
+                  contextLine: (t.from && t.to) ? `${t.from.split(',')[0]} → ${t.to.split(',')[0]}` : null
+                }) : '';
                 return primaryIsTransitApp ? transitBtn : searchBtn + transitBtn;
               })()}
               ${t.from && t.to ? `<a class="icon-btn" href="${directionsUrl(t.from,t.to)}" target="_blank" title="Directions ${t.from.split(',')[0]} → ${t.to.split(',')[0]}">🧭</a>` : ''}
@@ -1487,6 +1546,7 @@ function renderLocalTransport(){
     }).join('')}
   `;
   el.insertAdjacentHTML('beforeend', html);
+  wireBookingButtons(el);
 }
 
 function rollupCount(flag){
@@ -1599,8 +1659,12 @@ function renderTransport(){
             <div class="seg-station-edit-slot"></div>
             <div class="seg-links">
               ${s.flag==='red' ? `<a class="pill-link book" href="${s.book}" target="_blank">RESERVE · ${s.bookLabel} ↗</a>` : ''}
-              ${s.transitApp ? transitAppButtonHtml(s.transitApp) : ''}
-              <a class="pill-link secondary" href="${RAIL_PLANNER_URL}" target="_blank">🚆 RAIL PLANNER ↗</a>
+              ${s.transitApp ? transitAppButtonHtml(s.transitApp, {
+                dataKey: `transit:${s.transitApp}:${s.id}`,
+                title: s.title,
+                contextLine: `${effFrom.name} → ${effTo.name} · ${journeyDateOverrides[j.id] || j.date}`
+              }) : ''}
+              <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner">🚆 RAIL PLANNER ↗</button>
               <a class="pill-link secondary" href="${directionsUrl(effFrom.place,effTo.place)}" target="_blank" title="Directions ${effFrom.name} → ${effTo.name}">🧭 DIRECTIONS</a>
               <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
             </div>

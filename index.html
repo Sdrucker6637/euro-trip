@@ -223,8 +223,9 @@
   .inline-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:var(--font-mono);font-size:10.5px;color:var(--cream);padding:6px 8px;border-radius:2px 8px;background:rgba(201,106,82,0.12);border:1px dashed var(--red);}
   .inline-confirm.full-row{margin-top:10px;padding:10px;}
   .inline-confirm-text{flex:1;min-width:100px;}
-  .inline-confirm-yes,.inline-confirm-cancel{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:6px 10px;cursor:pointer;background:none;white-space:nowrap;flex-shrink:0;border:none;}
+  .inline-confirm-yes,.inline-confirm-secondary,.inline-confirm-cancel{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:6px 10px;cursor:pointer;background:none;white-space:nowrap;flex-shrink:0;border:none;}
   .inline-confirm-yes{color:#fff;background:var(--red-deep);border-radius:2px 8px 2px 8px;}
+  .inline-confirm-secondary{color:#1a1a1a;background:var(--amber);border-radius:2px 8px 2px 8px;}
   .inline-confirm-cancel{color:var(--muted);border-bottom:1px dotted var(--muted);border-radius:0;padding:6px 1px;}
   .ctrl-btn{width:24px;height:24px;border-radius:2px 6px;border:1px solid var(--glass-line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
@@ -580,6 +581,51 @@ function confirmInline(target, message, onConfirm, extraClass, onCancel, confirm
   target.replaceWith(wrap);
   wrap.querySelector('.inline-confirm-yes').addEventListener('click', (e)=>{ e.stopPropagation(); onConfirm(); });
   wrap.querySelector('.inline-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); (onCancel || renderItinerary)(); });
+}
+
+// Offered only when a stay edit changes the accommodation *name* on a
+// night that's part of an unbroken run of other nights currently on that
+// same old name, within the same city - see findAccommodationRunmates.
+// Deliberately a 3-way choice (not a plain yes/no) rather than guessing:
+// an intentional hotel->hostel change partway through a city (Amsterdam,
+// Rome) must never be silently widened into replacing every night.
+function confirmAccommodationSwitch(target, {city, oldName, newName, onSwitchAll, onJustThis, onCancel}){
+  const wrap = document.createElement('div');
+  wrap.className = 'inline-confirm full-row';
+  wrap.innerHTML = `
+    <span class="inline-confirm-text">
+      <strong>Switch accommodation for the other nights in ${escapeHtml(city)}?</strong><br>
+      You currently have ${escapeHtml(oldName)} on the other nights. Would you like to use ${escapeHtml(newName)} for those nights too?
+    </span>
+    <button class="inline-confirm-yes">YES, SWITCH ALL NIGHTS</button>
+    <button class="inline-confirm-secondary">NO, JUST THIS NIGHT</button>
+    <button class="inline-confirm-cancel">CANCEL</button>
+  `;
+  target.replaceWith(wrap);
+  wrap.querySelector('.inline-confirm-yes').addEventListener('click', (e)=>{ e.stopPropagation(); onSwitchAll(); });
+  wrap.querySelector('.inline-confirm-secondary').addEventListener('click', (e)=>{ e.stopPropagation(); onJustThis(); });
+  wrap.querySelector('.inline-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); onCancel(); });
+}
+
+// The other days, contiguous with `id` within the same city, that are
+// currently on the exact same accommodation `oldName` as the day being
+// edited (before its edit is applied). Stops at a city boundary or the
+// first night already on a different accommodation - e.g. Amsterdam's
+// hotel night, or Rome's final hotel night, are never included alongside
+// an adjacent hostel run just because they're in the same city.
+function findAccommodationRunmates(days, dayStayState, idx, city, oldName){
+  const mates = [];
+  for(let i=idx-1;i>=0;i--){
+    if(days[i].city!==city) break;
+    if((dayStayState[days[i].id]||days[i].stay).name!==oldName) break;
+    mates.unshift(days[i].id);
+  }
+  for(let i=idx+1;i<days.length;i++){
+    if(days[i].city!==city) break;
+    if((dayStayState[days[i].id]||days[i].stay).name!==oldName) break;
+    mates.push(days[i].id);
+  }
+  return mates;
 }
 
 // Wires every compact "🎫" booking trigger found within a container -
@@ -2456,11 +2502,26 @@ function renderItinerary(){
         confirmLabel: 'SAVE',
         hostelBrowse: true,
         onConfirm: ({name, desc, place})=>{
-          dayStayState[id] = {name, type: desc || current.type, place};
-          justSavedKey = 'stay:'+id;
-          persistStay(id);
-          openDays.add(id);
-          renderItinerary();
+          const newStay = {name, type: desc || current.type, place};
+          const applyTo = (ids)=>{
+            for(const dId of ids){
+              dayStayState[dId] = {...newStay};
+              persistStay(dId);
+            }
+            justSavedKey = 'stay:'+id;
+            openDays.add(id);
+            renderItinerary();
+          };
+          if(newStay.name === current.name){ applyTo([id]); return; }
+          const idx = days.findIndex(x=>x.id===id);
+          const runmates = findAccommodationRunmates(days, dayStayState, idx, city, current.name);
+          if(!runmates.length){ applyTo([id]); return; }
+          confirmAccommodationSwitch(form, {
+            city, oldName: current.name, newName: newStay.name,
+            onSwitchAll: ()=>applyTo([id, ...runmates]),
+            onJustThis: ()=>applyTo([id]),
+            onCancel: ()=>{ openDays.add(id); renderItinerary(); }
+          });
         },
         onCancel: ()=>{ openDays.add(id); renderItinerary(); }
       });

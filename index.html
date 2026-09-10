@@ -2281,6 +2281,12 @@ function renderItinerary(){
     }).join('');
 
     const stayBooking = stayBookingInfo(stay, d.city);
+    // The stay booking key is derived from the accommodation's *name*, not
+    // the day id, so every consecutive night at the same place - however
+    // many day-cards it spans - reads and writes the one saved screenshot
+    // and confirmation link. A different accommodation name (checking into
+    // a different hotel/hostel) naturally gets its own key, so the saved
+    // booking never bleeds across an accommodation change.
     const stayHtml = `
       <div class="stay-row top" data-id="${d.id}">
         <div class="stay-head">

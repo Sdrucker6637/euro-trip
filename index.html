@@ -223,10 +223,23 @@
   .inline-confirm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-family:var(--font-mono);font-size:10.5px;color:var(--cream);padding:6px 8px;border-radius:2px 8px;background:rgba(201,106,82,0.12);border:1px dashed var(--red);}
   .inline-confirm.full-row{margin-top:10px;padding:10px;}
   .inline-confirm-text{flex:1;min-width:100px;}
-  .inline-confirm-yes,.inline-confirm-secondary,.inline-confirm-cancel{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:6px 10px;cursor:pointer;background:none;white-space:nowrap;flex-shrink:0;border:none;}
+  .inline-confirm-yes,.inline-confirm-cancel{font-family:var(--font-mono);font-size:10px;font-weight:600;padding:6px 10px;cursor:pointer;background:none;white-space:nowrap;flex-shrink:0;border:none;}
   .inline-confirm-yes{color:#fff;background:var(--red-deep);border-radius:2px 8px 2px 8px;}
-  .inline-confirm-secondary{color:#1a1a1a;background:var(--amber);border-radius:2px 8px 2px 8px;}
   .inline-confirm-cancel{color:var(--muted);border-bottom:1px dotted var(--muted);border-radius:0;padding:6px 1px;}
+  /* Accommodation-switch prompt: a taller, form-like card (matches
+     .add-stop-form, since it replaces that same search form in place)
+     rather than the compact single-line .inline-confirm used for quick
+     deletes - this one carries a two-line question plus 3 actions, so it
+     stacks everything full-width instead of wrapping inline. */
+  .accommodation-confirm{margin-top:10px;padding:14px;background:var(--bg);border-radius:2px 10px 10px 2px;border:1px solid var(--glass-line);}
+  .accommodation-confirm-title{font-family:var(--font-body);font-size:13.5px;font-weight:700;color:var(--cream);line-height:1.4;margin:0 0 6px;}
+  .accommodation-confirm-detail{font-family:var(--font-body);font-size:12px;color:var(--muted);line-height:1.5;margin:0 0 14px;}
+  .accommodation-confirm-actions{display:flex;flex-direction:column;gap:8px;}
+  .accommodation-confirm-actions button{width:100%;font-family:var(--font-mono);font-size:11px;font-weight:600;cursor:pointer;border-radius:2px 10px 2px 10px;padding:11px;}
+  .accommodation-confirm-yes{background:var(--amber);color:var(--ink);border:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);}
+  .accommodation-confirm-no{background:none;color:var(--cream);border:1px solid var(--glass-line);}
+  .accommodation-confirm-cancel-row{text-align:center;margin-top:2px;}
+  .accommodation-confirm-cancel{background:none;border:none;color:var(--muted);border-bottom:1px dotted var(--muted);border-radius:0;padding:4px 1px;font-family:var(--font-mono);font-size:10.5px;cursor:pointer;width:auto;}
   .ctrl-btn{width:24px;height:24px;border-radius:2px 6px;border:1px solid var(--glass-line);background:none;color:var(--muted);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
   .ctrl-btn.danger{color:var(--red);border-color:var(--red);}
   .add-stop-btn{width:100%;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--amber);background:none;border:1px dashed var(--amber);border-radius:2px 10px 2px 10px;padding:10px;margin-top:10px;cursor:pointer;}
@@ -591,20 +604,22 @@ function confirmInline(target, message, onConfirm, extraClass, onCancel, confirm
 // Rome) must never be silently widened into replacing every night.
 function confirmAccommodationSwitch(target, {city, oldName, newName, onSwitchAll, onJustThis, onCancel}){
   const wrap = document.createElement('div');
-  wrap.className = 'inline-confirm full-row';
+  wrap.className = 'accommodation-confirm';
   wrap.innerHTML = `
-    <span class="inline-confirm-text">
-      <strong>Switch accommodation for the other nights in ${escapeHtml(city)}?</strong><br>
-      You currently have ${escapeHtml(oldName)} on the other nights. Would you like to use ${escapeHtml(newName)} for those nights too?
-    </span>
-    <button class="inline-confirm-yes">YES, SWITCH ALL NIGHTS</button>
-    <button class="inline-confirm-secondary">NO, JUST THIS NIGHT</button>
-    <button class="inline-confirm-cancel">CANCEL</button>
+    <p class="accommodation-confirm-title">Switch to ${escapeHtml(newName)} for the other ${escapeHtml(city)} nights too?</p>
+    <p class="accommodation-confirm-detail">Other nights currently use ${escapeHtml(oldName)}.</p>
+    <div class="accommodation-confirm-actions">
+      <button class="accommodation-confirm-yes" type="button">YES, SWITCH ALL NIGHTS</button>
+      <button class="accommodation-confirm-no" type="button">NO, JUST THIS NIGHT</button>
+    </div>
+    <div class="accommodation-confirm-cancel-row">
+      <button class="accommodation-confirm-cancel" type="button">CANCEL</button>
+    </div>
   `;
   target.replaceWith(wrap);
-  wrap.querySelector('.inline-confirm-yes').addEventListener('click', (e)=>{ e.stopPropagation(); onSwitchAll(); });
-  wrap.querySelector('.inline-confirm-secondary').addEventListener('click', (e)=>{ e.stopPropagation(); onJustThis(); });
-  wrap.querySelector('.inline-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); onCancel(); });
+  wrap.querySelector('.accommodation-confirm-yes').addEventListener('click', (e)=>{ e.stopPropagation(); onSwitchAll(); });
+  wrap.querySelector('.accommodation-confirm-no').addEventListener('click', (e)=>{ e.stopPropagation(); onJustThis(); });
+  wrap.querySelector('.accommodation-confirm-cancel').addEventListener('click', (e)=>{ e.stopPropagation(); onCancel(); });
 }
 
 // The other days, contiguous with `id` within the same city, that are

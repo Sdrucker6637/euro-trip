@@ -882,7 +882,7 @@ const JOURNEYS = [
     ]
   },
   {
-    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Sun Oct 18', via:'via Zurich',
+    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Mon Oct 19', via:'via Zurich',
     segments:[
       {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',duration:'~2h',
        note:'No reservation needed.',
@@ -1145,105 +1145,104 @@ const HOSTELS_BY_CITY = {
 // United app instead of Safari if it's installed and Universal Links are
 // configured for united.com (standard practice for an app this size).
 const ITINERARY = [
-  {id:'d1',date:'Fri Oct 9',city:'Amsterdam',title:'Arrive, settle in',
+  {id:'d1',date:'Fri Oct 9',city:'Amsterdam',title:'Overnight flight to Amsterdam',
    arrivalPlace:'Newark Liberty International Airport, Newark, NJ',
    stops:[
      {name:'Flight UA 70 (United)',desc:'Newark (EWR) to Amsterdam Schiphol (AMS).',place:'Amsterdam Airport Schiphol',
       flightDate:'Fri Oct 9',
       booking:{url:'https://www.united.com/en/us/manageres/mytrips', label:'United'}}
    ],
+   stay:{name:'Flight UA 70 (United)',type:'On board · overnight',place:'Amsterdam Airport Schiphol'}},
+  {id:'d1b',date:'Sat Oct 10',city:'Amsterdam',title:'Arrive, settle in',
+   stops:[],
    stay:{name:'DoubleTree by Hilton Amsterdam Centraal',type:'Hotel · 1 night',place:'DoubleTree by Hilton Amsterdam Centraal Station'}},
-  {id:'d2',date:'Sat Oct 10',city:'Amsterdam',title:'Countryside day',
+  {id:'d2',date:'Sun Oct 11',city:'Amsterdam',title:'Countryside day',
    stops:[
      {name:'Zaanse Schans',desc:'Working Dutch windmills and cheese/clog workshops in an open-air village.',place:'Zaanse Schans, Zaandam, Netherlands'},
      {name:'Albert Cuyp Markt',desc:"Amsterdam's biggest street market - stroopwafels, herring, clothes stalls.",place:'Albert Cuyp Markt, Amsterdam'}
    ],
    stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
-  {id:'d3',date:'Sun Oct 11',city:'Amsterdam',title:'City day, then Eurostar to Paris',
+  {id:'d3',date:'Mon Oct 12',city:'Amsterdam',title:'City day, then Eurostar to Paris',
    stops:[
      {name:'Jordaan & Negen Straatjes',desc:'Boutique-lined canal streets, the most charming shopping quarter.',place:'Negen Straatjes, Amsterdam'}
    ],
    stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
-  {id:'d4',date:'Mon Oct 12',city:'Paris',title:'Eiffel Tower + Seine cruise',
+  {id:'d4',date:'Tue Oct 13',city:'Paris',title:'Eiffel Tower + Seine cruise',
    arrivalPlace:'Paris Gare du Nord, Paris',
    stops:[
      {name:'Eiffel Tower',desc:"Paris's icon - go up for skyline views or admire from the Champ de Mars.",place:'Eiffel Tower, Paris'},
      {name:'Seine river cruise',desc:'Evening boat ride past Notre-Dame and the illuminated riverbanks.',place:'Seine River Cruise Pier, Paris'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
-  {id:'d5',date:'Tue Oct 13',city:'Paris',title:'Versailles day trip',
+  {id:'d5',date:'Wed Oct 14',city:'Paris',title:'Versailles day trip',
    stops:[
      {name:'Palace of Versailles',desc:"Louis XIV's opulent palace and gardens, a short train ride out.",place:'Palace of Versailles, Versailles, France'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
-  {id:'d6',date:'Wed Oct 14',city:'Paris',title:'Latin Quarter, then train to Switzerland',
+  {id:'d6',date:'Thu Oct 15',city:'Paris',title:'Latin Quarter, then train to Switzerland',
    stops:[
      {name:'Latin Quarter + Notre-Dame',desc:'Historic student quarter and the newly restored Gothic cathedral.',place:'Notre-Dame Cathedral, Paris'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
-  {id:'d7',date:'Thu Oct 15',city:'Interlaken',title:'Arrive, relax',
+  {id:'d7',date:'Fri Oct 16',city:'Interlaken',title:'Arrive, relax',
    arrivalPlace:'Interlaken Ost, Interlaken, Switzerland',
    stops:[],
    stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
-  {id:'d8',date:'Fri Oct 16',city:'Interlaken',title:'Nature day, then train to Vienna',
+  {id:'d8',date:'Sat Oct 17',city:'Interlaken',title:'Nature day',
    stops:[
      {name:'Grindelwald Terminal',desc:'Modern cable-car hub launching trips into the Jungfrau region.',place:'Grindelwald Terminal, Grindelwald, Switzerland'},
-     {name:'Männlichen',desc:'Ridge-top viewpoint with panoramic views of the Eiger and Jungfrau.',place:'Männlichen, Switzerland'},
+     {name:'Männlichen',desc:'Ridge-top viewpoint with panoramic views of the Eiger and Jungfrau.',place:'Männlichen, Switzerland'}
+   ],
+   stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
+  {id:'d8b',date:'Sun Oct 18',city:'Interlaken',title:'Kleine Scheidegg, then train to Vienna',
+   stops:[
      {name:'Kleine Scheidegg',desc:"Alpine pass and classic photo spot below the Eiger's north face.",place:'Kleine Scheidegg, Switzerland'}
    ],
    stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
-  {id:'d9',date:'Sat Oct 17',city:'Vienna',title:'Schönbrunn + MuseumsQuartier',
+  {id:'d9',date:'Mon Oct 19',city:'Vienna',title:'Schönbrunn, MuseumsQuartier + Freud Museum',
    arrivalPlace:'Vienna Hauptbahnhof, Vienna',
    stops:[
      {name:'Schönbrunn Palace',desc:"The Habsburgs' summer palace, with sprawling formal gardens.",place:'Schönbrunn Palace, Vienna'},
-     {name:'MuseumsQuartier + Albertina',desc:"Vienna's museum district and a major graphic art / Monet collection.",place:'Albertina Museum, Vienna'}
-   ],
-   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {id:'d10',date:'Sun Oct 18',city:'Vienna',title:'Freud Museum + coffeehouses',
-   stops:[
+     {name:'MuseumsQuartier + Albertina',desc:"Vienna's museum district and a major graphic art / Monet collection.",place:'Albertina Museum, Vienna'},
      {name:'Sigmund Freud Museum',desc:"Freud's former home and office, now a museum on his life and work.",place:'Sigmund Freud Museum, Vienna'}
    ],
    stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {id:'d11',date:'Mon Oct 19',city:'Vienna',title:'Naschmarkt, then train to Budapest',
+  {id:'d11',date:'Tue Oct 20',city:'Vienna',title:'Naschmarkt, then train to Budapest',
    stops:[
      {name:'Naschmarkt',desc:"Vienna's long-running food market, good for a lunch crawl.",place:'Naschmarkt, Vienna'},
      {name:'Belvedere Palace',desc:"Baroque palace holding Klimt's The Kiss and other Austrian art.",place:'Belvedere Palace, Vienna'},
      {name:'Stephansdom',desc:"Vienna's Gothic cathedral with a famous tiled roof, right in the center.",place:'Stephansdom, Vienna'}
    ],
    stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {id:'d12',date:'Tue Oct 20',city:'Budapest',title:'Buda Castle',
+  {id:'d12',date:'Wed Oct 21',city:'Budapest',title:'Buda Castle',
    arrivalPlace:'Budapest Keleti, Budapest',
    stops:[
      {name:"Fisherman's Bastion + Buda Castle",desc:'Neo-Gothic terraces and the old royal castle, sweeping Danube views.',place:"Fisherman's Bastion, Budapest"}
    ],
-   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
-  {id:'d13',date:'Wed Oct 21',city:'Budapest',title:'Thermal baths + Parliament',
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 1 night',place:'Maverick Hostel Central Market, Budapest'}},
+  {id:'d13',date:'Thu Oct 22',city:'Budapest',title:'Thermal baths, Parliament + Central Market, then overnight to Rome',
    stops:[
      {name:'Széchenyi Thermal Bath',desc:'Grand outdoor and indoor thermal pools, a Budapest institution.',place:'Széchenyi Thermal Bath, Budapest'},
-     {name:'Hungarian Parliament',desc:'Riverside neo-Gothic landmark - view from outside or book a tour.',place:'Hungarian Parliament Building, Budapest'}
-   ],
-   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
-  {id:'d14',date:'Thu Oct 22',city:'Budapest',title:'Central Market Hall',
-   stops:[
+     {name:'Hungarian Parliament',desc:'Riverside neo-Gothic landmark - view from outside or book a tour.',place:'Hungarian Parliament Building, Budapest'},
      {name:'Central Market Hall',desc:"Budapest's largest indoor market, paprika and produce stalls galore.",place:'Central Market Hall, Budapest'}
    ],
-   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
-  {id:'d15',date:'Fri Oct 23',city:'Budapest',title:'Travel to Rome',
-   stops:[],
    stay:{name:'ÖBB Nightjet sleeper',type:'On board · overnight',place:'Vienna Hauptbahnhof, Vienna'}},
-  {id:'d16',date:'Sat Oct 24',city:'Rome',title:'Colosseum + Roman Forum',
+  {id:'d16',date:'Fri Oct 23',city:'Rome',title:'Colosseum + Roman Forum',
    arrivalPlace:'Roma Termini, Rome',
    stops:[
      {name:'Colosseum + Roman Forum',desc:"Ancient Rome's arena and the ruins of its political heart.",place:'Colosseum, Rome'}
    ],
-   stay:{name:'The RomeHello',type:'Hostel · 2 nights',place:'The RomeHello, Rome'}},
-  {id:'d17',date:'Sun Oct 25',city:'Rome',title:'Vatican, Pantheon, Trevi',
+   stay:{name:'The RomeHello',type:'Hostel · 3 nights',place:'The RomeHello, Rome'}},
+  {id:'d17',date:'Sat Oct 24',city:'Rome',title:'Vatican, Pantheon, Trevi',
    stops:[
      {name:"St Peter's Basilica",desc:"The Vatican's grand basilica, with Michelangelo's dome and Pietà.",place:"St Peter's Basilica, Vatican City"},
      {name:'Pantheon',desc:'Best-preserved Roman temple, famous for its oculus-lit dome.',place:'Pantheon, Rome'},
      {name:'Trevi Fountain',desc:"Rome's most famous fountain - toss a coin for good luck.",place:'Trevi Fountain, Rome'}
    ],
-   stay:{name:'The RomeHello',type:'Hostel · 2 nights',place:'The RomeHello, Rome'}},
+   stay:{name:'The RomeHello',type:'Hostel · 3 nights',place:'The RomeHello, Rome'}},
+  {id:'d17b',date:'Sun Oct 25',city:'Rome',title:'Free day in Rome',
+   stops:[],
+   stay:{name:'The RomeHello',type:'Hostel · 3 nights',place:'The RomeHello, Rome'}},
   {id:'d18',date:'Mon Oct 26',city:'Rome',title:'Trastevere, final night',
    stops:[
      {name:'Trastevere',desc:'Cobblestoned neighborhood full of trattorias - final Italian meal.',place:'Trastevere, Rome'}
@@ -2546,11 +2545,11 @@ document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',
 function renderRouteLine(){
   const cityStarts = [
     {city:'Amsterdam', date:new Date('2026-10-09')},
-    {city:'Paris', date:new Date('2026-10-12')},
-    {city:'Interlaken', date:new Date('2026-10-15')},
-    {city:'Vienna', date:new Date('2026-10-17')},
-    {city:'Budapest', date:new Date('2026-10-20')},
-    {city:'Rome', date:new Date('2026-10-24')}
+    {city:'Paris', date:new Date('2026-10-13')},
+    {city:'Interlaken', date:new Date('2026-10-16')},
+    {city:'Vienna', date:new Date('2026-10-19')},
+    {city:'Budapest', date:new Date('2026-10-21')},
+    {city:'Rome', date:new Date('2026-10-23')}
   ];
   const dotsEl = document.getElementById('route-dots');
   dotsEl.innerHTML = cityStarts.map(c=>`<div class="route-dot" style="background:${CITY_COLOR[c.city]}" title="${c.city}"></div>`).join('');

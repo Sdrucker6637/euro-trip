@@ -137,15 +137,21 @@ Nothing the LLM writes reaches `data/traveler-tips.json` un-checked:
 ## Running it
 
 ```bash
-npm install                 # installs @google/genai - the only dependency, and only for this script
-export GEMINI_API_KEY=...   # free tier, no billing - see the table below
-export YOUTUBE_API_KEY=...  # optional - YouTube evidence is skipped without it, everything else still runs
+npm install                 # installs @google/genai + dotenv, only for this script
+cp .env.example .env        # then fill in GEMINI_API_KEY (and optionally YOUTUBE_API_KEY)
 
 node scripts/traveler-tips/run.mjs                                   # whatever's stale or new
 node scripts/traveler-tips/run.mjs --only=eiffel-tower,palace-of-versailles
 node scripts/traveler-tips/run.mjs --force                           # ignore freshness for the selected activities
 node scripts/traveler-tips/run.mjs --dry-run                         # print the result, don't write the file
 ```
+
+`run.mjs` loads `.env` automatically (via `dotenv/config`) if one exists
+in the repo root - it's gitignored, so a real key never gets committed.
+Setting the vars directly in your shell (`export GEMINI_API_KEY=...` /
+PowerShell `$env:GEMINI_API_KEY = "..."`) still works too and overrides
+`.env`; either is fine, `.env` just survives across shell sessions
+without re-typing.
 
 Reddit needs no key at all - just a descriptive `User-Agent`, already
 set in `lib/reddit.mjs`.

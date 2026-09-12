@@ -42,11 +42,22 @@ const QUERY_SUFFIXES = ['tips', 'entrance', 'tickets', 'queue', 'best time', 'mi
 // hand-maintaining a per-activity subreddit list.
 //
 // Deliberately small, lower-traffic subreddits, not r/travel or
-// r/solotravel (millions of subscribers each): Arctic Shift's docs warn
-// keyword search is "not supported with very active users or
-// subreddits", and r/travel confirmed that in practice - every query
-// against it returned a 422 "Timeout. Maybe slow down a bit".
+// r/solotravel (millions of subscribers each) - Arctic Shift's docs
+// warn keyword search is "not supported with very active users or
+// subreddits". In practice the real cause of the 422 "Timeout. Maybe
+// slow down a bit" responses turned out to be request rate, not
+// subreddit size (even these smaller subreddits 422'd on every request
+// after the very first - see REQUEST_DELAY_MS below), but there's no
+// downside to keeping the lighter-weight subreddits anyway.
 const SUBREDDITS = ['EuroTrip', 'shoestring', 'TravelHacks'];
+
+// Arctic Shift is free and volunteer-run - the first request in a run
+// succeeds, then every subsequent request 422s with "Timeout. Maybe
+// slow down a bit" at the original 600ms pacing. This is a soft rate
+// limit, not a query-complexity timeout. A slower pace plus one retry
+// on a 422 keeps the run reliable at the cost of being noticeably
+// slower - fine for a once-a-month batch job.
+const REQUEST_DELAY_MS = 3000;
 
 // Narrows the search window, which both biases toward current
 // information and reduces the odds of a timeout on a large index scan.
@@ -69,12 +80,20 @@ function extractResults(json) {
 
 async function searchPosts(query, subreddit) {
   const url = `${BASE_URL}/api/posts/search?query=${encodeURIComponent(query)}&subreddit=${encodeURIComponent(subreddit)}&after=${twoYearsAgoDateString()}&sort=desc&limit=10`;
-  const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
-  if (!res.ok) {
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+    if (res.ok) return extractResults(await res.json());
+
     const body = await res.text().catch(() => '');
+    if (res.status === 422 && attempt === 0) {
+      // Soft rate limit ("Timeout. Maybe slow down a bit") - back off
+      // harder and try once more before giving up on this query.
+      await sleep(REQUEST_DELAY_MS * 2);
+      continue;
+    }
     throw new Error(`Arctic Shift posts search returned ${res.status} for "${query}" in r/${subreddit} - ${body.slice(0, 300)}`);
   }
-  return extractResults(await res.json());
 }
 
 async function fetchCommentsForPost(postId, limit) {
@@ -113,7 +132,7 @@ export async function fetchRedditEvidence(activity, { maxPosts = 6, maxCommentsP
       } catch (e) {
         console.warn(`  [reddit] query failed: "${query}" in r/${subreddit} - ${e.message}`);
       }
-      await sleep(600);
+      await sleep(REQUEST_DELAY_MS);
     }
   }
 
@@ -146,7 +165,7 @@ export async function fetchRedditEvidence(activity, { maxPosts = 6, maxCommentsP
         publishedAt: comment.created_utc ? new Date(comment.created_utc * 1000).toISOString() : null,
       });
     }
-    await sleep(600);
+    await sleep(REQUEST_DELAY_MS);
   }
   return evidence;
 }

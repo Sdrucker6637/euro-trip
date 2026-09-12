@@ -7,20 +7,7 @@
 // fetch here - never the spoken content of the video itself. The
 // synthesis prompt is told this explicitly so it never claims "the
 // video shows/says X" from evidence that's actually just a title.
-
-// The YouTube Data API returns titles/descriptions with HTML entities
-// already encoded (e.g. "Tips &amp; Tricks", "Here&#39;s"). Decode once
-// here so index.html's own escapeHtml() at render time doesn't
-// double-encode them into visible "&amp;amp;" text.
-function decodeHtmlEntities(s) {
-  return s
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&apos;/g, "'");
-}
+import { decodeHtmlEntities } from './decode-html-entities.mjs';
 
 export async function fetchYoutubeEvidence(activity, { maxVideos = 5, maxCommentsPerVideo = 5 } = {}) {
   const apiKey = process.env.YOUTUBE_API_KEY;

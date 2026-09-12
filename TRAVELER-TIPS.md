@@ -12,7 +12,7 @@ UI, confidence gate, and source display built earlier are unchanged.
 scripts/traveler-tips/
   run.mjs                    <- CLI entry point (see "Running it" below)
   lib/extract-itinerary.mjs  <- reads ITINERARY straight out of index.html
-  lib/reddit.mjs             <- Reddit public search.json evidence
+  lib/reddit.mjs             <- Reddit OAuth (script app) evidence
   lib/youtube.mjs            <- YouTube Data API v3 evidence
   lib/official.mjs           <- hand-verified official-site evidence
   lib/synthesize.mjs         <- one Gemini call per activity
@@ -66,7 +66,7 @@ filter to stale-or-new (freshness.mjs), or an explicit --only list
         |
 per activity, in parallel, each independently wrapped so one failing
 never blocks the others:
-   Reddit search.json (7 query variants) + top comments on top posts
+   Reddit OAuth search (7 query variants) + top comments on top posts
    YouTube Data API search + comment threads (title/description/comments only)
    official site (only if a hand-verified URL exists for this slug)
         |
@@ -119,8 +119,8 @@ Nothing the LLM writes reaches `data/traveler-tips.json` un-checked:
 
 ### Failure behavior (verified, see "What's been tested" below)
 
-- Reddit fails (403/429/network) → warned, skipped, other sources
-  continue.
+- Reddit OAuth credentials unset, token fetch fails, or a search/comment
+  call fails → warned, skipped, other sources continue.
 - YouTube fails or `YOUTUBE_API_KEY` unset → skipped, other sources
   continue.
 - No hand-verified official URL for this activity → simply no official
@@ -138,7 +138,7 @@ Nothing the LLM writes reaches `data/traveler-tips.json` un-checked:
 
 ```bash
 npm install                 # installs @google/genai + dotenv, only for this script
-cp .env.example .env        # then fill in GEMINI_API_KEY (and optionally YOUTUBE_API_KEY)
+cp .env.example .env        # then fill in the values below
 
 node scripts/traveler-tips/run.mjs                                   # whatever's stale or new
 node scripts/traveler-tips/run.mjs --only=eiffel-tower,palace-of-versailles
@@ -153,14 +153,18 @@ PowerShell `$env:GEMINI_API_KEY = "..."`) still works too and overrides
 `.env`; either is fine, `.env` just survives across shell sessions
 without re-typing.
 
-Reddit needs no key at all - just a descriptive `User-Agent`, already
-set in `lib/reddit.mjs`.
+Reddit requires a free OAuth "script" app: go to
+https://www.reddit.com/prefs/apps (logged in), "create another app...",
+select **script**, fill in a name and any redirect URI (unused for
+script apps, e.g. `http://localhost:8080`). You'll get a client ID
+(the string under the app name) and a client secret - put both in
+`.env` as `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`.
 
 ## APIs, keys, and cost
 
 | Source | Key needed | Billing required | Notes |
 |---|---|---|---|
-| Reddit `search.json` | None | No | Public, keyless. Can occasionally 403/429 without a proper User-Agent (handled) or under heavy use - fine at this volume/cadence. |
+| Reddit OAuth API | `REDDIT_CLIENT_ID` + `REDDIT_CLIENT_SECRET` (free "script" app from reddit.com/prefs/apps) | No | `www.reddit.com/search.json` and `old.reddit.com/search.json` were both tried first since they need no key - both reliably 403/404 plain HTTP-client requests (Reddit's anti-scraping bot detection fingerprinting the client, not a headers/rate-limit issue - confirmed by the exact same URL returning real results in a browser but failing from Node's fetch every time). OAuth against `oauth.reddit.com` is Reddit's actual supported path for scripted read-only access and isn't subject to that gate. |
 | YouTube Data API v3 | `YOUTUBE_API_KEY` (free, from Google Cloud Console) | No, within the free daily quota | ~1 `search.list` (100 units) + a few `commentThreads.list` (1 unit each) per activity ≈ ~105 units. A monthly run over the whole itinerary (~25 activities) is ~2,600 units against a 10,000-unit/day free quota. |
 | Official sites | None | No | Plain HTTPS fetch of a small hand-verified URL list (`lib/official.mjs`). |
 | Gemini API (`gemini-3.6-flash`) | `GEMINI_API_KEY` (free, from aistudio.google.com) | **No** - free tier, no card on file | Rate-limited rather than metered at this tier. At ~25 short synthesis calls/month this is comfortably inside the free daily quota - check the exact current limit shown in your AI Studio console when you create the key, since Google adjusts these over time. The exact model name in `lib/synthesize.mjs` may need bumping again later if Google retires this one too - the API's own error message names the replacement when that happens. |
@@ -179,12 +183,12 @@ only file that would need to change to swap back or support both.)*
 
 `.github/workflows/traveler-tips.yml`: monthly cron (1st of the month)
 + manual `workflow_dispatch` with optional `only`/`force` inputs.
-Requires two repo secrets - **Settings → Secrets and variables →
-Actions**: `GEMINI_API_KEY`, `YOUTUBE_API_KEY` (Reddit needs none).
-The job commits `data/traveler-tips.json` back to the repo only if it
-actually changed. The app never depends on the workflow being present
-or successful - it just reads whatever's currently in the committed
-JSON file.
+Requires four repo secrets - **Settings → Secrets and variables →
+Actions**: `GEMINI_API_KEY`, `YOUTUBE_API_KEY`, `REDDIT_CLIENT_ID`,
+`REDDIT_CLIENT_SECRET`. The job commits `data/traveler-tips.json` back
+to the repo only if it actually changed. The app never depends on the
+workflow being present or successful - it just reads whatever's
+currently in the committed JSON file.
 
 ## Freshness
 
@@ -208,11 +212,20 @@ no `--only`/`--force` only touches what's actually stale or new -
 - `index.html` regression: all 19 day cards / 27 stops / transport tab /
   packing list still render with zero JS errors, both served over HTTP
   and opened directly via `file://`.
-- **Not yet run against live Reddit/YouTube/Gemini APIs with real
-  evidence** - that requires `YOUTUBE_API_KEY` + `GEMINI_API_KEY`, and
-  (for Reddit specifically) a network path that isn't blocked by an
-  allowlist. A run from a normal machine or CI has none of these
-  constraints.
+- **Run for real** against `eiffel-tower`, `palace-of-versailles`,
+  `trevi-fountain` (YouTube + official; Reddit was still on the
+  now-removed keyless path at the time) - real evidence in, a real
+  Gemini call, correctly-computed confidence, correctly-cited sources,
+  all the way through. That output (`data/traveler-tips.json`) is
+  committed and was verified rendering correctly in the actual app UI.
+  Caught and fixed one real bug this way: the YouTube API returns
+  titles/descriptions HTML-entity-encoded, which `index.html`'s
+  `escapeHtml()` was double-encoding into visible `&amp;amp;` text -
+  fixed in `lib/decode-html-entities.mjs` (also applied to Reddit's API,
+  which has the same behavior).
+- **Not yet run end-to-end with the new Reddit OAuth path** - that
+  requires `REDDIT_CLIENT_ID`/`REDDIT_CLIENT_SECRET` from a real Reddit
+  script app (see "Running it" above).
 
 ## Personalization hook (unchanged - not built yet)
 

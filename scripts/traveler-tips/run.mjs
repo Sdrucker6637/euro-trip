@@ -8,8 +8,9 @@
 //   node scripts/traveler-tips/run.mjs --force           # ignore freshness, re-research everything selected
 //   node scripts/traveler-tips/run.mjs --dry-run          # print the result, don't write data/traveler-tips.json
 //
-// Requires env vars YOUTUBE_API_KEY and GEMINI_API_KEY (Reddit needs none).
-// Reads them from a .env file in the repo root if present (see .env.example).
+// Requires env vars GEMINI_API_KEY, YOUTUBE_API_KEY, REDDIT_CLIENT_ID,
+// REDDIT_CLIENT_SECRET. Reads them from a .env file in the repo root if
+// present (see .env.example).
 import 'dotenv/config';
 import { extractActivities } from './lib/extract-itinerary.mjs';
 import { fetchRedditEvidence } from './lib/reddit.mjs';

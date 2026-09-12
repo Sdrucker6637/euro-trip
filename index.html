@@ -207,6 +207,23 @@
   .stop-actions-buttons{display:flex;flex-wrap:wrap;gap:8px;}
   .directions-menu{display:flex;flex-wrap:wrap;gap:8px;margin-top:7px;}
   .directions-menu[hidden]{display:none;}
+  /* ---- Traveler Tips (per-activity, collapsed by default) ---- */
+  .tips-wrap{margin-top:10px;}
+  .tips-toggle{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:0.02em;color:var(--amber);text-align:left;}
+  .tips-toggle-chevron{margin-left:auto;font-size:9px;color:var(--muted);transition:transform .2s;}
+  .tips-toggle.open .tips-toggle-chevron{transform:rotate(180deg);}
+  .tips-panel{display:none;margin-top:8px;padding:10px 11px;background:rgba(227,165,66,0.06);border:1px dashed var(--glass-line);border-radius:2px 10px 10px 2px;}
+  .tips-panel.open{display:block;}
+  .tips-meta{font-family:var(--font-mono);font-size:9.5px;color:var(--muted);letter-spacing:0.02em;margin-bottom:8px;}
+  .tip-item{display:flex;gap:7px;font-size:12px;line-height:1.4;color:var(--cream);margin-bottom:7px;}
+  .tip-item:last-of-type{margin-bottom:0;}
+  .tip-cat{flex-shrink:0;font-size:13px;line-height:1.4;}
+  .tip-anecdotal{color:var(--muted);font-style:italic;font-size:10.5px;margin-left:4px;}
+  .tips-sources-toggle{display:inline-block;margin-top:9px;font-family:var(--font-mono);font-size:10px;color:var(--muted);background:none;border:none;border-bottom:1px dotted var(--muted);padding:2px 1px;cursor:pointer;}
+  .tips-sources{display:none;margin-top:7px;padding-top:7px;border-top:1px dotted var(--glass-line);}
+  .tips-sources.open{display:block;}
+  .tips-source-item{font-size:11px;margin-bottom:4px;color:var(--muted);}
+  .tips-source-item a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber);}
   @keyframes flash-save{0%{background:rgba(127,174,122,0.4);}100%{background:transparent;}}
   .flash-save{animation:flash-save 1.2s ease-out;border-radius:7px;padding:1px 4px;margin:-1px -4px;}
   /* Compact action-chip button used for every travel/utility action on a
@@ -2290,6 +2307,100 @@ function createStationSearchForm({ anchorCity, countryIso, initialName='', onSel
   return form;
 }
 
+// ---- Traveler Tips (per-activity) --------------------------------------
+// Practical, activity-specific advice ("best entrance", "is the ticket
+// upgrade worth it", "common tourist trap") - distinct from the one-line
+// description already on a stop. Deliberately NOT generated on the fly:
+// an LLM asked to "give travel tips" with nothing to ground it just
+// produces generic, unverifiable prose that's indistinguishable from a
+// fabricated Reddit thread. Real tips need an actual research step
+// (querying Reddit/YouTube/forums for the exact place, then synthesizing
+// only what those sources said) that this static, no-backend, localStorage-
+// only app has no way to run itself - see TRAVELER-TIPS.md for the
+// proposed backend that would. This object is what that backend would
+// periodically write into the page; it ships empty rather than inventing
+// content so the section has something to show. A stop with no entry
+// here renders exactly as it always has - no section, no placeholder.
+//
+// Schema per entry (keyed by travelerTipsKey(stop), i.e. slugify(stop.name)):
+//   {
+//     researchLabel: 'Sep 2026',   // short freshness label shown in the UI
+//     tips: [
+//       { category: one of TIP_CATEGORIES below,
+//         text: 'Short, specific, actionable sentence.',
+//         confidence: 'high' | 'medium' | 'low',
+//         anecdotal: false }         // true = a single source's account;
+//     ],                             //   only shown (and only ever labeled
+//                                     //   as such) when explicitly flagged
+//     sources: [
+//       { type: 'reddit'|'instagram'|'youtube'|'forum'|'blog'|'official'|'web',
+//         label: '...', url: '...' }
+//     ]
+//   }
+const TRAVELER_TIPS = {};
+
+const TIP_CATEGORIES = {
+  tickets:  {icon:'🎟️'},
+  timing:   {icon:'⏰'},
+  entrance: {icon:'🚪'},
+  photo:    {icon:'📸'},
+  transit:  {icon:'🚇'},
+  watchout: {icon:'⚠️'},
+  nearby:   {icon:'🍴'},
+  worthit:  {icon:'⭐'},
+  tip:      {icon:'💡'}
+};
+const TIP_CATEGORY_ORDER = Object.keys(TIP_CATEGORIES);
+const SOURCE_ICON = {reddit:'👽', instagram:'📷', youtube:'▶️', forum:'💬', blog:'📝', official:'🏛️', web:'🌐'};
+
+function travelerTipsKey(stop){
+  return slugify(stop.name);
+}
+
+// Confidence gate: high/medium always show; a low-confidence tip only
+// shows when explicitly flagged anecdotal, and stays visibly labeled as
+// one person's account rather than presented as settled fact.
+function visibleTips(entry){
+  return (entry.tips || [])
+    .filter(t => t.confidence !== 'low' || t.anecdotal)
+    .sort((a,b) => TIP_CATEGORY_ORDER.indexOf(a.category) - TIP_CATEGORY_ORDER.indexOf(b.category));
+}
+
+let openTips = new Set(); // session-only expand state, keyed 'dayId:stopIdx'
+
+function tipsBlockHtml(stop, tipsKey){
+  try {
+    const entry = TRAVELER_TIPS[travelerTipsKey(stop)];
+    if(!entry) return '';
+    const tips = visibleTips(entry);
+    if(!tips.length) return '';
+    const isOpen = openTips.has(tipsKey);
+    const tipsHtml = tips.map(t=>{
+      const cat = TIP_CATEGORIES[t.category] || TIP_CATEGORIES.tip;
+      return `<div class="tip-item"><span class="tip-cat">${cat.icon}</span><span>${escapeHtml(t.text)}${t.anecdotal ? '<span class="tip-anecdotal">one traveler\'s account</span>' : ''}</span></div>`;
+    }).join('');
+    const sources = entry.sources || [];
+    const sourcesHtml = sources.length ? `
+      <button class="tips-sources-toggle" type="button" data-act="toggle-sources">SOURCES (${sources.length})</button>
+      <div class="tips-sources">
+        ${sources.map(s=>`<div class="tips-source-item">${SOURCE_ICON[s.type] || '🔗'} <a href="${escapeHtml(s.url)}" target="_blank" rel="noopener">${escapeHtml(s.label)}</a></div>`).join('')}
+      </div>
+    ` : '';
+    return `
+      <div class="tips-wrap">
+        <button class="tips-toggle${isOpen?' open':''}" type="button" data-act="toggle-tips" data-key="${escapeHtml(tipsKey)}">
+          <span>💡 TRAVELER TIPS</span><span class="tips-toggle-chevron">▾</span>
+        </button>
+        <div class="tips-panel${isOpen?' open':''}">
+          <div class="tips-meta">Based on recent traveler discussions &amp; web sources${entry.researchLabel ? ' · Updated '+escapeHtml(entry.researchLabel) : ''}</div>
+          ${tipsHtml}
+          ${sourcesHtml}
+        </div>
+      </div>
+    `;
+  } catch(e){ return ''; }
+}
+
 function renderItinerary(){
   const el = document.getElementById('panel-itinerary');
   const days = buildEffectiveDays();
@@ -2319,6 +2430,7 @@ function renderItinerary(){
               </div>
             ` : ''}
           </div>
+          ${tipsBlockHtml(s, d.id+':'+si)}
           <div class="stop-actions">
             <div class="stop-actions-row">
               <div class="stop-actions-buttons">
@@ -2610,6 +2722,22 @@ function renderItinerary(){
       const opening = menu.hasAttribute('hidden');
       if(opening) menu.removeAttribute('hidden'); else menu.setAttribute('hidden','');
       btn.textContent = opening ? '🧭 DIRECTIONS ▴' : '🧭 DIRECTIONS ▾';
+    });
+  });
+
+  el.querySelectorAll('[data-act="toggle-tips"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.key;
+      if(openTips.has(key)) openTips.delete(key); else openTips.add(key);
+      btn.classList.toggle('open');
+      btn.nextElementSibling.classList.toggle('open');
+    });
+  });
+  el.querySelectorAll('[data-act="toggle-sources"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      btn.nextElementSibling.classList.toggle('open');
     });
   });
 

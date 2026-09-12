@@ -263,18 +263,18 @@ no `--only`/`--force` only touches what's actually stale or new -
 - `index.html` regression: all 19 day cards / 27 stops / transport tab /
   packing list still render with zero JS errors, both served over HTTP
   and opened directly via `file://`.
-- An earlier prompt version (before the "5 real visitors" bar and
-  generic-phrase backstop) was run for real against `eiffel-tower`,
-  `palace-of-versailles`, `trevi-fountain` - real evidence in, a real
-  Gemini call, correctly-computed confidence, correctly-cited sources,
-  verified rendering correctly in the actual app UI. That committed
-  `data/traveler-tips.json` predates this prompt/voice rewrite, so it
-  doesn't yet reflect the attributive "several visitors said..." voice
-  or the stricter genericness bar - re-run with `--force` on those
-  slugs to refresh it under the new prompt.
-- **The new prompt, deeper comment-mining, and generic-phrase backstop
-  have not yet been run against live APIs** - that's the next real test,
-  same 2-3-activity dry-run discipline as the original build.
+- **Run for real with the new "5 real visitors" prompt, deeper
+  comment-mining, and generic-phrase backstop** against `eiffel-tower`,
+  `palace-of-versailles`, `trevi-fountain` (dry-run, not yet committed
+  to `data/traveler-tips.json`). Real results: specific, correctly-
+  attributed tips (Trocadéro as a viewpoint, the second-floor-to-first-
+  floor elevator shortcut, a wallet stolen at Versailles, crowd levels
+  at Trevi varying by weather) with no generic advice slipping through
+  - the generic-phrase backstop didn't even need to fire. Caught and
+  fixed one real bug this way: a tip over the length cap was truncated
+  mid-word ("...far more manageab") by a plain `slice()` - fixed to
+  truncate at a word boundary with an ellipsis, plus a prompt nudge to
+  keep tips concise so this triggers less often.
 
 ## Personalization hook (unchanged - not built yet)
 

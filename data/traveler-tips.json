@@ -1,35 +1,35 @@
 {
   "eiffel-tower": {
     "researchLabel": "Sep 2026",
-    "researchedAt": "2026-09-12T21:26:04.940Z",
+    "researchedAt": "2026-09-12T22:17:21.395Z",
     "tips": [
       {
+        "category": "transit",
+        "text": "Multiple visitors noted that an elevator is available to take you down from the second floor to the first floor.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
         "category": "photo",
-        "text": "Approaching or viewing the Eiffel Tower from Trocadero provides one of the best and most iconic views of the landmark.",
+        "text": "Visitors recommended viewing the Eiffel Tower from Trocadéro for an impressive first viewpoint.",
         "confidence": "medium",
         "anecdotal": false
       },
       {
         "category": "timing",
-        "text": "Visiting the observatory deck at night offers breathtaking views of the Paris skyline.",
-        "confidence": "low",
-        "anecdotal": true
-      },
-      {
-        "category": "tip",
-        "text": "You can take the elevator down from the 2nd floor to the 1st floor.",
+        "text": "One traveler mentioned that the queues to ride the elevator back down from the top level can be unexpectedly long.",
         "confidence": "low",
         "anecdotal": true
       },
       {
         "category": "watchout",
-        "text": "Be aware of petition scammers and bracelet vendors operating near the Eiffel Tower.",
+        "text": "A visitor warned against Le Castel Restaurant near the tower due to expensive drink prices and poor bathroom conditions.",
         "confidence": "low",
         "anecdotal": true
       },
       {
-        "category": "watchout",
-        "text": "Expect potentially long queue times when trying to travel back down from the top level.",
+        "category": "nearby",
+        "text": "Recommended dining options near the Eiffel Tower include Amourette, Le 7eme Vin, and Bistrot des Fables.",
         "confidence": "low",
         "anecdotal": true
       }
@@ -37,65 +37,77 @@
     "sources": [
       {
         "type": "youtube",
-        "label": "YouTube comment on \"Best Way to Visit the Eiffel Tower\"",
-        "url": "https://www.youtube.com/watch?v=E1PJBTTSoy4"
-      },
-      {
-        "type": "youtube",
         "label": "YouTube comment on \"How To Visit the Eiffel Tower: Tickets & Levels Explained\"",
         "url": "https://www.youtube.com/watch?v=BldLa6pCMwo"
       },
       {
         "type": "youtube",
-        "label": "YouTube comment on \"Eiffel Tower: Tips, Scams & Secrets (Paris Travel Guide)\"",
-        "url": "https://www.youtube.com/watch?v=r5JNjJbv6u4"
+        "label": "YouTube comment on \"Best Way to Visit the Eiffel Tower\"",
+        "url": "https://www.youtube.com/watch?v=E1PJBTTSoy4"
       },
       {
         "type": "youtube",
         "label": "YouTube comment on \"Eiffel Tower Visit Guide 🇫🇷 | Tips, Tickets & What to Know Before You Go!\"",
         "url": "https://www.youtube.com/watch?v=4LtE1DaHzpc"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube video title/description - \"We Found 3 Restaurants Near the Eiffel Tower That Aren't a Rip-Off\"",
+        "url": "https://www.youtube.com/watch?v=40swa_TQrU8"
       }
     ]
   },
   "palace-of-versailles": {
     "researchLabel": "Sep 2026",
-    "researchedAt": "2026-09-12T21:26:18.210Z",
+    "researchedAt": "2026-09-12T22:17:37.232Z",
     "tips": [
       {
         "category": "tickets",
-        "text": "Purchase admission tickets exclusively through the official ticket office to avoid counterfeit tickets.",
+        "text": "Official guidance warns visitors to purchase admission tickets exclusively through the official website due to circulating counterfeit tickets.",
         "confidence": "medium",
         "anecdotal": false
       },
       {
+        "category": "tickets",
+        "text": "A former employee noted that having a Paris Museum Pass will not skip long lines unless you book a timed-entry ticket online.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "transit",
+        "text": "Travelers note that getting to Versailles from Paris requires taking RER Line C rather than the Metro.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "transit",
+        "text": "A visitor pointed out that a paid tram operates around the grounds, offering a cheaper alternative to renting golf carts.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "transit",
+        "text": "Several visitors recommended renting a bicycle or golf cart to easily travel around the expansive gardens and grounds.",
+        "confidence": "high",
+        "anecdotal": false
+      },
+      {
         "category": "timing",
-        "text": "Opening hours are 9:00 am to 6:30 pm for the Palace, 12:00 pm to 6:30 pm for the Estate of Trianon, 7:00 am to 5:30 pm for the Gardens, and 7:00 am to 8:30 pm for the Park.",
+        "text": "The Estate of Trianon opens at 12:00 PM, several hours after the main Palace opens at 9:00 AM.",
         "confidence": "medium",
         "anecdotal": false
       },
       {
         "category": "watchout",
-        "text": "The fountains are shut down for part of the year due to cold temperatures to protect the pipes.",
-        "confidence": "low",
-        "anecdotal": true
-      },
-      {
-        "category": "transit",
-        "text": "To reach Versailles from Paris, take RER Line C or alternative lines such as L, U, or N.",
-        "confidence": "high",
-        "anecdotal": false
-      },
-      {
-        "category": "transit",
-        "text": "Keep your train ticket after arriving at the station, as you will need it to exit.",
+        "text": "A visitor noted that the garden fountains are shut down during colder months of the year to protect the pipes.",
         "confidence": "low",
         "anecdotal": true
       },
       {
         "category": "tip",
-        "text": "For getting around the estate and gardens, options include renting a bike, taking the paid tram (which is cheaper than golf carts), or renting a golf cart.",
-        "confidence": "high",
-        "anecdotal": false
+        "text": "One traveler recommended booking a guided tour in advance to gain access to the private apartments behind the main state rooms.",
+        "confidence": "low",
+        "anecdotal": true
       }
     ],
     "sources": [
@@ -111,8 +123,13 @@
       },
       {
         "type": "youtube",
-        "label": "YouTube comment on \"How to get to Versailles from Paris\"",
-        "url": "https://www.youtube.com/watch?v=q-73RbxeH-w"
+        "label": "YouTube comment on \"How to Visit the Palace of Versailles from Paris 🇫🇷 Day Trip Guide\"",
+        "url": "https://www.youtube.com/watch?v=RuW9FgFuJO8"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Versailles, France: Ultimate Royal Palace - Rick Steves’ Europe Travel Guide - Travel Bite\"",
+        "url": "https://www.youtube.com/watch?v=194CDlsFpQA"
       },
       {
         "type": "official",
@@ -123,43 +140,37 @@
   },
   "trevi-fountain": {
     "researchLabel": "Sep 2026",
-    "researchedAt": "2026-09-12T21:26:30.502Z",
+    "researchedAt": "2026-09-12T22:17:49.637Z",
     "tips": [
       {
         "category": "tickets",
-        "text": "The fountain is free to view from the upper area, but closer access to the basin costs 2 euros with a quick-moving queue system.",
+        "text": "Several visitors reported that paying the €2 ticket fee to access the lower basin area provided a quick-moving queue and manageable crowds for photos.",
         "confidence": "medium",
         "anecdotal": false
       },
       {
         "category": "timing",
-        "text": "Visiting early in the morning or before dawn, particularly in winter, allows you to avoid heavy crowds and view the floodlit statues in peace.",
-        "confidence": "medium",
-        "anecdotal": false
-      },
-      {
-        "category": "watchout",
-        "text": "Keep a close watch on your belongings near the fountain, as backpack theft has been reported in the immediate area.",
+        "text": "One traveler recommended visiting before dawn to see the statues floodlit and hear the fountain's running water clearly.",
         "confidence": "low",
         "anecdotal": true
       },
       {
-        "category": "tip",
-        "text": "Check the live web camera feed of Trevi Fountain before heading out to gauge current crowd levels.",
-        "confidence": "medium",
-        "anecdotal": false
+        "category": "watchout",
+        "text": "A visitor cautioned to watch out for pickpockets who sit along the edge of the crowd near the fountain.",
+        "confidence": "low",
+        "anecdotal": true
       }
     ],
     "sources": [
       {
         "type": "youtube",
-        "label": "YouTube video title/description - \"The Trevi Fountain Changed — Here's What You Need to Know\"",
+        "label": "YouTube comment on \"The Trevi Fountain Changed — Here's What You Need to Know\"",
         "url": "https://www.youtube.com/watch?v=-oBKYUL6FNw"
       },
       {
         "type": "youtube",
-        "label": "YouTube video title/description - \"Best Time to Visit the Trevi Fountain | Rome Travel Tips - Avoid Crowds! #trevifountain #rome\"",
-        "url": "https://www.youtube.com/watch?v=3fQkNJZ9avI"
+        "label": "YouTube comment on \"Get pictures at the Trevi Fountain without the crowd #travel #photography #tips\"",
+        "url": "https://www.youtube.com/watch?v=HyMI437Wfxo"
       }
     ]
   }

@@ -1,1 +1,166 @@
-{}
+{
+  "eiffel-tower": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-12T21:26:04.940Z",
+    "tips": [
+      {
+        "category": "photo",
+        "text": "Approaching or viewing the Eiffel Tower from Trocadero provides one of the best and most iconic views of the landmark.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
+        "category": "timing",
+        "text": "Visiting the observatory deck at night offers breathtaking views of the Paris skyline.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "tip",
+        "text": "You can take the elevator down from the 2nd floor to the 1st floor.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "watchout",
+        "text": "Be aware of petition scammers and bracelet vendors operating near the Eiffel Tower.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "watchout",
+        "text": "Expect potentially long queue times when trying to travel back down from the top level.",
+        "confidence": "low",
+        "anecdotal": true
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Best Way to Visit the Eiffel Tower\"",
+        "url": "https://www.youtube.com/watch?v=E1PJBTTSoy4"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"How To Visit the Eiffel Tower: Tickets & Levels Explained\"",
+        "url": "https://www.youtube.com/watch?v=BldLa6pCMwo"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Eiffel Tower: Tips, Scams & Secrets (Paris Travel Guide)\"",
+        "url": "https://www.youtube.com/watch?v=r5JNjJbv6u4"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Eiffel Tower Visit Guide 🇫🇷 | Tips, Tickets & What to Know Before You Go!\"",
+        "url": "https://www.youtube.com/watch?v=4LtE1DaHzpc"
+      }
+    ]
+  },
+  "palace-of-versailles": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-12T21:26:18.210Z",
+    "tips": [
+      {
+        "category": "tickets",
+        "text": "Purchase admission tickets exclusively through the official ticket office to avoid counterfeit tickets.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
+        "category": "timing",
+        "text": "Opening hours are 9:00 am to 6:30 pm for the Palace, 12:00 pm to 6:30 pm for the Estate of Trianon, 7:00 am to 5:30 pm for the Gardens, and 7:00 am to 8:30 pm for the Park.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
+        "category": "watchout",
+        "text": "The fountains are shut down for part of the year due to cold temperatures to protect the pipes.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "transit",
+        "text": "To reach Versailles from Paris, take RER Line C or alternative lines such as L, U, or N.",
+        "confidence": "high",
+        "anecdotal": false
+      },
+      {
+        "category": "transit",
+        "text": "Keep your train ticket after arriving at the station, as you will need it to exit.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "tip",
+        "text": "For getting around the estate and gardens, options include renting a bike, taking the paid tram (which is cheaper than golf carts), or renting a golf cart.",
+        "confidence": "high",
+        "anecdotal": false
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Tips for Your First Visit to Versailles\"",
+        "url": "https://www.youtube.com/watch?v=ccuym6Drx9w"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Versailles 2026 Changes | Don’t Visit Without This Plan\"",
+        "url": "https://www.youtube.com/watch?v=YyMEwvQ3rqA"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"How to get to Versailles from Paris\"",
+        "url": "https://www.youtube.com/watch?v=q-73RbxeH-w"
+      },
+      {
+        "type": "official",
+        "label": "Official site - en.chateauversailles.fr",
+        "url": "https://en.chateauversailles.fr/"
+      }
+    ]
+  },
+  "trevi-fountain": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-12T21:26:30.502Z",
+    "tips": [
+      {
+        "category": "tickets",
+        "text": "The fountain is free to view from the upper area, but closer access to the basin costs 2 euros with a quick-moving queue system.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
+        "category": "timing",
+        "text": "Visiting early in the morning or before dawn, particularly in winter, allows you to avoid heavy crowds and view the floodlit statues in peace.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
+        "category": "watchout",
+        "text": "Keep a close watch on your belongings near the fountain, as backpack theft has been reported in the immediate area.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "tip",
+        "text": "Check the live web camera feed of Trevi Fountain before heading out to gauge current crowd levels.",
+        "confidence": "medium",
+        "anecdotal": false
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube video title/description - \"The Trevi Fountain Changed — Here's What You Need to Know\"",
+        "url": "https://www.youtube.com/watch?v=-oBKYUL6FNw"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube video title/description - \"Best Time to Visit the Trevi Fountain | Rome Travel Tips - Avoid Crowds! #trevifountain #rome\"",
+        "url": "https://www.youtube.com/watch?v=3fQkNJZ9avI"
+      }
+    ]
+  }
+}

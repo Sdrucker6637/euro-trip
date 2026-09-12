@@ -7,6 +7,21 @@
 // fetch here - never the spoken content of the video itself. The
 // synthesis prompt is told this explicitly so it never claims "the
 // video shows/says X" from evidence that's actually just a title.
+
+// The YouTube Data API returns titles/descriptions with HTML entities
+// already encoded (e.g. "Tips &amp; Tricks", "Here&#39;s"). Decode once
+// here so index.html's own escapeHtml() at render time doesn't
+// double-encode them into visible "&amp;amp;" text.
+function decodeHtmlEntities(s) {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
 export async function fetchYoutubeEvidence(activity, { maxVideos = 5, maxCommentsPerVideo = 5 } = {}) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
@@ -30,12 +45,14 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 5, maxComment
     if (!videoId) continue;
     n++;
     const url = `https://www.youtube.com/watch?v=${videoId}`;
+    const title = decodeHtmlEntities(item.snippet.title || '');
+    const description = decodeHtmlEntities((item.snippet.description || '').slice(0, 600));
     evidence.push({
       sourceId: `youtube#${n}`,
       type: 'youtube',
-      label: `YouTube video title/description - "${item.snippet.title}"`,
+      label: `YouTube video title/description - "${title}"`,
       url,
-      text: `TITLE: ${item.snippet.title}\nDESCRIPTION: ${(item.snippet.description || '').slice(0, 600)}`,
+      text: `TITLE: ${title}\nDESCRIPTION: ${description}`,
       publishedAt: item.snippet.publishedAt || null,
     });
 
@@ -51,7 +68,7 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 5, maxComment
           evidence.push({
             sourceId: `youtube#${n}`,
             type: 'youtube',
-            label: `YouTube comment on "${item.snippet.title}"`,
+            label: `YouTube comment on "${title}"`,
             url,
             text: snippet.textDisplay.slice(0, 800),
             publishedAt: snippet.publishedAt || null,

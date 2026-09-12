@@ -40,7 +40,21 @@ const QUERY_SUFFIXES = ['tips', 'entrance', 'tickets', 'queue', 'best time', 'mi
 // list (e.g. r/ParisTravelGuide) - a real recall tradeoff for staying
 // generic across every activity in the itinerary rather than
 // hand-maintaining a per-activity subreddit list.
-const SUBREDDITS = ['travel', 'solotravel', 'EuroTrip'];
+//
+// Deliberately small, lower-traffic subreddits, not r/travel or
+// r/solotravel (millions of subscribers each): Arctic Shift's docs warn
+// keyword search is "not supported with very active users or
+// subreddits", and r/travel confirmed that in practice - every query
+// against it returned a 422 "Timeout. Maybe slow down a bit".
+const SUBREDDITS = ['EuroTrip', 'shoestring', 'TravelHacks'];
+
+// Narrows the search window, which both biases toward current
+// information and reduces the odds of a timeout on a large index scan.
+function twoYearsAgoDateString() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 2);
+  return d.toISOString().slice(0, 10);
+}
 
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
@@ -54,7 +68,7 @@ function extractResults(json) {
 }
 
 async function searchPosts(query, subreddit) {
-  const url = `${BASE_URL}/api/posts/search?query=${encodeURIComponent(query)}&subreddit=${encodeURIComponent(subreddit)}&sort=desc&limit=25`;
+  const url = `${BASE_URL}/api/posts/search?query=${encodeURIComponent(query)}&subreddit=${encodeURIComponent(subreddit)}&after=${twoYearsAgoDateString()}&sort=desc&limit=10`;
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
   if (!res.ok) {
     const body = await res.text().catch(() => '');

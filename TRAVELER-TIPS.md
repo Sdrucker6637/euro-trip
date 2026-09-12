@@ -163,7 +163,7 @@ set in `lib/reddit.mjs`.
 | Reddit `search.json` | None | No | Public, keyless. Can occasionally 403/429 without a proper User-Agent (handled) or under heavy use - fine at this volume/cadence. |
 | YouTube Data API v3 | `YOUTUBE_API_KEY` (free, from Google Cloud Console) | No, within the free daily quota | ~1 `search.list` (100 units) + a few `commentThreads.list` (1 unit each) per activity ≈ ~105 units. A monthly run over the whole itinerary (~25 activities) is ~2,600 units against a 10,000-unit/day free quota. |
 | Official sites | None | No | Plain HTTPS fetch of a small hand-verified URL list (`lib/official.mjs`). |
-| Gemini API (`gemini-2.5-flash`) | `GEMINI_API_KEY` (free, from aistudio.google.com) | **No** - free tier, no card on file | Rate-limited rather than metered at this tier. At ~25 short synthesis calls/month this is comfortably inside the free daily quota - check the exact current limit shown in your AI Studio console when you create the key, since Google adjusts these over time. |
+| Gemini API (`gemini-3.6-flash`) | `GEMINI_API_KEY` (free, from aistudio.google.com) | **No** - free tier, no card on file | Rate-limited rather than metered at this tier. At ~25 short synthesis calls/month this is comfortably inside the free daily quota - check the exact current limit shown in your AI Studio console when you create the key, since Google adjusts these over time. The exact model name in `lib/synthesize.mjs` may need bumping again later if Google retires this one too - the API's own error message names the replacement when that happens. |
 
 No paid search API, no Instagram/TripAdvisor/forum scraping (correctly
 left out - no accessible free API for them; they're never listed as

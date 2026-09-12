@@ -6,7 +6,9 @@
 import { GoogleGenAI } from '@google/genai';
 import { CATEGORIES } from './categories.mjs';
 
-const MODEL = 'gemini-2.5-flash';
+// gemini-2.5-flash was retired for new API keys (Sep 2026); the API's own
+// 404 error names gemini-3.6-flash as the replacement.
+const MODEL = 'gemini-3.6-flash';
 
 const SYSTEM_PROMPT = `You are a strict evidence-extraction tool for a personal travel itinerary app. You will be given real evidence (Reddit posts/comments, YouTube video titles/descriptions/comments, and/or an official attraction website excerpt) about ONE specific attraction.
 

@@ -2,7 +2,20 @@
 // OAuth app/secret needed at this volume - just a descriptive User-Agent
 // (Reddit 403s the default one) and light pacing between requests, since
 // this is a personal, once-a-month batch job, not a scraper.
+//
+// Uses old.reddit.com rather than www.reddit.com: the new site's bot
+// protection has been observed 403-ing plain HTTP-client requests (Node
+// fetch, curl, etc.) even with a descriptive User-Agent and even on the
+// very first request of a run - i.e. not rate-limiting, since it fails
+// immediately - while old.reddit.com's .json endpoints stay reachable to
+// non-browser clients. Browser-like Accept/Accept-Language headers are
+// added for the same reason.
 const USER_AGENT = 'euro-trip-traveler-tips-research/0.1 (personal itinerary app, run manually/monthly, contact: repo owner)';
+const REQUEST_HEADERS = {
+  'User-Agent': USER_AGENT,
+  Accept: 'application/json',
+  'Accept-Language': 'en-US,en;q=0.9',
+};
 
 // The app owner's own priority list of angles to check for every
 // activity, so research is specific to THIS attraction rather than a
@@ -12,8 +25,8 @@ const QUERY_SUFFIXES = ['tips', 'entrance', 'tickets', 'queue', 'best time', 'mi
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 async function searchOnce(query) {
-  const url = `https://www.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=relevance&limit=8&t=year`;
-  const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
+  const url = `https://old.reddit.com/search.json?q=${encodeURIComponent(query)}&sort=relevance&limit=8&t=year`;
+  const res = await fetch(url, { headers: REQUEST_HEADERS });
   if (!res.ok) throw new Error(`Reddit search returned ${res.status} for "${query}"`);
   const data = await res.json();
   return (data?.data?.children || []).map((c) => c.data).filter(Boolean);
@@ -21,8 +34,8 @@ async function searchOnce(query) {
 
 async function fetchTopComments(permalink, limit) {
   try {
-    const res = await fetch(`https://www.reddit.com${permalink}.json?limit=${limit}&sort=top`, {
-      headers: { 'User-Agent': USER_AGENT },
+    const res = await fetch(`https://old.reddit.com${permalink}.json?limit=${limit}&sort=top`, {
+      headers: REQUEST_HEADERS,
     });
     if (!res.ok) return [];
     const data = await res.json();

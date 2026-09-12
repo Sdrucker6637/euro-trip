@@ -1,0 +1,23 @@
+{
+  "name": "euro-trip",
+  "version": "1.0.0",
+  "private": true,
+  "description": "App to organize/help with Euro Trip. index.html is the app itself (static, no build step, no dependencies); the dependency below is only for the offline scripts/traveler-tips research job, never shipped to the browser.",
+  "scripts": {
+    "traveler-tips": "node scripts/traveler-tips/run.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sdrucker6637/euro-trip.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sdrucker6637/euro-trip/issues"
+  },
+  "homepage": "https://github.com/Sdrucker6637/euro-trip#readme",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0"
+  }
+}

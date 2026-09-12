@@ -1,127 +1,211 @@
-# Traveler Tips — data model & research-backend proposal
+# Traveler Tips — data model & research pipeline
 
-## What's implemented now (this app, today)
+## What's implemented
 
-`index.html` is a static, no-backend, no-build page. All state lives in
-`localStorage` on one device. There is nowhere to hold an API secret and
-nothing that runs on a schedule - so this change adds only what a static
-page can honestly do:
+The app itself (`index.html`) is still a static, no-backend, no-build
+page - that never changed. What's new is a **standalone offline batch
+job**, run outside the browser, that researches real evidence and writes
+the results into a static JSON file the app fetches once at load. The
+UI, confidence gate, and source display built earlier are unchanged.
 
-- **`TRAVELER_TIPS`** (in `index.html`, just above `renderItinerary`): a
-  plain object keyed by `slugify(stop.name)` (e.g. `'eiffel-tower'`),
-  holding whatever a research pass has already produced for that exact
-  activity. **It ships empty.** No tip, source, or confidence level in it
-  is invented - an empty entry means that activity has no researched tips
-  yet, and its stop renders exactly as before (no section, no
-  placeholder, no "loading").
-- **`tipsBlockHtml(stop, key)`**: renders a collapsed-by-default "💡
-  TRAVELER TIPS" toggle under a stop's description, but only if
-  `TRAVELER_TIPS[slugify(stop.name)]` exists and has at least one tip
-  that survives the confidence gate. Expanding it shows short bullet
-  tips (category icon + one sentence), a freshness line ("Updated Sep
-  2026"), and a nested "Sources (N)" toggle listing where each tip came
-  from.
-- **Confidence gate** (`visibleTips`): a tip needs `confidence: 'high'`
-  or `'medium'` to show plainly. `confidence: 'low'` only shows if
-  explicitly marked `anecdotal: true`, and stays visibly labeled "one
-  traveler's account" - never presented as settled fact.
-
-### Schema
-
-```js
-TRAVELER_TIPS['eiffel-tower'] = {
-  researchLabel: 'Sep 2026',            // freshness label shown in the UI
-  tips: [
-    { category: 'tickets',              // tickets|timing|entrance|photo|
-                                         // transit|watchout|nearby|worthit|tip
-      text: 'Short, specific, actionable sentence.',
-      confidence: 'high',               // high|medium|low
-      anecdotal: false },               // true only for a single-source claim
-    // ...
-  ],
-  sources: [
-    { type: 'reddit',                   // reddit|instagram|youtube|forum|
-                                         // blog|official|web
-      label: 'r/Paris - search: Eiffel Tower tips',
-      url: 'https://www.reddit.com/r/paris/search/?q=eiffel%20tower' },
-    // ...
-  ]
-};
+```
+scripts/traveler-tips/
+  run.mjs                    <- CLI entry point (see "Running it" below)
+  lib/extract-itinerary.mjs  <- reads ITINERARY straight out of index.html
+  lib/reddit.mjs             <- Reddit public search.json evidence
+  lib/youtube.mjs            <- YouTube Data API v3 evidence
+  lib/official.mjs           <- hand-verified official-site evidence
+  lib/synthesize.mjs         <- one Claude Haiku call per activity
+  lib/validate.mjs           <- the trust boundary (see below)
+  lib/freshness.mjs          <- per-activity TTL / staleness check
+  lib/store.mjs              <- reads/writes data/traveler-tips.json
+data/traveler-tips.json      <- the generated data; ships as {} until researched
+.github/workflows/traveler-tips.yml  <- monthly cron + manual trigger
 ```
 
-Keyed by activity name (not city) so "Eiffel Tower", "Versailles", and
-"Notre-Dame" each get their own entry - never a shared, generic "Paris
-tips" bucket.
+`index.html` changed in exactly one place: `TRAVELER_TIPS` is now
+populated by `loadTravelerTips()` (a `fetch('data/traveler-tips.json')`
+in `init()`, wrapped in try/catch exactly like the existing
+Nominatim/Overpass calls). On any failure - offline, opened via
+`file://`, the file missing - it just stays `{}` and every stop renders
+exactly as it always has. Verified: the app still renders all 19 day
+cards and 27 stops with zero JS errors both over HTTP and opened
+directly as `file://`.
 
-## Why there's no live research wired up
+### Schema (unchanged from the original proposal)
 
-Doing this for real means, per source:
+```js
+// data/traveler-tips.json
+{
+  "eiffel-tower": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-12T20:10:00.000Z",
+    "tips": [
+      { "category": "tickets", "text": "...", "confidence": "high", "anecdotal": false }
+    ],
+    "sources": [
+      { "type": "reddit", "label": "r/Paris - \"...\"", "url": "https://www.reddit.com/r/paris/..." }
+    ]
+  }
+}
+```
 
-| Source | Free tier reality | Notes |
-|---|---|---|
-| **Reddit** | Free, low-volume search via a registered "installed app" OAuth client (no secret needed) or the public `.../search.json` endpoint with a proper User-Agent. Rate-limited; fine for periodic batch research, not for a live per-pageview call. | Best source for genuine traveler experience per your priority order. |
-| **YouTube** | YouTube Data API v3 has a free daily quota (API key, no billing needed at this volume). Search + video metadata/description is cheap; pulling comment threads costs more quota per video. | Good for corroborating what Reddit surfaces. |
-| **Instagram** | No usable free API for arbitrary hashtag/location search. Meta's Graph API needs app review for that kind of access. | Realistically: link out to a location/hashtag search page as a "source," don't attempt to scrape content - scraping Instagram also violates its ToS. |
-| **Travel forums** (TripAdvisor, Lonely Planet, Rick Steves) | No official API. | Same treatment as Instagram - link out, don't scrape. |
-| **Blogs / general web** | No free API for arbitrary search at any real quality. A web-search API (e.g. Brave Search's free tier, or Bing/SerpAPI, paid) would be the realistic option. | Lowest priority per your ranking anyway. |
-| **Official attraction sites** | Free - direct fetch for factual verification (hours, ticket policy, closures). | Should always win over an old Reddit post on time-sensitive facts. |
+Keyed by `slugify(stop.name)` - identical to `travelerTipsKey()` in
+`index.html` - so an activity researched here is exactly the activity a
+stop renders tips for. No generic "Paris tips" bucket: "Eiffel Tower",
+"Palace of Versailles", and "Notre-Dame" are each researched and stored
+independently, using the itinerary's own `name`/`place`/`city` for the
+query.
 
-None of that can run **in the browser**: Reddit/YouTube either block
-CORS for this kind of use or require a header/key that can't sit in
-client-side JS without being public to anyone who opens dev tools. And
-even with the raw snippets in hand, turning them into the concise,
-confidence-scored bullets in the spec needs an LLM synthesis pass -
-another thing that needs a place to hold a key and a way to control cost.
+## How the pipeline works
 
-## Proposed backend (when you're ready to wire it up)
+```
+extract activities from index.html's ITINERARY (dedup, skip flights/trains)
+        |
+filter to stale-or-new (freshness.mjs), or an explicit --only list
+        |
+per activity, in parallel, each independently wrapped so one failing
+never blocks the others:
+   Reddit search.json (7 query variants) + top comments on top posts
+   YouTube Data API search + comment threads (title/description/comments only)
+   official site (only if a hand-verified URL exists for this slug)
+        |
+if literally zero evidence -> leave existing data untouched, move on
+        |
+one Claude Haiku call, given ONLY the fetched evidence, each item
+tagged with a stable sourceId (reddit#1, youtube#2, official#1, ...)
+        |
+validate.mjs: drop anything whose category is invalid, whose text is
+empty, or whose cited sourceId isn't in this run's real evidence.
+Confidence is computed HERE from real source counts - never taken from
+the LLM.
+        |
+write data/traveler-tips.json incrementally (one activity at a time, so
+a mid-run crash never loses already-completed activities)
+```
 
-A small, **offline batch job**, not a live endpoint the page calls on
-every visit:
+### Evidence -> LLM
 
-1. **Trigger**: run manually, or on a schedule (e.g. a GitHub Action
-   once a month, or whenever you add a new itinerary stop) - not on
-   page load. This is what keeps cost near zero and avoids hammering
-   Reddit/YouTube.
-2. **Per activity** (keyed the same way as `TRAVELER_TIPS`, using the
-   stop's `name` + `place` for the query): fetch a handful of Reddit
-   search results and YouTube search results for that exact place name.
-   Optionally fetch the official site for hours/ticket/closure facts.
-3. **Synthesis**: one LLM call (Claude Haiku is cheap enough here - a
-   few dollars a year even researching every stop monthly) per activity,
-   given only the raw fetched snippets, instructed to:
-   - Only output a tip if it's traceable to a specific fetched snippet
-     (never invent one).
-   - Tag `confidence` mechanically from how many independent snippets
-     support the same claim (1 source → `low`; 2+ independent sources →
-     `medium`/`high`).
-   - Prefer the official-site snippet over an old forum post whenever
-     they conflict on a time-sensitive fact (hours, reservations,
-     construction, entrances).
-   - Emit the same JSON shape as `TRAVELER_TIPS[key]` above, including
-     real source URLs (never a fabricated post/quote).
-4. **Freshness**: stamp `researchLabel`/an internal `updatedAt`. Give
-   time-sensitive categories (`tickets`, `entrance`, `timing`, `transit`,
-   `watchout`) a shorter re-check interval (e.g. 30-60 days) than
-   evergreen ones (`photo`, `worthit`, `tip`, `nearby`) which can go
-   longer (e.g. 6+ months) without re-fetching.
-5. **Storage / delivery**: the cheapest option that fits this app's
-   existing architecture is to have the job write straight back into
-   `TRAVELER_TIPS` (or a sibling `traveler-tips.json` the page fetches
-   once per load) and commit that - zero hosting cost, and the page
-   keeps working fully offline exactly as it does today. A real
-   database + API endpoint is only worth it later if you want tips to
-   update without a redeploy.
-6. **Anti-hallucination guardrail**: a tip with no matching source
-   snippet is dropped by the synthesis step, not softened into a vaguer
-   claim. A source entry is always a URL the job actually fetched -
-   never typed by hand to "look right."
+Each fetched item becomes `{ sourceId, type, label, url, text,
+publishedAt }`. The prompt (`lib/synthesize.mjs`) gets nothing but a
+list of these, tagged, for one named attraction. It is told, in order:
+only claim what's in the evidence; cite the exact `sourceId`(s); never
+invent a source, quote, or URL; YouTube evidence is title/description/
+comments only, never "the video shows X"; prefer official over
+community evidence on conflicts; prefer recent over old; dedupe; use
+only the app's 9 category values; and never self-report a confidence
+level (rule 9 - confidence is computed by code, not trusted from the
+model).
 
-## Personalization hook (not built yet, but the shape supports it)
+### Anti-hallucination gate (`validate.mjs`)
 
-Stops don't currently carry a time-of-day field, so there's nothing to
-key off today. When one exists, pass it (plus the day's date/city/title)
-into the same per-activity research call as extra context - e.g. an
-evening Eiffel Tower visit could get a `tickets`/`timing` tip about
-sunset-slot demand surfaced ahead of a `photo` tip about morning light.
-No UI or data-model rework needed for that later - just a richer context
-object into the same batch job.
+Nothing the LLM writes reaches `data/traveler-tips.json` un-checked:
+
+1. `category` must be one of the app's 9 known values.
+2. `text` must be non-empty.
+3. Every cited `sourceId` is checked against a map of this run's
+   **actually-fetched** evidence - a citation pointing at anything else
+   is dropped silently.
+4. If a tip has zero surviving citations, it's dropped entirely.
+5. **Confidence is computed, not trusted**: 1 independent
+   non-official source → `low` (and `anecdotal: true`); 2+ independent
+   community sources → `medium`; an official source alone → `medium`;
+   an official source plus community corroboration, or 3+ independent
+   community sources → `high`.
+6. The final `sources[]` list is built from *only* the evidence that
+   actually ended up cited by a surviving tip, deduped by URL - never
+   the full fetched set, and never a constructed-but-unverified search
+   link.
+
+### Failure behavior (verified, see "What's been tested" below)
+
+- Reddit fails (403/429/network) → warned, skipped, other sources
+  continue.
+- YouTube fails or `YOUTUBE_API_KEY` unset → skipped, other sources
+  continue.
+- No hand-verified official URL for this activity → simply no official
+  evidence, never a guessed one.
+- Zero evidence from every source → existing data (if any) is left
+  completely untouched; a brand-new activity with no evidence just
+  stays absent from the file (no placeholder, no "loading" state).
+- The LLM call throws, or its output isn't valid JSON → same: existing
+  data untouched, nothing overwritten.
+- Every one of these is a `console.warn`/`console.error`, never a
+  thrown error that kills the whole run - one bad activity never stops
+  the rest of the batch.
+
+## Running it
+
+```bash
+npm install                 # installs @anthropic-ai/sdk - the only dependency, and only for this script
+export ANTHROPIC_API_KEY=...
+export YOUTUBE_API_KEY=...  # optional - YouTube evidence is skipped without it, everything else still runs
+
+node scripts/traveler-tips/run.mjs                                   # whatever's stale or new
+node scripts/traveler-tips/run.mjs --only=eiffel-tower,palace-of-versailles
+node scripts/traveler-tips/run.mjs --force                           # ignore freshness for the selected activities
+node scripts/traveler-tips/run.mjs --dry-run                         # print the result, don't write the file
+```
+
+Reddit needs no key at all - just a descriptive `User-Agent`, already
+set in `lib/reddit.mjs`.
+
+## APIs, keys, and cost
+
+| Source | Key needed | Billing required | Notes |
+|---|---|---|---|
+| Reddit `search.json` | None | No | Public, keyless. Can occasionally 403/429 without a proper User-Agent (handled) or under heavy use - fine at this volume/cadence. |
+| YouTube Data API v3 | `YOUTUBE_API_KEY` (free, from Google Cloud Console) | No, within the free daily quota | ~1 `search.list` (100 units) + a few `commentThreads.list` (1 unit each) per activity ≈ ~105 units. A monthly run over the whole itinerary (~25 activities) is ~2,600 units against a 10,000-unit/day free quota. |
+| Official sites | None | No | Plain HTTPS fetch of a small hand-verified URL list (`lib/official.mjs`). |
+| Anthropic Messages API (Claude Haiku 4.5) | `ANTHROPIC_API_KEY` | Yes (prepaid credits) | Current pricing: $1/$5 per 1M input/output tokens. At ~3K input + ~450 output tokens per activity, ~25 activities/month ≈ **$0.10-0.20/month** - a few dollars a year, even researching everything every month. |
+
+No paid search API, no Instagram/TripAdvisor/forum scraping (correctly
+left out - no accessible free API for them; they're never listed as
+sources unless something changes that).
+
+## GitHub Actions
+
+`.github/workflows/traveler-tips.yml`: monthly cron (1st of the month)
++ manual `workflow_dispatch` with optional `only`/`force` inputs.
+Requires two repo secrets - **Settings → Secrets and variables →
+Actions**: `ANTHROPIC_API_KEY`, `YOUTUBE_API_KEY` (Reddit needs none).
+The job commits `data/traveler-tips.json` back to the repo only if it
+actually changed. The app never depends on the workflow being present
+or successful - it just reads whatever's currently in the committed
+JSON file.
+
+## Freshness
+
+`lib/freshness.mjs`: an activity is stale (needs re-research) if it's
+never been researched, or if its `researchedAt` is older than **45
+days** (any of its tips is in a time-sensitive category: `tickets`,
+`timing`, `entrance`, `transit`, `watchout`) or **180 days** (only
+evergreen categories: `photo`, `worthit`, `tip`, `nearby`). A run with
+no `--only`/`--force` only touches what's actually stale or new -
+"useful existing research" is never re-spent on.
+
+## What's been tested so far
+
+- `extractActivities()` against the real `index.html`: correctly pulls
+  25 real activities, matches `eiffel-tower`/`palace-of-versailles`
+  slugs exactly, correctly excludes both flight stops.
+- `run.mjs --only=... --dry-run`: confirmed the full pipeline never
+  crashes and never fabricates data when every network source is
+  unreachable (evidence collected: 0/0/0 → activity left untouched,
+  exactly per the failure-behavior rules above).
+- `index.html` regression: all 19 day cards / 27 stops / transport tab /
+  packing list still render with zero JS errors, both served over HTTP
+  and opened directly via `file://`.
+- **Not yet run against live Reddit/YouTube/Anthropic APIs with real
+  evidence** - that requires `YOUTUBE_API_KEY` + `ANTHROPIC_API_KEY`,
+  and (for Reddit specifically) a network path that isn't blocked by an
+  allowlist. See the "Doing the first real run" note wherever this is
+  being handed off - a run from a normal machine or CI has none of these
+  constraints.
+
+## Personalization hook (unchanged - not built yet)
+
+Stops still don't carry a time-of-day field, so there's nothing to key
+off today. When one exists, pass it (plus the day's date/city/title)
+into `researchOne()`'s evidence-fetch step as extra query context -
+no schema or UI change needed for that later.

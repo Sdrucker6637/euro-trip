@@ -1,0 +1,65 @@
+name: Research traveler tips
+
+# Runs the offline research batch job described in TRAVELER-TIPS.md.
+# Never runs from the browser/app - this workflow is the only thing that
+# writes data/traveler-tips.json, and it only commits back if the file
+# actually changed.
+on:
+  schedule:
+    # Monthly - the app's own freshness TTLs (45/180 days, see
+    # scripts/traveler-tips/lib/freshness.mjs) mean most runs will find
+    # little or nothing stale to re-research; this cadence just makes
+    # sure new/aging activities eventually get picked up.
+    - cron: '0 6 1 * *'
+  workflow_dispatch:
+    inputs:
+      only:
+        description: 'Comma-separated activity slugs to research (leave blank for all stale/new activities)'
+        required: false
+        default: ''
+      force:
+        description: 'Re-research selected activities even if not stale'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - run: npm install
+
+      - name: Run research pipeline
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.only }}" ]; then
+            ARGS="$ARGS --only=${{ github.event.inputs.only }}"
+          fi
+          if [ "${{ github.event.inputs.force }}" = "true" ]; then
+            ARGS="$ARGS --force"
+          fi
+          node scripts/traveler-tips/run.mjs $ARGS
+
+      - name: Commit updated traveler tips data, if changed
+        run: |
+          if git diff --quiet -- data/traveler-tips.json; then
+            echo "No changes to data/traveler-tips.json - nothing to commit."
+            exit 0
+          fi
+          git config user.name "traveler-tips-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/traveler-tips.json
+          git commit -m "Update traveler tips data ($(date -u +%Y-%m-%d))"
+          git push

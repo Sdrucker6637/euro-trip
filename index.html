@@ -2337,7 +2337,21 @@ function createStationSearchForm({ anchorCity, countryIso, initialName='', onSel
 //         label: '...', url: '...' }
 //     ]
 //   }
-const TRAVELER_TIPS = {};
+let TRAVELER_TIPS = {};
+
+// Populated by the offline research batch job (scripts/traveler-tips/,
+// see TRAVELER-TIPS.md) into data/traveler-tips.json, committed to the
+// repo like any other static asset. Loaded once at startup, exactly like
+// the Nominatim/Overpass calls elsewhere in this file: on any failure
+// (offline, opened via file://, file missing) TRAVELER_TIPS just stays
+// {} and every stop renders exactly as it does with no tips data at all
+// - this must never be able to break the itinerary.
+async function loadTravelerTips(){
+  try {
+    const res = await fetch('data/traveler-tips.json', {cache:'no-store'});
+    if(res.ok) TRAVELER_TIPS = await res.json();
+  } catch(e){ /* stays {} */ }
+}
 
 const TIP_CATEGORIES = {
   tickets:  {icon:'🎟️'},
@@ -2806,6 +2820,7 @@ async function init(){
   await loadJourneyStations();
   renderTransport();
   await loadItineraryState();
+  await loadTravelerTips();
   renderItinerary();
   await loadPackingState();
   renderChecklist();

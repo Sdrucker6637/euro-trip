@@ -29,6 +29,19 @@ const USER_AGENT = 'euro-trip-traveler-tips-research/0.1 (personal itinerary app
 // single generic "<name> tips" query.
 const QUERY_SUFFIXES = ['tips', 'entrance', 'tickets', 'queue', 'best time', 'mistakes', 'worth it'];
 
+// Arctic Shift's `query` (cross-subreddit keyword search) errors with
+// "requires one of: author, subreddit" - there's no true global search,
+// and `subreddit` only accepts one value per request (no comma-
+// separated list, unlike some other Arctic Shift endpoints). So instead
+// of one sitewide search, this runs the same query scoped to each of a
+// small, hand-picked set of general travel subreddits - the same
+// "curated, never guessed" approach as OFFICIAL_SITES in official.mjs.
+// This will miss posts in a landmark-specific subreddit not in this
+// list (e.g. r/ParisTravelGuide) - a real recall tradeoff for staying
+// generic across every activity in the itinerary rather than
+// hand-maintaining a per-activity subreddit list.
+const SUBREDDITS = ['travel', 'solotravel', 'EuroTrip'];
+
 function sleep(ms) { return new Promise((resolve) => setTimeout(resolve, ms)); }
 
 // Arctic Shift's exact response shape (bare array vs. {data:[...]}) isn't
@@ -40,12 +53,12 @@ function extractResults(json) {
   return [];
 }
 
-async function searchPosts(query) {
-  const url = `${BASE_URL}/api/posts/search?query=${encodeURIComponent(query)}&sort=desc&limit=25`;
+async function searchPosts(query, subreddit) {
+  const url = `${BASE_URL}/api/posts/search?query=${encodeURIComponent(query)}&subreddit=${encodeURIComponent(subreddit)}&sort=desc&limit=25`;
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`Arctic Shift posts search returned ${res.status} for "${query}" - ${body.slice(0, 300)}`);
+    throw new Error(`Arctic Shift posts search returned ${res.status} for "${query}" in r/${subreddit} - ${body.slice(0, 300)}`);
   }
   return extractResults(await res.json());
 }
@@ -76,16 +89,18 @@ function postUrl(post) {
 // constructed-but-unverified search link.
 export async function fetchRedditEvidence(activity, { maxPosts = 6, maxCommentsPerPost = 4 } = {}) {
   const seenPosts = new Map();
-  for (const suffix of QUERY_SUFFIXES) {
-    const query = `${activity.name} ${suffix}`;
-    try {
-      for (const post of await searchPosts(query)) {
-        if (post.id && !seenPosts.has(post.id)) seenPosts.set(post.id, post);
+  for (const subreddit of SUBREDDITS) {
+    for (const suffix of QUERY_SUFFIXES) {
+      const query = `${activity.name} ${suffix}`;
+      try {
+        for (const post of await searchPosts(query, subreddit)) {
+          if (post.id && !seenPosts.has(post.id)) seenPosts.set(post.id, post);
+        }
+      } catch (e) {
+        console.warn(`  [reddit] query failed: "${query}" in r/${subreddit} - ${e.message}`);
       }
-    } catch (e) {
-      console.warn(`  [reddit] query failed: "${query}" - ${e.message}`);
+      await sleep(600);
     }
-    await sleep(600);
   }
 
   const posts = [...seenPosts.values()].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, maxPosts);

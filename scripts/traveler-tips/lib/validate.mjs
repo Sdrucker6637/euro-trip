@@ -63,6 +63,19 @@ function formatResearchLabel(date) {
   return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
 }
 
+const MAX_TIP_LENGTH = 260;
+
+// A plain slice(0, N) can cut a tip off mid-word ("...far more manageab")
+// - seen in real output. Truncate at the last word boundary instead and
+// mark it with an ellipsis so a long tip is visibly incomplete rather
+// than silently garbled.
+function truncateText(text, maxLength) {
+  if (text.length <= maxLength) return text;
+  const cut = text.slice(0, maxLength);
+  const lastSpace = cut.lastIndexOf(' ');
+  return `${(lastSpace > 0 ? cut.slice(0, lastSpace) : cut).trim()}...`;
+}
+
 // Turns raw LLM tips + this run's fetched evidence into the exact shape
 // index.html's TRAVELER_TIPS[slug] already expects, or null if nothing
 // survives validation. Every surviving tip's sourceIds are checked
@@ -89,7 +102,7 @@ export function validateAndBuildEntry(rawTips, evidence) {
 
     tips.push({
       category: t.category,
-      text: t.text.trim().slice(0, 240),
+      text: truncateText(t.text.trim(), MAX_TIP_LENGTH),
       confidence: anecdotal ? 'low' : confidence,
       anecdotal,
     });

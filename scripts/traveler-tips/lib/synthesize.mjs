@@ -47,6 +47,7 @@ Hard rules - violating any of these makes your output useless and dangerous to t
 7. Deduplicate - if multiple sources say essentially the same specific thing, output ONE tip and cite every supporting sourceId on it together. Multiple independent people saying the same specific thing is itself a signal worth preserving (e.g. "several visitors said..." rather than "one visitor said..." when more than one source supports it).
 8. Only use these category values: ${CATEGORIES.join(', ')}.
 9. Do NOT report a confidence level yourself - just report which sourceIds support each tip. The calling program computes confidence from that mechanically; you have no confidence field to fill in.
+10. Keep each tip's text to one concise sentence, well under 200 characters. A tip that needs two sentences to land is usually two tips - split it.
 
 If the evidence supports no tip that clears the bar above, return an empty tips array. An empty array is a correct, useful answer - it is always better than including a generic tip.`;
 

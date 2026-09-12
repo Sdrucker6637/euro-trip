@@ -43,7 +43,10 @@ function extractResults(json) {
 async function searchPosts(query) {
   const url = `${BASE_URL}/api/posts/search?query=${encodeURIComponent(query)}&sort=desc&limit=25`;
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
-  if (!res.ok) throw new Error(`Arctic Shift posts search returned ${res.status} for "${query}"`);
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`Arctic Shift posts search returned ${res.status} for "${query}" - ${body.slice(0, 300)}`);
+  }
   return extractResults(await res.json());
 }
 

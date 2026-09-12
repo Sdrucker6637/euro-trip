@@ -15,7 +15,7 @@ scripts/traveler-tips/
   lib/reddit.mjs             <- Reddit public search.json evidence
   lib/youtube.mjs            <- YouTube Data API v3 evidence
   lib/official.mjs           <- hand-verified official-site evidence
-  lib/synthesize.mjs         <- one Claude Haiku call per activity
+  lib/synthesize.mjs         <- one Gemini call per activity
   lib/validate.mjs           <- the trust boundary (see below)
   lib/freshness.mjs          <- per-activity TTL / staleness check
   lib/store.mjs              <- reads/writes data/traveler-tips.json
@@ -72,7 +72,7 @@ never blocks the others:
         |
 if literally zero evidence -> leave existing data untouched, move on
         |
-one Claude Haiku call, given ONLY the fetched evidence, each item
+one Gemini call, given ONLY the fetched evidence, each item
 tagged with a stable sourceId (reddit#1, youtube#2, official#1, ...)
         |
 validate.mjs: drop anything whose category is invalid, whose text is
@@ -137,8 +137,8 @@ Nothing the LLM writes reaches `data/traveler-tips.json` un-checked:
 ## Running it
 
 ```bash
-npm install                 # installs @anthropic-ai/sdk - the only dependency, and only for this script
-export ANTHROPIC_API_KEY=...
+npm install                 # installs @google/genai - the only dependency, and only for this script
+export GEMINI_API_KEY=...   # free tier, no billing - see the table below
 export YOUTUBE_API_KEY=...  # optional - YouTube evidence is skipped without it, everything else still runs
 
 node scripts/traveler-tips/run.mjs                                   # whatever's stale or new
@@ -157,18 +157,24 @@ set in `lib/reddit.mjs`.
 | Reddit `search.json` | None | No | Public, keyless. Can occasionally 403/429 without a proper User-Agent (handled) or under heavy use - fine at this volume/cadence. |
 | YouTube Data API v3 | `YOUTUBE_API_KEY` (free, from Google Cloud Console) | No, within the free daily quota | ~1 `search.list` (100 units) + a few `commentThreads.list` (1 unit each) per activity ≈ ~105 units. A monthly run over the whole itinerary (~25 activities) is ~2,600 units against a 10,000-unit/day free quota. |
 | Official sites | None | No | Plain HTTPS fetch of a small hand-verified URL list (`lib/official.mjs`). |
-| Anthropic Messages API (Claude Haiku 4.5) | `ANTHROPIC_API_KEY` | Yes (prepaid credits) | Current pricing: $1/$5 per 1M input/output tokens. At ~3K input + ~450 output tokens per activity, ~25 activities/month ≈ **$0.10-0.20/month** - a few dollars a year, even researching everything every month. |
+| Gemini API (`gemini-2.5-flash`) | `GEMINI_API_KEY` (free, from aistudio.google.com) | **No** - free tier, no card on file | Rate-limited rather than metered at this tier. At ~25 short synthesis calls/month this is comfortably inside the free daily quota - check the exact current limit shown in your AI Studio console when you create the key, since Google adjusts these over time. |
 
 No paid search API, no Instagram/TripAdvisor/forum scraping (correctly
 left out - no accessible free API for them; they're never listed as
 sources unless something changes that).
+
+*(An earlier version of this pipeline used the Anthropic Messages API
+with Claude Haiku 4.5 - also very cheap at this volume, ~$0.10-0.20/mo,
+but requires billing/a card on file with no free tier. Switched to
+Gemini to avoid that requirement entirely. `lib/synthesize.mjs` is the
+only file that would need to change to swap back or support both.)*
 
 ## GitHub Actions
 
 `.github/workflows/traveler-tips.yml`: monthly cron (1st of the month)
 + manual `workflow_dispatch` with optional `only`/`force` inputs.
 Requires two repo secrets - **Settings → Secrets and variables →
-Actions**: `ANTHROPIC_API_KEY`, `YOUTUBE_API_KEY` (Reddit needs none).
+Actions**: `GEMINI_API_KEY`, `YOUTUBE_API_KEY` (Reddit needs none).
 The job commits `data/traveler-tips.json` back to the repo only if it
 actually changed. The app never depends on the workflow being present
 or successful - it just reads whatever's currently in the committed
@@ -196,11 +202,10 @@ no `--only`/`--force` only touches what's actually stale or new -
 - `index.html` regression: all 19 day cards / 27 stops / transport tab /
   packing list still render with zero JS errors, both served over HTTP
   and opened directly via `file://`.
-- **Not yet run against live Reddit/YouTube/Anthropic APIs with real
-  evidence** - that requires `YOUTUBE_API_KEY` + `ANTHROPIC_API_KEY`,
-  and (for Reddit specifically) a network path that isn't blocked by an
-  allowlist. See the "Doing the first real run" note wherever this is
-  being handed off - a run from a normal machine or CI has none of these
+- **Not yet run against live Reddit/YouTube/Gemini APIs with real
+  evidence** - that requires `YOUTUBE_API_KEY` + `GEMINI_API_KEY`, and
+  (for Reddit specifically) a network path that isn't blocked by an
+  allowlist. A run from a normal machine or CI has none of these
   constraints.
 
 ## Personalization hook (unchanged - not built yet)

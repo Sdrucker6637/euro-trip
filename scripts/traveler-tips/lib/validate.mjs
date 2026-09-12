@@ -6,6 +6,33 @@ import { CATEGORIES } from './categories.mjs';
 const VALID_CATEGORIES = new Set(CATEGORIES);
 const VALID_CONFIDENCE = new Set(['high', 'medium', 'low']);
 
+// Mechanical backstop for synthesize.mjs's "would 5 recent visitors
+// actually say this" bar - never fully trust a prompt to enforce this
+// on its own (same reasoning as computing confidence in code instead of
+// trusting the LLM). Catches the exact generic phrasings the product
+// spec calls out as bad, and close variants, regardless of how the
+// prompt is worded. Not exhaustive - a determined model could still
+// phrase generic advice a way this doesn't catch - but it's a real
+// backstop for the most common failure mode, not just relying on
+// prompt wording.
+const GENERIC_PHRASE_PATTERNS = [
+  /\bgo(\s+there)?\s+early\b/i,
+  /\barrive\s+early\b/i,
+  /\bwear\s+comfortable\s+shoes\b/i,
+  /\bbring\s+(plenty of\s+)?water\b/i,
+  /\bstay\s+hydrated\b/i,
+  /\bbook\s+(your\s+)?(tickets?\s+)?in\s+advance\b/i,
+  /\buse\s+public\s+transport(ation)?\b/i,
+  /\bcheck\s+the\s+official\s+website\b/i,
+  /\bavoid\s+(the\s+)?crowds?\b/i,
+  /\bwear\s+sunscreen\b/i,
+  /\btake\s+plenty\s+of\s+photos?\b/i,
+];
+
+function isGenericPhrase(text) {
+  return GENERIC_PHRASE_PATTERNS.some((re) => re.test(text));
+}
+
 // Confidence is computed HERE, deterministically, from how many
 // independent evidence documents actually support a tip - never trusted
 // from the LLM (see synthesize.mjs rule 9). Per TRAVELER-TIPS.md:
@@ -49,6 +76,7 @@ export function validateAndBuildEntry(rawTips, evidence) {
   for (const t of rawTips || []) {
     if (!t || typeof t.text !== 'string' || !t.text.trim()) continue;
     if (!VALID_CATEGORIES.has(t.category)) continue;
+    if (isGenericPhrase(t.text)) continue;
 
     const citedIds = Array.isArray(t.sourceIds) ? t.sourceIds : [];
     const realSourceIds = citedIds.filter((id) => evidenceById.has(id));

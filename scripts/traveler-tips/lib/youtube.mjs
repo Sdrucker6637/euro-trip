@@ -7,16 +7,36 @@
 // fetch here - never the spoken content of the video itself. The
 // synthesis prompt is told this explicitly so it never claims "the
 // video shows/says X" from evidence that's actually just a title.
+//
+// Comments are the main source of genuinely specific, firsthand
+// traveler detail here (see TRAVELER-TIPS.md's "authentic voice" goal)
+// - a video's own title/description is often itself generic "Top 10
+// Tips" listicle framing, which is exactly what synthesize.mjs is told
+// to reject. So this pulls a generous raw pool of comments per video
+// (still 1 API unit regardless of how many are requested in one call)
+// and filters out low-signal filler (short reactions, emoji-only
+// praise) before handing the rest to the LLM - a bigger, cleaner pool
+// to find real anecdotes in, not just the first 5 by relevance.
 import { decodeHtmlEntities } from './decode-html-entities.mjs';
 
-export async function fetchYoutubeEvidence(activity, { maxVideos = 5, maxCommentsPerVideo = 5 } = {}) {
+const MIN_COMMENT_LENGTH = 40;
+const FILLER_COMMENT_PATTERN = /^(nice|great|love|amazing|awesome|cool|thanks|thank you|beautiful|wow|omg|subscribed?)\b[!.\s]*$/i;
+
+function isSubstantiveComment(text) {
+  const trimmed = text.trim();
+  if (trimmed.length < MIN_COMMENT_LENGTH) return false;
+  if (FILLER_COMMENT_PATTERN.test(trimmed)) return false;
+  return true;
+}
+
+export async function fetchYoutubeEvidence(activity, { maxVideos = 8, maxCommentsPerVideo = 15 } = {}) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
     console.warn('  [youtube] YOUTUBE_API_KEY not set - skipping YouTube evidence.');
     return [];
   }
 
-  const q = `${activity.name} tips`;
+  const q = `${activity.name} tips review`;
   const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${maxVideos}&relevanceLanguage=en&q=${encodeURIComponent(q)}&key=${apiKey}`;
   const searchRes = await fetch(searchUrl);
   if (!searchRes.ok) {
@@ -44,14 +64,19 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 5, maxComment
     });
 
     try {
-      const commentsUrl = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&order=relevance&maxResults=${maxCommentsPerVideo}&textFormat=plainText&key=${apiKey}`;
+      // maxResults up to 100 costs the same 1 unit as maxResults=5 - pull
+      // generously, then filter for substance client-side.
+      const commentsUrl = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&order=relevance&maxResults=50&textFormat=plainText&key=${apiKey}`;
       const commentsRes = await fetch(commentsUrl);
       if (commentsRes.ok) {
         const commentsData = await commentsRes.json();
+        let kept = 0;
         for (const c of commentsData.items || []) {
+          if (kept >= maxCommentsPerVideo) break;
           const snippet = c.snippet?.topLevelComment?.snippet;
-          if (!snippet?.textDisplay) continue;
+          if (!snippet?.textDisplay || !isSubstantiveComment(snippet.textDisplay)) continue;
           n++;
+          kept++;
           evidence.push({
             sourceId: `youtube#${n}`,
             type: 'youtube',

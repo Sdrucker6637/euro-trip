@@ -8,12 +8,13 @@
 //   node scripts/traveler-tips/run.mjs --force           # ignore freshness, re-research everything selected
 //   node scripts/traveler-tips/run.mjs --dry-run          # print the result, don't write data/traveler-tips.json
 //
-// Requires env vars GEMINI_API_KEY and YOUTUBE_API_KEY (Reddit needs
-// none). Reads them from a .env file in the repo root if present (see
-// .env.example).
+// Requires env vars GEMINI_API_KEY and YOUTUBE_API_KEY. Reads them from
+// a .env file in the repo root if present (see .env.example). Evidence
+// sources are YouTube (title/description/comments) and hand-verified
+// official sites only - no Reddit, Instagram, or any scraping/proxy
+// infrastructure, by explicit product decision (see TRAVELER-TIPS.md).
 import 'dotenv/config';
 import { extractActivities } from './lib/extract-itinerary.mjs';
-import { fetchRedditEvidence } from './lib/reddit.mjs';
 import { fetchYoutubeEvidence } from './lib/youtube.mjs';
 import { fetchOfficialEvidence } from './lib/official.mjs';
 import { synthesizeTips } from './lib/synthesize.mjs';
@@ -38,13 +39,12 @@ function parseArgs(argv) {
 async function researchOne(activity) {
   console.log(`\n=== ${activity.name} (${activity.slug}) ===`);
 
-  const [reddit, youtube, official] = await Promise.all([
-    fetchRedditEvidence(activity).catch((e) => { console.warn(`  [reddit] failed entirely: ${e.message}`); return []; }),
+  const [youtube, official] = await Promise.all([
     fetchYoutubeEvidence(activity).catch((e) => { console.warn(`  [youtube] failed entirely: ${e.message}`); return []; }),
     fetchOfficialEvidence(activity).catch((e) => { console.warn(`  [official] failed entirely: ${e.message}`); return []; }),
   ]);
-  const evidence = [...reddit, ...youtube, ...official];
-  console.log(`  evidence collected: ${reddit.length} reddit, ${youtube.length} youtube, ${official.length} official`);
+  const evidence = [...youtube, ...official];
+  console.log(`  evidence collected: ${youtube.length} youtube, ${official.length} official`);
 
   if (!evidence.length) {
     console.log('  no evidence from any source this run - leaving existing data (if any) untouched.');

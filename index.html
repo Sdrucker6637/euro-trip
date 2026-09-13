@@ -3210,8 +3210,179 @@ const ASKABLE_OVERRIDES = {
 // the same mapping the rest of the app already keys off (see CITY_COUNTRY).
 const CITY_LANG = {Amsterdam:'nl', Paris:'fr', Interlaken:'de', Vienna:'de', Budapest:'hu', Rome:'it'};
 
-// Default "to ___" form for a stop with no override - deliberately doesn't
-// try to guess an article or grammatical case for an arbitrary name (that's
+// ----------------------------------------------------------------------
+// Phonetic transliteration - turns arbitrary foreign text into the same
+// simple "read it like English" spelling style as every hand-written
+// pronunciation elsewhere in this file (e.g. 'PROHST', 'koh-mahn tah-lay'),
+// for a name with no curated pronunciation. This is a small set of
+// well-known spelling-to-sound rules per language, not IPA or a real
+// phonetics engine - it won't be perfect for every word (no simple rule set
+// can be, especially for stress placement, which auto-generated pronunciations
+// therefore leave unmarked instead of guessing), but for these fairly
+// regularly-spelled European languages it gets close enough to be genuinely
+// useful. A curated ASKABLE_OVERRIDES entry always wins over it.
+//
+// Implementation note: every replacement below is written in UPPERCASE and
+// the whole result is lowercased only once at the very end. This is what
+// stops a rule's own OUTPUT from being re-mangled by a later, more generic
+// rule (e.g. without this, French 'ch'->'sh' would insert a lowercase 'h'
+// that a later "strip silent h" pass would then incorrectly delete again).
+function phoneticCleanup(s){
+  return s
+    .replace(/-+/g, '-')
+    .replace(/(^|\s)-+/g, '$1')
+    .replace(/-+(\s|$)/g, '$1')
+    .trim();
+}
+const PHONETIC_RULES = {
+  fr: [
+    [/'/g, ''],
+    [/eau/g, 'OH'], [/au/g, 'OH'], [/œu|oeu/g, 'UH'], [/oi/g, 'WAH'], [/ou/g, 'OO'],
+    [/qu/g, 'K'], [/ch/g, 'SH'], [/gn/g, 'NY'], [/ph/g, 'F'], [/th/g, 'T'], [/ille/g, 'EEY'],
+    [/ç/g, 'S'], [/h/g, ''],
+    [/é|ée\b|ez\b|er\b/g, 'AY'], [/è|ê|ë|ai|ei/g, 'EH'],
+    [/à|â/g, 'AH'], [/î|ï/g, 'EE'], [/ô/g, 'OH'], [/û/g, 'EW'],
+    [/(?:on|om)(?![aeiouyh])/g, 'OHN'], [/(?:an|am|en|em)(?![aeiouyh])/g, 'AHN'],
+    [/(?:ain|ein|in|im|yn|ym)(?![aeiouyh])/g, 'AN'], [/(?:un|um)(?![aeiouyh])/g, 'UHN'],
+    [/eu/g, 'UH'], [/c(?=[eiy])/g, 'S'], [/c/g, 'K'], [/u/g, 'EW'],
+    [/j/g, 'ZH'], [/g(?=[eiy])/g, 'ZH'], [/y/g, 'EE'],
+    [/e$/g, ''], [/[tdsxpg]$/g, ''],
+    [/a/g, 'AH'], [/e/g, 'UH'], [/i/g, 'EE'], [/o/g, 'OH']
+  ],
+  de: [
+    [/sch/g, 'SH'], [/tsch/g, 'CH'], [/ck/g, 'K'], [/chs/g, 'KS'], [/ch/g, 'KH'],
+    [/ph/g, 'F'], [/qu/g, 'KV'], [/th/g, 'T'], [/tz/g, 'TS'], [/z/g, 'TS'],
+    [/ei/g, 'EYE'], [/ie/g, 'EE'], [/eu|äu/g, 'OY'],
+    [/ü/g, 'EW'], [/ö/g, 'UR'], [/ä/g, 'EH'], [/ß/g, 'S'],
+    [/v/g, 'F'], [/w/g, 'V'], [/j/g, 'Y'],
+    [/a/g, 'AH'], [/e/g, 'EH'], [/i/g, 'IH'], [/o/g, 'OH'], [/u/g, 'OO']
+  ],
+  it: [
+    [/sch/g, 'SK'], [/gli/g, 'LYEE'], [/gn/g, 'NY'], [/ch/g, 'K'], [/gh/g, 'G'],
+    [/c(?=[ei])/g, 'CH'], [/g(?=[ei])/g, 'J'], [/zz|z/g, 'TS'], [/qu/g, 'KW'],
+    [/u(?=[aeiou])/g, 'W'],
+    [/a/g, 'AH'], [/e/g, 'EH'], [/i/g, 'EE'], [/o/g, 'OH'], [/u/g, 'OO']
+  ],
+  nl: [
+    [/sch/g, 'SKH'], [/ij|uy/g, 'EYE'], [/ui/g, 'OW'], [/oe/g, 'OO'], [/eu/g, 'UH'],
+    [/ie/g, 'EE'], [/aa/g, 'AH'], [/ee/g, 'AY'], [/oo/g, 'OH'],
+    [/g|ch/g, 'KH'], [/w/g, 'V'], [/j/g, 'Y'],
+    [/a/g, 'AH'], [/e/g, 'EH'], [/i/g, 'IH'], [/o/g, 'OH'], [/u/g, 'UH']
+  ],
+  hu: [
+    [/sz/g, 'S'], [/zs/g, 'ZH'], [/cs/g, 'CH'], [/gy/g, 'DY'], [/ty/g, 'TY'],
+    [/ny/g, 'NY'], [/ly/g, 'Y'], [/s/g, 'SH'],
+    [/á/g, 'AH'], [/a/g, 'AH'], [/é/g, 'AY'], [/e/g, 'EH'], [/í/g, 'EE'], [/i/g, 'IH'],
+    [/ö|ő/g, 'UR'], [/ü|ű/g, 'EW'], [/ó/g, 'OH'], [/o/g, 'OH'], [/ú/g, 'OO'], [/u/g, 'OO'],
+    [/j/g, 'Y']
+  ]
+};
+// Defense-in-depth: any accented vowel a language's own rules above didn't
+// already turn into an uppercase token (Italian in particular has no
+// specific rules for à/è/ì/ò/ù, since standard spelling rarely needs them)
+// still gets mapped to its plain sound instead of leaking into the
+// "pronunciation" as a literal accented character.
+const PHONETIC_DIACRITIC_FALLBACK = [
+  [/[àáâãä]/g, 'AH'], [/[èéêë]/g, 'EH'], [/[ìíîï]/g, 'EE'], [/[òóôõö]/g, 'OH'], [/[ùúûü]/g, 'OO']
+];
+function phoneticizeWord(word, lang){
+  const rules = PHONETIC_RULES[lang];
+  if(!rules || !word) return word.toLowerCase();
+  let s = word.toLowerCase();
+  for(const [pat, rep] of rules) s = s.replace(pat, rep);
+  for(const [pat, rep] of PHONETIC_DIACRITIC_FALLBACK) s = s.replace(pat, rep);
+  return s.toLowerCase();
+}
+function phoneticizeName(name, lang){
+  if(!name) return '';
+  return phoneticCleanup(
+    name.normalize('NFC').split(/\s+/)
+      .map(w => phoneticizeWord(w.replace(/[^\p{L}'-]/gu, ''), lang))
+      .filter(Boolean)
+      .join(' ')
+  );
+}
+
+// ----------------------------------------------------------------------
+// Best-effort grammatical gender/article guess, used only when a stop has
+// no ASKABLE_OVERRIDES entry. Real grammatical gender can't be computed
+// from spelling alone, but a landmark's own name very often contains the
+// generic noun that gives it away (a "Platz" is a der-word, a "Kirche" is a
+// die-word, a "Museum" is a das-word) - this checks the name for exactly
+// that, as either its first word ("Schloss Schönbrunn") or the tail of a
+// fused compound ("Naschmarkt" ends in "markt"). No match just falls back to
+// no article at all, same as before - this only ever adds accuracy, never
+// removes the safety net.
+const GENDER_KEYWORDS = {
+  de: [['dom','der'],['platz','der'],['turm','der'],['markt','der'],['bahnhof','der'],['brunnen','der'],['park','der'],['berg','der'],
+       ['kirche','die'],['brücke','die'],['bruecke','die'],['burg','die'],['straße','die'],['strasse','die'],['gasse','die'],['allee','die'],['galerie','die'],['universität','die'],['universitaet','die'],
+       ['schloss','das'],['museum','das'],['theater','das'],['rathaus','das'],['stadion','das'],['hotel','das'],['restaurant','das'],['café','das'],['cafe','das']],
+  nl: [['huis','het'],['museum','het'],['paleis','het'],['station','het'],['plein','het'],
+       ['kerk','de'],['markt','de'],['straat','de'],['gracht','de'],['toren','de'],['brug','de']],
+  fr: [['tour','la'],['place','la'],['cathédrale','la'],['cathedrale','la'],['église','la'],['eglise','la'],['gare','la'],['rue','la'],['basilique','la'],['fontaine','la'],['avenue','la'],
+       ['pont','le'],['château','le'],['chateau','le'],['musée','le'],['musee','le'],['parc','le'],['jardin','le'],['marché','le'],['marche','le'],['quartier','le'],['hôtel','le'],['hotel','le'],['restaurant','le'],['café','le'],['cafe','le'],['théâtre','le'],['theatre','le'],['palais','le']],
+  it: [['torre','la'],['piazza','la'],['chiesa','la'],['basilica','la'],['fontana','la'],['via','la'],['stazione','la'],['cattedrale','la'],['galleria','la'],
+       ['ponte','il'],['castello','il'],['museo','il'],['parco','il'],['mercato','il'],['palazzo','il'],['ristorante','il'],['duomo','il'],['teatro','il']]
+};
+function findGenderKeyword(name, lang){
+  const list = GENDER_KEYWORDS[lang];
+  if(!list) return null;
+  const words = name.toLowerCase().split(/\s+/);
+  if(lang === 'de' || lang === 'nl'){
+    // Checks every word (not just the first/last) since the classifying
+    // noun can land anywhere - "Schloss X", "X Markt", or "X Markt Y" all
+    // point at the same der/die/das word - preferring an exact whole-word
+    // match, then falling back to a fused-compound suffix match (so
+    // "Naschmarkt" still resolves via "...markt" with no space at all).
+    for(const [kw, g] of list) if(words.includes(kw)) return g;
+    for(const [kw, g] of list) if(words.some(w => w.endsWith(kw))) return g;
+    return null;
+  }
+  for(const [kw, g] of list){
+    if(new RegExp('(^|\\s)'+kw+'(\\s|$)','i').test(name.toLowerCase())) return g;
+  }
+  return null;
+}
+const FR_VOWEL_START = /^[aeiouyàâäéèêëïîôöùûü]/i;
+const IT_VOWEL_START = /^[aeiou]/i;
+function guessArticleForm(name, lang){
+  const gender = findGenderKeyword(name, lang);
+  if(!gender) return null;
+  if(lang === 'de'){
+    const prep = {der:'zum', die:'zur', das:'zum'}[gender];
+    return {w:`${gender} ${name}`, t:`${prep} ${name}`};
+  }
+  if(lang === 'nl'){
+    return {w:`${gender} ${name}`, t:`${gender} ${name}`}; // bij/naar don't contract
+  }
+  if(lang === 'fr'){
+    if(FR_VOWEL_START.test(name)) return {w:`l’${name}`, t:`à l’${name}`};
+    return gender === 'le' ? {w:`le ${name}`, t:`au ${name}`} : {w:`la ${name}`, t:`à la ${name}`};
+  }
+  if(lang === 'it'){
+    if(IT_VOWEL_START.test(name)) return {w:`l’${name}`, t:`all’${name}`};
+    return gender === 'il' ? {w:`il ${name}`, t:`al ${name}`} : {w:`la ${name}`, t:`alla ${name}`};
+  }
+  return null;
+}
+// Hungarian's definite article ("a" vs "az") is a real, unambiguous spelling
+// rule (not a guess) based purely on whether the name starts with a vowel
+// sound, so - unlike the heuristics above - it always applies, even with no
+// keyword match. "felé" (toward) is a postposition that takes the plain
+// name with no case suffix, which is what makes it safe to use for a name
+// this app has never seen before (see ASK_DEFAULT_TO below for every other
+// language's equivalent safe default).
+function hungarianArticleForm(name){
+  const article = /^[aeiouáéíóöőúüű]/i.test(name) ? 'az' : 'a';
+  return {w:`${article} ${name}`, t:`${name} felé`};
+}
+function resolveAskLocalForm(name, lang){
+  if(lang === 'hu') return hungarianArticleForm(name);
+  return guessArticleForm(name, lang) || {w: name, t: ASK_DEFAULT_TO[lang](name)};
+}
+
+// Default "to ___" form when no gender/article guess matched either -
+// deliberately doesn't try to guess an article or grammatical case (that's
 // exactly the "awkward machine translation" this app avoids), just the
 // preposition a local would use before any proper noun.
 const ASK_DEFAULT_TO = {
@@ -3219,17 +3390,7 @@ const ASK_DEFAULT_TO = {
   fr: w => `à ${w}`,
   de: w => `zu ${w}`,
   it: w => `a ${w}`,
-  hu: w => `${w} felé` // "felé" (toward) takes the plain name, no case suffix needed - safe for any name
-};
-// The preposition's own pronunciation is always knowable even when the name
-// isn't - only pronounces the fixed word, then reads the name back verbatim
-// (see askPhrasesForStop's sayT fallback) rather than guessing at it.
-const ASK_DEFAULT_TO_SAY = {
-  nl: sw => sw,
-  fr: sw => `ah ${sw}`,
-  de: sw => `tsoo ${sw}`,
-  it: sw => `ah ${sw}`,
-  hu: sw => `${sw} feh-LAY`
+  hu: w => `${w} felé`
 };
 
 // Three shared sentence templates per language - "Where is X?" / "How do I
@@ -3278,17 +3439,117 @@ function stopIsAskable(stop){
   return !NON_ASKABLE_STOP_NAME.test(stop.name.trim());
 }
 
+// ----------------------------------------------------------------------
+// Free local-name lookup, used only for a stop with no ASKABLE_OVERRIDES
+// entry. Nominatim (OpenStreetMap's geocoder) is already used elsewhere in
+// this app with no key/billing (see geocodeQuery and createPlaceSearchForm)
+// - it's the same free public service, just asked here for the place's name
+// in the destination language instead of coordinates. Passing
+// accept-language + namedetails=1 returns the OSM object's name:<lang> tag
+// when one exists (common for real landmarks, rarer for a brand-new small
+// business) - exactly the "natural local name" this feature wants, for
+// free, with no translation API. When there's nothing useful, this is
+// treated as a cache miss and the dynamic name/grammar system below (the
+// same one that already handles a stop with no override at all) takes over
+// - a failed or unavailable lookup can degrade the RESULT but can never
+// break the itinerary, since every step here is wrapped and every failure
+// path leaves the existing fallback fully intact.
+//
+// Cached forever on success (a landmark's local name doesn't change) and
+// re-tried after a day on failure/no-data (covers a transient network
+// blip without ever hammering the endpoint for something that's genuinely
+// just untagged) - keyed by language + place, in localStorage via the same
+// `store` helper as every other piece of persisted state in this app, so a
+// reload or a later session never re-fetches something already resolved.
+let askLookupCache = {};       // in-memory mirror of the localStorage cache
+let askLookupInFlight = new Set();
+function askLookupCacheKey(lang, query){
+  return lang + '|' + slugify(query);
+}
+let lastAskLookupAt = 0;
+async function fetchAskLocalName(query, lang){
+  // Nominatim's usage policy asks for roughly one request/second from any
+  // one client - since every result is cached indefinitely this is only
+  // ever hit once per unique place, but this keeps several new stops added
+  // in quick succession well within that.
+  const wait = 1100 - (Date.now() - lastAskLookupAt);
+  if(wait > 0) await new Promise(res => setTimeout(res, wait));
+  lastAskLookupAt = Date.now();
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&namedetails=1&accept-language=${lang}&q=${encodeURIComponent(query)}`;
+  const res = await fetch(url, {cache:'no-store'});
+  if(!res.ok) throw new Error('nominatim '+res.status);
+  const data = await res.json();
+  const hit = Array.isArray(data) ? data[0] : null;
+  if(!hit || typeof hit !== 'object') return null;
+  const nd = (hit.namedetails && typeof hit.namedetails === 'object') ? hit.namedetails : {};
+  const localName = nd['name:'+lang] || (typeof hit.name === 'string' ? hit.name : null);
+  return (typeof localName === 'string' && localName.trim()) ? localName.trim() : null;
+}
+// Fires at most one request per unique (language, place) - ever. Always
+// checks the persisted cache before the network, so a place resolved in an
+// earlier session or an earlier render this session never triggers a
+// second lookup. Fire-and-forget: never awaited by the render path, and
+// only re-renders the itinerary when it actually improves on the fallback
+// already being shown.
+async function maybeLookupAskPlace(query, lang){
+  const key = askLookupCacheKey(lang, query);
+  if(askLookupCache[key] || askLookupInFlight.has(key)) return;
+  askLookupInFlight.add(key);
+  try {
+    const stored = await store.get('ask-lookup:'+key);
+    if(stored && stored.value){
+      const parsed = JSON.parse(stored.value);
+      const staleMiss = parsed.status === 'miss' && (Date.now() - (parsed.at||0)) > 86400000;
+      if(!staleMiss){
+        askLookupCache[key] = parsed;
+        askLookupInFlight.delete(key);
+        if(parsed.status === 'ok') renderItinerary();
+        return;
+      }
+    }
+  } catch(e){ /* fall through to a fresh lookup */ }
+
+  let entry;
+  try {
+    const localName = await fetchAskLocalName(query, lang);
+    entry = localName ? {status:'ok', localName, at:Date.now()} : {status:'miss', at:Date.now()};
+  } catch(e){
+    entry = {status:'miss', at:Date.now()};
+  }
+  askLookupCache[key] = entry;
+  try { await store.set('ask-lookup:'+key, JSON.stringify(entry)); } catch(e){ /* still usable this session */ }
+  askLookupInFlight.delete(key);
+  if(entry.status === 'ok') renderItinerary();
+}
+
 function askPhrasesForStop(stop, city){
   if(!stopIsAskable(stop)) return null;
   const lang = CITY_LANG[city];
   const templates = ASK_TEMPLATES[lang];
   if(!templates) return null; // a city with no language mapped yet - safe no-op, not a guess
+  const hasOverride = Object.prototype.hasOwnProperty.call(ASKABLE_OVERRIDES, stop.name);
   const o = ASKABLE_OVERRIDES[stop.name] || {};
   const displayName = o.displayName || stop.name;
-  const w = o.w || stop.name;
-  const t = o.t || ASK_DEFAULT_TO[lang](w);
-  const sayW = o.sayW || w;
-  const sayT = o.sayT || ASK_DEFAULT_TO_SAY[lang](sayW);
+
+  let w, t;
+  if(hasOverride){
+    // A curated entry exists - even a partial one (say, just a pronunciation
+    // fix with no `w`) means a human already reviewed this place and decided
+    // its own name needs no article/lookup, e.g. "Kleine Scheidegg" is used
+    // exactly as-is. That decision always wins over a network lookup.
+    w = o.w || stop.name;
+    t = o.t || ASK_DEFAULT_TO[lang](w);
+  } else {
+    const lookupQuery = stop.place || stop.name;
+    const cached = askLookupCache[askLookupCacheKey(lang, lookupQuery)];
+    const baseName = (cached && cached.status === 'ok' && cached.localName) || stop.name;
+    const form = resolveAskLocalForm(baseName, lang);
+    w = form.w;
+    t = form.t;
+  }
+
+  const sayW = o.sayW || phoneticizeName(w, lang);
+  const sayT = o.sayT || phoneticizeName(t, lang);
   return templates.map(tpl => ({
     en: `${tpl.en} ${displayName}?`,
     local: tpl.build(w, t),
@@ -3302,6 +3563,14 @@ function askBlockHtml(stop, askKey, city){
   try {
     const phrases = askPhrasesForStop(stop, city);
     if(!phrases || !phrases.length) return '';
+    // No curated override - kick off the free lookup (a no-op if already
+    // cached or in flight; see maybeLookupAskPlace). Fire-and-forget: this
+    // render already has a correct, safe result via the fallback chain
+    // above, and only gets upgraded in place if/when this resolves.
+    if(!Object.prototype.hasOwnProperty.call(ASKABLE_OVERRIDES, stop.name)){
+      const lang = CITY_LANG[city];
+      if(lang) maybeLookupAskPlace(stop.place || stop.name, lang);
+    }
     const isOpen = openAsk.has(askKey);
     const itemsHtml = phrases.map(p => `
       <div class="ask-item">

@@ -226,6 +226,21 @@
   .tips-source-item{font-size:11px;margin-bottom:4px;color:var(--muted);}
   .tips-source-item a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber);}
 
+  /* ---- How To Ask (per-stop contextual navigation phrases - a THIRD,
+     separate feature from both Traveler Tips above and Country Guide below;
+     see ASKABLE_PLACES in the script) ---- */
+  .ask-wrap{margin-top:10px;}
+  .ask-toggle{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:0.02em;color:var(--teal);text-align:left;}
+  .ask-toggle-chevron{margin-left:auto;font-size:9px;color:var(--muted);transition:transform .2s;}
+  .ask-toggle.open .ask-toggle-chevron{transform:rotate(180deg);}
+  .ask-panel{display:none;margin-top:8px;padding:10px 11px;background:rgba(79,168,156,0.07);border:1px dashed var(--glass-line);border-radius:2px 10px 10px 2px;}
+  .ask-panel.open{display:block;}
+  .ask-item{margin-bottom:9px;}
+  .ask-item:last-child{margin-bottom:0;}
+  .ask-item-en{font-size:12px;color:var(--cream);margin-bottom:2px;}
+  .ask-item-local{font-size:12px;color:var(--teal);font-weight:600;}
+  .ask-item-say{font-size:10.5px;color:var(--muted);font-style:italic;margin-left:5px;}
+
   /* ---- Country Guide (static per-country briefing, separate feature from
      Traveler Tips above - see COUNTRY_GUIDES in the script for why) ---- */
   .guide-list{display:flex;flex-direction:column;gap:10px;}
@@ -1988,23 +2003,40 @@ const COUNTRY_GUIDES = {
       'Bikes are everywhere - avoid all-black or very dark clothing at dusk so you’re visible if you step into a bike lane.'
     ],
     phrases: [
-      {group:'Basics', items:[
-        {en:'Hello', local:'Hallo', say:'HAH-loh'},
-        {en:'Please', local:'Alstublieft', say:'AHL-stew-bleeft'},
-        {en:'Thank you', local:'Dank je wel', say:'dahnk yuh vel'},
-        {en:'Sorry / excuse me', local:'Sorry', say:'SOR-ee (yes, they just use the English word)'},
-        {en:'Yes / No', local:'Ja / Nee', say:'yah / nay'}
+      {group:'Restaurant & Food', items:[
+        {en:'What do you recommend?', local:'Wat raadt u aan?', say:'vaht raht oo ahn'},
+        {en:'What is your specialty?', local:'Wat is uw specialiteit?', say:'vaht iss ew speh-see-ah-lee-TYT'},
+        {en:'What is this?', local:'Wat is dit?', say:'vaht iss dit'},
+        {en:'Can I have...?', local:'Mag ik...?', say:'mahkh ik'},
+        {en:'Can we get the bill, please?', local:'Mogen we afrekenen, alstublieft?', say:'MOH-gun vuh AHF-ray-ken-en ahl-stew-bleeft'},
+        {en:'Can I pay by card?', local:'Kan ik met kaart betalen?', say:'kahn ik met kahrt buh-TAH-len'},
+        {en:'A table for one, please.', local:'Een tafel voor één, alstublieft.', say:'un TAH-fel vor ayn ahl-stew-bleeft'},
+        {en:'Could I have some water, please?', local:'Mag ik wat water, alstublieft?', say:'mahkh ik vaht VAH-ter ahl-stew-bleeft'}
       ]},
-      {group:'Dining Out', items:[
-        {en:'Cheers', local:'Proost', say:'PROHST'},
-        {en:'The bill, please', local:'De rekening, alstublieft', say:'duh RAY-ken-ing ahl-stew-bleeft'},
-        {en:'Tap water, please', local:'Kraanwater, alstublieft', say:'KRAHN-vah-ter ahl-stew-bleeft'},
-        {en:'Delicious', local:'Heerlijk', say:'HAIR-luk'}
-      ]},
-      {group:'Getting Around & Help', items:[
-        {en:'Do you speak English?', local:'Spreekt u Engels?', say:'spraykt oo ENG-uhls'},
+      {group:'Getting Around', items:[
         {en:'Where is...?', local:'Waar is...?', say:'vahr iss'},
-        {en:'Help!', local:'Help!', say:'help (same as English)'}
+        {en:'How do I get to...?', local:'Hoe kom ik bij...?', say:'hoo kom ik bay'},
+        {en:'Which way is...?', local:'Welke kant is...?', say:'VEL-kuh kahnt iss'},
+        {en:'Is this the right train?', local:'Is dit de juiste trein?', say:'iss dit duh YOW-stuh trayn'},
+        {en:'Does this train go to...?', local:'Gaat deze trein naar...?', say:'khaht DAY-zuh trayn nahr'},
+        {en:'Where do I buy a ticket?', local:'Waar koop ik een kaartje?', say:'vahr kohp ik un KAHRT-yuh'},
+        {en:'Where is the train station?', local:'Waar is het station?', say:'vahr iss het stah-SHON'},
+        {en:'Where is the bathroom?', local:'Waar is het toilet?', say:'vahr iss het twah-LET'},
+        {en:'Is it far?', local:'Is het ver?', say:'iss het vair'},
+        {en:'Can I walk there?', local:'Kan ik daar lopen?', say:'kahn ik dahr LOH-pen'}
+      ]},
+      {group:'General', items:[
+        {en:'Do you speak English?', local:'Spreekt u Engels?', say:'spraykt oo ENG-uhls'},
+        {en:'I don’t understand.', local:'Ik begrijp het niet.', say:'ik buh-KHRYP het neet'},
+        {en:'Could you speak more slowly?', local:'Kunt u langzamer praten?', say:'kuhnt oo LAHNG-zah-mer PRAH-ten'},
+        {en:'Can you help me?', local:'Kunt u me helpen?', say:'kuhnt oo muh HEL-pen'},
+        {en:'Excuse me.', local:'Pardon.', say:'par-DOHN'},
+        {en:'I’m sorry.', local:'Het spijt me.', say:'het spyt muh'},
+        {en:'Thank you.', local:'Dank je wel.', say:'dahnk yuh vel'},
+        {en:'You’re welcome.', local:'Graag gedaan.', say:'khrahkh khuh-DAHN'},
+        {en:'Good morning.', local:'Goedemorgen.', say:'KHOO-duh-mor-khun'},
+        {en:'Good evening.', local:'Goedenavond.', say:'KHOO-dun-AH-vont'},
+        {en:'Have a nice day.', local:'Fijne dag nog.', say:'FY-nuh dahkh nokh'}
       ]}
     ],
     water: [
@@ -2059,23 +2091,40 @@ const COUNTRY_GUIDES = {
       'Nice restaurants: smart casual minimum; some upscale spots still expect a collared shirt for men.'
     ],
     phrases: [
-      {group:'Basics', items:[
-        {en:'Hello', local:'Bonjour', say:'bohn-ZHOOR'},
-        {en:'Please', local:'S’il vous plaît', say:'seel voo PLAY'},
-        {en:'Thank you', local:'Merci', say:'mehr-SEE'},
-        {en:'Excuse me', local:'Pardon', say:'par-DOHN'},
-        {en:'Yes / No', local:'Oui / Non', say:'wee / nohn'}
+      {group:'Restaurant & Food', items:[
+        {en:'What do you recommend?', local:'Qu’est-ce que vous recommandez ?', say:'kes kuh voo ruh-koh-mahn-DAY'},
+        {en:'What is your specialty?', local:'Quelle est votre spécialité ?', say:'kel eh VOH-truh spay-syah-lee-TAY'},
+        {en:'What is this?', local:'Qu’est-ce que c’est ?', say:'kes kuh say'},
+        {en:'Can I have...?', local:'Je peux avoir...?', say:'zhuh puh ah-VWAHR'},
+        {en:'Can we get the bill, please?', local:'On peut avoir l’addition, s’il vous plaît ?', say:'ohn puh ah-VWAHR lah-dee-syohn seel voo PLAY'},
+        {en:'Can I pay by card?', local:'Je peux payer par carte ?', say:'zhuh puh pay-YAY par kahrt'},
+        {en:'A table for one, please.', local:'Une table pour une personne, s’il vous plaît.', say:'oon TAH-bluh poor oon pehr-SUN seel voo PLAY'},
+        {en:'Could I have some water, please?', local:'Je pourrais avoir de l’eau, s’il vous plaît ?', say:'zhuh poo-RAY ah-VWAHR duh loh seel voo PLAY'}
       ]},
-      {group:'Dining Out', items:[
-        {en:'Cheers', local:'Santé', say:'sahn-TAY'},
-        {en:'The bill, please', local:'L’addition, s’il vous plaît', say:'lah-dee-syohn seel voo PLAY'},
-        {en:'A carafe of tap water', local:'Une carafe d’eau', say:'oon kah-RAHF doh'},
-        {en:'It was delicious', local:'C’était délicieux', say:'say-TAY day-lee-syuh'}
-      ]},
-      {group:'Getting Around & Help', items:[
-        {en:'Do you speak English?', local:'Parlez-vous anglais?', say:'par-lay voo ahn-GLAY'},
+      {group:'Getting Around', items:[
         {en:'Where is...?', local:'Où est...?', say:'oo eh'},
-        {en:'Help!', local:'Au secours!', say:'oh suh-KOOR'}
+        {en:'How do I get to...?', local:'Comment aller à...?', say:'koh-mahn tah-lay ah'},
+        {en:'Which way is...?', local:'Dans quelle direction est...?', say:'dahn kel dee-rek-syohn eh'},
+        {en:'Is this the right train?', local:'Est-ce le bon train ?', say:'es luh bohn tran'},
+        {en:'Does this train go to...?', local:'Ce train va-t-il à...?', say:'suh tran vah teel ah'},
+        {en:'Where do I buy a ticket?', local:'Où est-ce que j’achète un billet ?', say:'oo es kuh zhah-SHET uhn bee-YAY'},
+        {en:'Where is the train station?', local:'Où est la gare ?', say:'oo eh lah gahr'},
+        {en:'Where is the bathroom?', local:'Où sont les toilettes ?', say:'oo sohn lay twah-LET'},
+        {en:'Is it far?', local:'C’est loin ?', say:'say lwan'},
+        {en:'Can I walk there?', local:'Je peux y aller à pied ?', say:'zhuh puh ee ah-LAY ah pyay'}
+      ]},
+      {group:'General', items:[
+        {en:'Do you speak English?', local:'Parlez-vous anglais ?', say:'par-lay voo ahn-GLAY'},
+        {en:'I don’t understand.', local:'Je ne comprends pas.', say:'zhuh nuh kohn-PRAHN pah'},
+        {en:'Could you speak more slowly?', local:'Pourriez-vous parler plus lentement ?', say:'poo-ryay voo par-LAY ploo lahnt-MAHN'},
+        {en:'Can you help me?', local:'Pouvez-vous m’aider ?', say:'poo-vay voo may-DAY'},
+        {en:'Excuse me.', local:'Excusez-moi.', say:'ex-koo-zay MWAH'},
+        {en:'I’m sorry.', local:'Je suis désolé(e).', say:'zhuh swee day-zoh-LAY'},
+        {en:'Thank you.', local:'Merci.', say:'mehr-SEE'},
+        {en:'You’re welcome.', local:'Je vous en prie.', say:'zhuh voo zahn PREE'},
+        {en:'Good morning.', local:'Bonjour.', say:'bohn-ZHOOR'},
+        {en:'Good evening.', local:'Bonsoir.', say:'bohn-SWAHR'},
+        {en:'Have a nice day.', local:'Bonne journée.', say:'bun zhoor-NAY'}
       ]}
     ],
     water: [
@@ -2130,23 +2179,40 @@ const COUNTRY_GUIDES = {
       'If visiting a thermal bath/spa near Interlaken, swimwear is required - pack a suit.'
     ],
     phrases: [
-      {group:'Basics', items:[
-        {en:'Hello', local:'Grüezi', say:'GROO-eh-tsee (Swiss German, not standard "Hallo")'},
-        {en:'Please', local:'Bitte', say:'BIT-uh'},
-        {en:'Thank you', local:'Merci vielmal', say:'mer-SEE feel-mahl (Swiss German borrows French "merci")'},
-        {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
-        {en:'Yes / No', local:'Ja / Nei', say:'yah / nye'}
+      {group:'Restaurant & Food', items:[
+        {en:'What do you recommend?', local:'Was empfehlen Sie?', say:'vahs emp-FAY-len zee'},
+        {en:'What is your specialty?', local:'Was ist Ihre Spezialität?', say:'vahs ist EE-ruh shpeh-tsyah-lee-TAYT'},
+        {en:'What is this?', local:'Was ist das?', say:'vahs ist dahs'},
+        {en:'Can I have...?', local:'Kann ich...haben?', say:'kahn ikh ... HAH-ben'},
+        {en:'Can we get the bill, please?', local:'Können wir zahlen, bitte?', say:'KUR-nen veer TSAH-len BIT-uh'},
+        {en:'Can I pay by card?', local:'Kann ich mit Karte zahlen?', say:'kahn ikh mit KAR-tuh TSAH-len'},
+        {en:'A table for one, please.', local:'Ein Tisch für eine Person, bitte.', say:'eyn tish fewr Y-nuh pehr-ZOHN BIT-uh'},
+        {en:'Could I have some water, please?', local:'Könnte ich etwas Wasser haben, bitte?', say:'KURN-tuh ikh ET-vahs VAH-ser HAH-ben BIT-uh'}
       ]},
-      {group:'Dining Out', items:[
-        {en:'Cheers', local:'Prost / Santé', say:'PROHST - hold eye contact when you say it'},
-        {en:'The bill, please', local:'Zahlen, bitte', say:'TSAH-len BIT-uh'},
-        {en:'Tap water, please', local:'Leitungswasser, bitte', say:'LYE-toongs-vahs-ser BIT-uh'},
-        {en:'Very good / delicious', local:'Sehr guet', say:'zair goot'}
+      {group:'Getting Around', items:[
+        {en:'Where is...?', local:'Wo ist...?', say:'voh ist'},
+        {en:'How do I get to...?', local:'Wie komme ich zu...?', say:'vee KOM-uh ikh tsoo'},
+        {en:'Which way is...?', local:'In welcher Richtung ist...?', say:'in VEL-kher RIKH-toong ist'},
+        {en:'Is this the right train?', local:'Ist das der richtige Zug?', say:'ist dahs dair RIKH-tih-guh tsook'},
+        {en:'Does this train go to...?', local:'Fährt dieser Zug nach...?', say:'fairt DEE-zer tsook nahkh'},
+        {en:'Where do I buy a ticket?', local:'Wo kaufe ich ein Ticket?', say:'voh KOW-fuh ikh eyn TIH-ket'},
+        {en:'Where is the train station?', local:'Wo ist der Bahnhof?', say:'voh ist dair BAHN-hohf'},
+        {en:'Where is the bathroom?', local:'Wo ist die Toilette?', say:'voh ist dee twah-LET-uh'},
+        {en:'Is it far?', local:'Ist es weit?', say:'ist es vyt'},
+        {en:'Can I walk there?', local:'Kann ich dorthin laufen?', say:'kahn ikh dort-HIN LOW-fen'}
       ]},
-      {group:'Getting Around & Help', items:[
+      {group:'General', items:[
         {en:'Do you speak English?', local:'Sprechen Sie Englisch?', say:'SHPREH-khen zee ENG-lish'},
-        {en:'Where is...?', local:'Wo isch...?', say:'voh ish'},
-        {en:'Help!', local:'Hilfe!', say:'HIL-fuh'}
+        {en:'I don’t understand.', local:'Ich verstehe nicht.', say:'ikh fair-SHTAY-uh nikht'},
+        {en:'Could you speak more slowly?', local:'Könnten Sie langsamer sprechen?', say:'KURN-ten zee LAHNG-zah-mer SHPREH-khen'},
+        {en:'Can you help me?', local:'Können Sie mir helfen?', say:'KUR-nen zee meer HEL-fen'},
+        {en:'Excuse me.', local:'Entschuldigung.', say:'ent-SHOOL-di-gung'},
+        {en:'I’m sorry.', local:'Es tut mir leid.', say:'es toot meer lyt'},
+        {en:'Thank you.', local:'Merci vielmal.', say:'mer-SEE feel-mahl'},
+        {en:'You’re welcome.', local:'Gern geschehen.', say:'gairn guh-SHAY-en'},
+        {en:'Good morning.', local:'Guten Morgen.', say:'GOO-ten MOR-gen'},
+        {en:'Good evening.', local:'Guten Abend.', say:'GOO-ten AH-bent'},
+        {en:'Have a nice day.', local:'Schönen Tag noch.', say:'SHUR-nen tahk nokh'}
       ]}
     ],
     water: [
@@ -2202,23 +2268,40 @@ const COUNTRY_GUIDES = {
       'Traditional Austrian spas vary by facility on nude vs. suited areas, unlike Swiss/French spas - check the specific venue and bring a suit regardless.'
     ],
     phrases: [
-      {group:'Basics', items:[
-        {en:'Hello', local:'Grüß Gott', say:'GROOS got (more traditional/formal than "Hallo")'},
-        {en:'Please', local:'Bitte', say:'BIT-uh'},
-        {en:'Thank you', local:'Danke', say:'DAHN-kuh'},
-        {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
-        {en:'Yes / No', local:'Ja / Nein', say:'yah / nine'}
+      {group:'Restaurant & Food', items:[
+        {en:'What do you recommend?', local:'Was empfehlen Sie?', say:'vahs emp-FAY-len zee'},
+        {en:'What is your specialty?', local:'Was ist Ihre Spezialität?', say:'vahs ist EE-ruh shpeh-tsyah-lee-TAYT'},
+        {en:'What is this?', local:'Was ist das?', say:'vahs ist dahs'},
+        {en:'Can I have...?', local:'Kann ich...haben?', say:'kahn ikh ... HAH-ben'},
+        {en:'Can we get the bill, please?', local:'Können wir zahlen, bitte?', say:'KUR-nen veer TSAH-len BIT-uh'},
+        {en:'Can I pay by card?', local:'Kann ich mit Karte zahlen?', say:'kahn ikh mit KAR-tuh TSAH-len'},
+        {en:'A table for one, please.', local:'Ein Tisch für eine Person, bitte.', say:'eyn tish fewr Y-nuh pehr-ZOHN BIT-uh'},
+        {en:'Could I have some water, please?', local:'Könnte ich etwas Wasser haben, bitte?', say:'KURN-tuh ikh ET-vahs VAH-ser HAH-ben BIT-uh'}
       ]},
-      {group:'Dining Out', items:[
-        {en:'Cheers', local:'Prost', say:'PROHST'},
-        {en:'The bill, please', local:'Zahlen, bitte', say:'TSAH-len BIT-uh'},
-        {en:'A glass of water, please', local:'Ein Glas Wasser, bitte', say:'eyn glahs VAH-ser BIT-uh'},
-        {en:'It was delicious', local:'Es war köstlich', say:'es var KUHST-likh'}
-      ]},
-      {group:'Getting Around & Help', items:[
-        {en:'Do you speak English?', local:'Sprechen Sie Englisch?', say:'SHPREH-khen zee ENG-lish'},
+      {group:'Getting Around', items:[
         {en:'Where is...?', local:'Wo ist...?', say:'voh ist'},
-        {en:'Help!', local:'Hilfe!', say:'HIL-fuh'}
+        {en:'How do I get to...?', local:'Wie komme ich zu...?', say:'vee KOM-uh ikh tsoo'},
+        {en:'Which way is...?', local:'In welcher Richtung ist...?', say:'in VEL-kher RIKH-toong ist'},
+        {en:'Is this the right train?', local:'Ist das der richtige Zug?', say:'ist dahs dair RIKH-tih-guh tsook'},
+        {en:'Does this train go to...?', local:'Fährt dieser Zug nach...?', say:'fairt DEE-zer tsook nahkh'},
+        {en:'Where do I buy a ticket?', local:'Wo kaufe ich ein Ticket?', say:'voh KOW-fuh ikh eyn TIH-ket'},
+        {en:'Where is the train station?', local:'Wo ist der Bahnhof?', say:'voh ist dair BAHN-hohf'},
+        {en:'Where is the bathroom?', local:'Wo ist die Toilette?', say:'voh ist dee twah-LET-uh'},
+        {en:'Is it far?', local:'Ist es weit?', say:'ist es vyt'},
+        {en:'Can I walk there?', local:'Kann ich dorthin laufen?', say:'kahn ikh dort-HIN LOW-fen'}
+      ]},
+      {group:'General', items:[
+        {en:'Do you speak English?', local:'Sprechen Sie Englisch?', say:'SHPREH-khen zee ENG-lish'},
+        {en:'I don’t understand.', local:'Ich verstehe nicht.', say:'ikh fair-SHTAY-uh nikht'},
+        {en:'Could you speak more slowly?', local:'Könnten Sie langsamer sprechen?', say:'KURN-ten zee LAHNG-zah-mer SHPREH-khen'},
+        {en:'Can you help me?', local:'Können Sie mir helfen?', say:'KUR-nen zee meer HEL-fen'},
+        {en:'Excuse me.', local:'Entschuldigung.', say:'ent-SHOOL-di-gung'},
+        {en:'I’m sorry.', local:'Es tut mir leid.', say:'es toot meer lyt'},
+        {en:'Thank you.', local:'Danke.', say:'DAHN-kuh'},
+        {en:'You’re welcome.', local:'Gerne.', say:'GAIR-nuh'},
+        {en:'Good morning.', local:'Guten Morgen.', say:'GOO-ten MOR-gen'},
+        {en:'Good evening.', local:'Guten Abend.', say:'GOO-ten AH-bent'},
+        {en:'Have a nice day.', local:'Schönen Tag noch.', say:'SHUR-nen tahk nokh'}
       ]}
     ],
     water: [
@@ -2271,23 +2354,40 @@ const COUNTRY_GUIDES = {
       'Thermal baths (Széchenyi, Gellért): a swimsuit is required, bring or rent one plus a towel, and pack sandals since deck areas are slippery stone.'
     ],
     phrases: [
-      {group:'Basics', items:[
-        {en:'Hello', local:'Szia', say:'SEE-yah'},
-        {en:'Please', local:'Kérem', say:'KAY-rem'},
-        {en:'Thank you', local:'Köszönöm', say:'KUH-suh-nuhm'},
-        {en:'Excuse me', local:'Elnézést', say:'EL-nay-zaysht'},
-        {en:'Yes / No', local:'Igen / Nem', say:'EE-gen / nem'}
+      {group:'Restaurant & Food', items:[
+        {en:'What do you recommend?', local:'Mit ajánl?', say:'mit AH-yahnl'},
+        {en:'What is your specialty?', local:'Mi a specialitásuk?', say:'mee ah SPEH-tsee-ah-lee-tah-shook'},
+        {en:'What is this?', local:'Ez mi?', say:'ez mee'},
+        {en:'Can I have...?', local:'Kaphatnék...?', say:'KAHP-hat-nayk'},
+        {en:'Can we get the bill, please?', local:'Kérhetnénk a számlát?', say:'KAYR-het-naynk ah SAHM-laht'},
+        {en:'Can I pay by card?', local:'Fizethetek kártyával?', say:'FEE-zet-heh-tek KAHR-tyah-vahl'},
+        {en:'A table for one, please.', local:'Egy asztalt kérek, egy főre.', say:'edj AHS-tahlt KAY-rek edj FUR-reh'},
+        {en:'Could I have some water, please?', local:'Kaphatnék egy kis vizet, kérem?', say:'KAHP-hat-nayk edj kish VEE-zet KAY-rem'}
       ]},
-      {group:'Dining Out', items:[
-        {en:'Cheers (wine/spirits, never beer)', local:'Egészségedre', say:'EG-esh-shay-ged-reh'},
-        {en:'The bill, please', local:'A számlát, kérem', say:'ah SAHM-laht KAY-rem'},
-        {en:'Tap water', local:'Csapvíz', say:'CHOP-veez'},
-        {en:'Delicious', local:'Finom', say:'FEE-nom'}
-      ]},
-      {group:'Getting Around & Help', items:[
-        {en:'Do you speak English?', local:'Beszél angolul?', say:'BES-ayl AHN-goh-lool'},
+      {group:'Getting Around', items:[
         {en:'Where is...?', local:'Hol van...?', say:'hol vahn'},
-        {en:'Help!', local:'Segítség!', say:'SHEH-geet-shayg'}
+        {en:'How do I get to...?', local:'Hogyan jutok el ide?', say:'HOH-jahn YOO-tok el EE-deh (said while pointing at the name/map)'},
+        {en:'Which way is...?', local:'Merre van...?', say:'MEHR-reh vahn'},
+        {en:'Is this the right train?', local:'Ez a jó vonat?', say:'ez ah yoh VOH-naht'},
+        {en:'Does this train go to...?', local:'Ez a vonat oda megy?', say:'ez ah VOH-naht OH-dah medj (point at the destination)'},
+        {en:'Where do I buy a ticket?', local:'Hol vehetek jegyet?', say:'hol VEH-heh-tek YEH-djet'},
+        {en:'Where is the train station?', local:'Hol van a pályaudvar?', say:'hol vahn ah PAH-yah-ood-vahr'},
+        {en:'Where is the bathroom?', local:'Hol van a mosdó?', say:'hol vahn ah MOSH-doh'},
+        {en:'Is it far?', local:'Messze van?', say:'MES-seh vahn'},
+        {en:'Can I walk there?', local:'El tudok oda gyalogolni?', say:'el TOO-dok OH-dah DJAH-loh-gol-nee'}
+      ]},
+      {group:'General', items:[
+        {en:'Do you speak English?', local:'Beszél angolul?', say:'BES-ayl AHN-goh-lool'},
+        {en:'I don’t understand.', local:'Nem értem.', say:'nem AYR-tem'},
+        {en:'Could you speak more slowly?', local:'Beszélne lassabban?', say:'BES-ayl-neh LAHSH-shahb-bahn'},
+        {en:'Can you help me?', local:'Tudna segíteni?', say:'TOOD-nah SHEH-gee-teh-nee'},
+        {en:'Excuse me.', local:'Elnézést.', say:'EL-nay-zaysht'},
+        {en:'I’m sorry.', local:'Sajnálom.', say:'SHAI-nah-lom'},
+        {en:'Thank you.', local:'Köszönöm.', say:'KUH-suh-nuhm'},
+        {en:'You’re welcome.', local:'Szívesen.', say:'SEE-veh-shen'},
+        {en:'Good morning.', local:'Jó reggelt.', say:'yoh REG-gelt'},
+        {en:'Good evening.', local:'Jó estét.', say:'yoh ESH-tayt'},
+        {en:'Have a nice day.', local:'Legyen szép napja!', say:'LEH-djen sayp NAHP-yah'}
       ]}
     ],
     water: [
@@ -2341,23 +2441,40 @@ const COUNTRY_GUIDES = {
       'Nice restaurants expect smart casual; flip-flops/beachwear are notably out of place even steps from the coast.'
     ],
     phrases: [
-      {group:'Basics', items:[
-        {en:'Hello', local:'Buongiorno', say:'bwohn-JOR-noh (more polite than "Ciao" in shops)'},
-        {en:'Please', local:'Per favore', say:'pehr fah-VOH-reh'},
-        {en:'Thank you', local:'Grazie', say:'GRAH-tsee-eh'},
-        {en:'Excuse me', local:'Scusi', say:'SKOO-zee'},
-        {en:'Yes / No', local:'Sì / No', say:'see / no'}
+      {group:'Restaurant & Food', items:[
+        {en:'What do you recommend?', local:'Cosa consiglia?', say:'KOH-zah kon-SEE-lyah'},
+        {en:'What is your specialty?', local:'Qual è la vostra specialità?', say:'kwahl eh lah VOS-trah speh-chah-lee-TAH'},
+        {en:'What is this?', local:'Cos’è questo?', say:'koh-ZEH KWES-toh'},
+        {en:'Can I have...?', local:'Posso avere...?', say:'POS-soh ah-VEH-reh'},
+        {en:'Can we get the bill, please?', local:'Possiamo avere il conto, per favore?', say:'pos-SYAH-moh ah-VEH-reh eel KOHN-toh pehr fah-VOH-reh'},
+        {en:'Can I pay by card?', local:'Posso pagare con la carta?', say:'POS-soh pah-GAH-reh kon lah KAR-tah'},
+        {en:'A table for one, please.', local:'Un tavolo per uno, per favore.', say:'oon TAH-voh-loh pehr OO-noh pehr fah-VOH-reh'},
+        {en:'Could I have some water, please?', local:'Potrei avere dell’acqua, per favore?', say:'poh-TRAY ah-VEH-reh del-AHK-wah pehr fah-VOH-reh'}
       ]},
-      {group:'Dining Out', items:[
-        {en:'Cheers', local:'Cin cin', say:'cheen cheen'},
-        {en:'The bill, please', local:'Il conto, per favore', say:'eel KOHN-toh pehr fah-VOH-reh'},
-        {en:'Still or sparkling water?', local:'Naturale o frizzante?', say:'nah-too-RAH-leh oh freed-ZAHN-teh'},
-        {en:'It was delicious', local:'Era delizioso', say:'EH-rah day-lee-tsee-OH-zoh'}
-      ]},
-      {group:'Getting Around & Help', items:[
-        {en:'Do you speak English?', local:'Parla inglese?', say:'PAR-lah een-GLAY-zeh'},
+      {group:'Getting Around', items:[
         {en:'Where is...?', local:'Dov’è...?', say:'doh-VEH'},
-        {en:'Help!', local:'Aiuto!', say:'ah-YOO-toh'}
+        {en:'How do I get to...?', local:'Come arrivo a...?', say:'KOH-meh ah-REE-voh ah'},
+        {en:'Which way is...?', local:'In che direzione è...?', say:'een keh dee-reh-TSYOH-neh eh'},
+        {en:'Is this the right train?', local:'È questo il treno giusto?', say:'eh KWES-toh eel TREH-noh JOOS-toh'},
+        {en:'Does this train go to...?', local:'Questo treno va a...?', say:'KWES-toh TREH-noh vah ah'},
+        {en:'Where do I buy a ticket?', local:'Dove compro un biglietto?', say:'DOH-veh KOM-proh oon bee-LYET-toh'},
+        {en:'Where is the train station?', local:'Dov’è la stazione?', say:'doh-VEH lah stah-TSYOH-neh'},
+        {en:'Where is the bathroom?', local:'Dov’è il bagno?', say:'doh-VEH eel BAH-nyoh'},
+        {en:'Is it far?', local:'È lontano?', say:'eh lon-TAH-noh'},
+        {en:'Can I walk there?', local:'Posso andarci a piedi?', say:'POS-soh ahn-DAR-chee ah PYEH-dee'}
+      ]},
+      {group:'General', items:[
+        {en:'Do you speak English?', local:'Parla inglese?', say:'PAR-lah een-GLAY-zeh'},
+        {en:'I don’t understand.', local:'Non capisco.', say:'non kah-PEES-koh'},
+        {en:'Could you speak more slowly?', local:'Potrebbe parlare più lentamente?', say:'poh-TREB-beh par-LAH-reh pyoo len-tah-MEN-teh'},
+        {en:'Can you help me?', local:'Può aiutarmi?', say:'pwoh ah-yoo-TAR-mee'},
+        {en:'Excuse me.', local:'Scusi.', say:'SKOO-zee'},
+        {en:'I’m sorry.', local:'Mi dispiace.', say:'mee dees-PYAH-cheh'},
+        {en:'Thank you.', local:'Grazie.', say:'GRAH-tsee-eh'},
+        {en:'You’re welcome.', local:'Prego.', say:'PREH-goh'},
+        {en:'Good morning.', local:'Buongiorno.', say:'bwohn-JOR-noh'},
+        {en:'Good evening.', local:'Buonasera.', say:'bwoh-nah-SEH-rah'},
+        {en:'Have a nice day.', local:'Buona giornata.', say:'BWOH-nah jor-NAH-tah'}
       ]}
     ],
     water: [
@@ -3027,6 +3144,145 @@ function visibleTips(entry){
     .sort((a,b) => TIP_CATEGORY_ORDER.indexOf(a.category) - TIP_CATEGORY_ORDER.indexOf(b.category));
 }
 
+// ============================================================================
+// How To Ask - a THIRD, separate feature from both Traveler Tips above
+// (recent firsthand discoveries about one specific place) and Country Guide
+// below (stable country-level culture/practical info). This one answers "how
+// do I ask a local for directions to the place I'm standing near right now?"
+// so it can be pulled up and shown/read aloud on the spot.
+//
+// Like Country Guide, this is static/curated, not fetched or researched -
+// there's no translation API in this no-backend app, and naively translating
+// an arbitrary English stop name word-for-word would often produce the wrong
+// article/case or an unnaturally literal phrase (see PRODUCT.md's static-
+// data philosophy and the Country Guide comment above for the same
+// reasoning). Instead, each real, ask-a-stranger-worthy stop in ITINERARY
+// (landmarks, museums, markets, neighborhoods, transit hubs) gets a small
+// hand-curated entry below giving its natural local name - already in the
+// correct grammatical form for each sentence it plugs into - which then
+// drives the three shared per-language templates in ASK_TEMPLATES. This is
+// "generated from the activity's name and the day's language" in the sense
+// that mirrors real translation apps: the sentence structure and grammar are
+// shared/templated, only the place name slots in, rather than every one of
+// the ~70 resulting sentences being hand-written prose.
+//
+// Purely descriptive activities with no fixed destination a local could
+// point you to (a river cruise, "free day", a generic "breakfast") simply
+// have no entry here and render no HOW TO ASK block at all - see
+// askPhrasesForStop() below, which is a lookup, not a guesser: an itinerary
+// stop added later via "+ ADD STOP" that isn't in this table quietly gets no
+// block, exactly like a stop with no Traveler Tips entry today.
+//
+// Per entry:
+//   lang - which ASK_TEMPLATES set applies (nl/fr/de/hu/it)
+//   name - English display name used in the English question text (may
+//          differ from the raw stop.name for a combo stop, e.g. "Fisherman's
+//          Bastion + Buda Castle" -> "Fisherman's Bastion")
+//   w    - the local name in its plain/citation form, used for "Where is
+//          ___?" (already carrying the right article, e.g. 'la Tour Eiffel',
+//          or unchanged when the name is already a local proper noun that
+//          takes no article, e.g. 'Stephansdom', per the Café Pli example)
+//   t    - the local name already inflected/prepositioned for "...to ___?",
+//          e.g. with French à/au or German zum/zur baked in - only differs
+//          from `w` when that language's grammar requires it for "to"
+//   sayW, sayT - phonetic pronunciation of w/t (sayT===sayW when t===w)
+const ASKABLE_PLACES = {
+  'Zaanse Schans': {lang:'nl', name:'Zaanse Schans', w:'Zaanse Schans', t:'Zaanse Schans', sayW:'ZAHN-suh skhahns', sayT:'ZAHN-suh skhahns'},
+  'Albert Cuyp Markt': {lang:'nl', name:'Albert Cuyp Markt', w:'de Albert Cuyp Markt', t:'de Albert Cuyp Markt', sayW:'duh AL-bert kowp markt', sayT:'duh AL-bert kowp markt'},
+  'Jordaan & Negen Straatjes': {lang:'nl', name:'the Jordaan', w:'de Jordaan', t:'de Jordaan', sayW:'duh yor-DAHN', sayT:'duh yor-DAHN'},
+  'Eiffel Tower': {lang:'fr', name:'the Eiffel Tower', w:'la Tour Eiffel', t:'à la Tour Eiffel', sayW:'lah toor eh-FEL', sayT:'ah lah toor eh-FEL'},
+  'Palace of Versailles': {lang:'fr', name:'the Palace of Versailles', w:'le Château de Versailles', t:'au Château de Versailles', sayW:'luh shah-TOH duh vehr-SIGH', sayT:'oh shah-TOH duh vehr-SIGH'},
+  'Latin Quarter + Notre-Dame': {lang:'fr', name:'Notre-Dame', w:'Notre-Dame', t:'à Notre-Dame', sayW:'NOH-truh dahm', sayT:'ah NOH-truh dahm'},
+  'Grindelwald Terminal': {lang:'de', name:'Grindelwald Terminal', w:'das Grindelwald Terminal', t:'zum Grindelwald Terminal', sayW:'dahs GRIN-del-vahlt TAIR-mih-nahl', sayT:'tsoom GRIN-del-vahlt TAIR-mih-nahl'},
+  'Männlichen': {lang:'de', name:'Männlichen', w:'der Männlichen', t:'zum Männlichen', sayW:'dair MEN-likh-en', sayT:'tsoom MEN-likh-en'},
+  'Kleine Scheidegg': {lang:'de', name:'Kleine Scheidegg', w:'Kleine Scheidegg', t:'nach Kleine Scheidegg', sayW:'KLY-nuh SHY-dek', sayT:'nahkh KLY-nuh SHY-dek'},
+  'Schönbrunn Palace': {lang:'de', name:'Schönbrunn Palace', w:'das Schloss Schönbrunn', t:'zum Schloss Schönbrunn', sayW:'dahs shloss SHURN-broon', sayT:'tsoom shloss SHURN-broon'},
+  'MuseumsQuartier + Albertina': {lang:'de', name:'the Albertina', w:'die Albertina', t:'zur Albertina', sayW:'dee ahl-behr-TEE-nah', sayT:'tsoor ahl-behr-TEE-nah'},
+  'Sigmund Freud Museum': {lang:'de', name:'the Sigmund Freud Museum', w:'das Sigmund-Freud-Museum', t:'zum Sigmund-Freud-Museum', sayW:'dahs ZEEK-moont froyt moo-ZAY-oom', sayT:'tsoom ZEEK-moont froyt moo-ZAY-oom'},
+  'Naschmarkt': {lang:'de', name:'the Naschmarkt', w:'der Naschmarkt', t:'zum Naschmarkt', sayW:'dair NAHSH-markt', sayT:'tsoom NAHSH-markt'},
+  'Belvedere Palace': {lang:'de', name:'Belvedere Palace', w:'das Schloss Belvedere', t:'zum Schloss Belvedere', sayW:'dahs shloss bel-veh-DAIR-uh', sayT:'tsoom shloss bel-veh-DAIR-uh'},
+  'Stephansdom': {lang:'de', name:'Stephansdom', w:'der Stephansdom', t:'zum Stephansdom', sayW:'dair SHTEF-ahns-dohm', sayT:'tsoom SHTEF-ahns-dohm'},
+  "Fisherman's Bastion + Buda Castle": {lang:'hu', name:"Fisherman's Bastion", w:'a Halászbástya', t:'a Halászbástyához', sayW:'oh HAH-lahss-bahsh-tyah', sayT:'oh HAH-lahss-bahsh-tyah-hoz'},
+  'Széchenyi Thermal Bath': {lang:'hu', name:'Széchenyi Thermal Bath', w:'a Széchenyi fürdő', t:'a Széchenyi fürdőhöz', sayW:'oh SAY-cheh-nyee FEWR-dur', sayT:'oh SAY-cheh-nyee FEWR-dur-hurz'},
+  'Hungarian Parliament': {lang:'hu', name:'the Parliament', w:'a Parlament', t:'a Parlamenthez', sayW:'oh PAR-lah-ment', sayT:'oh PAR-lah-ment-hez'},
+  'Central Market Hall': {lang:'hu', name:'the Central Market Hall', w:'a Nagyvásárcsarnok', t:'a Nagyvásárcsarnokhoz', sayW:'oh NAJ-vah-shar-char-nok', sayT:'oh NAJ-vah-shar-char-nok-hoz'},
+  'Colosseum + Roman Forum': {lang:'it', name:'the Colosseum', w:'il Colosseo', t:'al Colosseo', sayW:'eel koh-loh-SEH-oh', sayT:'ahl koh-loh-SEH-oh'},
+  "St Peter's Basilica": {lang:'it', name:"St. Peter's Basilica", w:'la Basilica di San Pietro', t:'alla Basilica di San Pietro', sayW:'lah bah-ZEE-lee-kah dee sahn PYEH-troh', sayT:'AH-lah bah-ZEE-lee-kah dee sahn PYEH-troh'},
+  'Pantheon': {lang:'it', name:'the Pantheon', w:'il Pantheon', t:'al Pantheon', sayW:'eel PAHN-teh-ohn', sayT:'ahl PAHN-teh-ohn'},
+  'Trevi Fountain': {lang:'it', name:'the Trevi Fountain', w:'la Fontana di Trevi', t:'alla Fontana di Trevi', sayW:'lah fon-TAH-nah dee TREH-vee', sayT:'AH-lah fon-TAH-nah dee TREH-vee'},
+  'Trastevere': {lang:'it', name:'Trastevere', w:'Trastevere', t:'a Trastevere', sayW:'trah-STEH-veh-reh', sayT:'ah trah-STEH-veh-reh'}
+};
+
+// Three shared sentence templates per language - "Where is X?" / "How do I
+// get to X?" / "Is this the way to X?" - built once per language rather than
+// once per place, so adding a stop to ASKABLE_PLACES above only ever needs a
+// place name, never three hand-written sentences.
+const ASK_TEMPLATES = {
+  nl: [
+    {en:'Where is', build:(w,t)=>`Waar is ${w}?`, say:(sw,st)=>`VAHR iss ${sw}`},
+    {en:'How do I get to', build:(w,t)=>`Hoe kom ik bij ${t}?`, say:(sw,st)=>`hoo kom ik bay ${st}`},
+    {en:'Is this the way to', build:(w,t)=>`Is dit de weg naar ${t}?`, say:(sw,st)=>`iss dit duh vekh nahr ${st}`}
+  ],
+  fr: [
+    {en:'Where is', build:(w,t)=>`Où est ${w} ?`, say:(sw,st)=>`oo eh ${sw}`},
+    {en:'How do I get to', build:(w,t)=>`Comment aller ${t} ?`, say:(sw,st)=>`koh-mahn tah-lay ${st}`},
+    {en:'Is this the way to', build:(w,t)=>`C’est le chemin vers ${w} ?`, say:(sw,st)=>`say luh shuh-man vehr ${sw}`}
+  ],
+  de: [
+    {en:'Where is', build:(w,t)=>`Wo ist ${w}?`, say:(sw,st)=>`voh ist ${sw}`},
+    {en:'How do I get to', build:(w,t)=>`Wie komme ich ${t}?`, say:(sw,st)=>`vee KOM-uh ikh ${st}`},
+    {en:'Is this the way to', build:(w,t)=>`Ist das der Weg ${t}?`, say:(sw,st)=>`ist dahs dair vayk ${st}`}
+  ],
+  hu: [
+    {en:'Where is', build:(w,t)=>`Hol van ${w}?`, say:(sw,st)=>`hol vahn ${sw}`},
+    {en:'How do I get to', build:(w,t)=>`Hogyan jutok el ${t}?`, say:(sw,st)=>`HOH-jahn YOO-tok el ${st}`},
+    {en:'Is this the way to', build:(w,t)=>`Jó irányba megyek ${t}?`, say:(sw,st)=>`yoh EE-rahny-bah MEH-jek ${st}`}
+  ],
+  it: [
+    {en:'Where is', build:(w,t)=>`Dov’è ${w}?`, say:(sw,st)=>`doh-VEH ${sw}`},
+    {en:'How do I get to', build:(w,t)=>`Come arrivo ${t}?`, say:(sw,st)=>`KOH-meh ah-REE-voh ${st}`},
+    {en:'Is this the way to', build:(w,t)=>`È questa la strada per ${w}?`, say:(sw,st)=>`eh KWES-tah lah STRAH-dah pehr ${sw}`}
+  ]
+};
+
+function askPhrasesForStop(stop){
+  const entry = ASKABLE_PLACES[stop.name];
+  if(!entry) return null;
+  const templates = ASK_TEMPLATES[entry.lang];
+  if(!templates) return null;
+  return templates.map(tpl => ({
+    en: `${tpl.en} ${entry.name}?`,
+    local: tpl.build(entry.w, entry.t),
+    say: tpl.say(entry.sayW, entry.sayT)
+  }));
+}
+
+let openAsk = new Set(); // session-only expand state, keyed 'dayId:stopIdx' (separate from openTips)
+
+function askBlockHtml(stop, askKey){
+  try {
+    const phrases = askPhrasesForStop(stop);
+    if(!phrases || !phrases.length) return '';
+    const isOpen = openAsk.has(askKey);
+    const itemsHtml = phrases.map(p => `
+      <div class="ask-item">
+        <div class="ask-item-en">${escapeHtml(p.en)}</div>
+        <span class="ask-item-local">${escapeHtml(p.local)}</span><span class="ask-item-say">${escapeHtml(p.say)}</span>
+      </div>
+    `).join('');
+    return `
+      <div class="ask-wrap">
+        <button class="ask-toggle${isOpen?' open':''}" type="button" data-act="toggle-ask" data-key="${escapeHtml(askKey)}">
+          <span>📍 HOW TO ASK</span><span class="ask-toggle-chevron">▾</span>
+        </button>
+        <div class="ask-panel${isOpen?' open':''}">
+          ${itemsHtml}
+        </div>
+      </div>
+    `;
+  } catch(e){ return ''; }
+}
+
 let openTips = new Set(); // session-only expand state, keyed 'dayId:stopIdx'
 
 function tipsBlockHtml(stop, tipsKey){
@@ -3092,6 +3348,7 @@ function renderItinerary(){
               </div>
             ` : ''}
           </div>
+          ${askBlockHtml(s, d.id+':'+si)}
           ${tipsBlockHtml(s, d.id+':'+si)}
           <div class="stop-actions">
             <div class="stop-actions-row">
@@ -3388,6 +3645,15 @@ function renderItinerary(){
     });
   });
 
+  el.querySelectorAll('[data-act="toggle-ask"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.key;
+      if(openAsk.has(key)) openAsk.delete(key); else openAsk.add(key);
+      btn.classList.toggle('open');
+      btn.nextElementSibling.classList.toggle('open');
+    });
+  });
   el.querySelectorAll('[data-act="toggle-tips"]').forEach(btn=>{
     btn.addEventListener('click', (e)=>{
       e.stopPropagation();

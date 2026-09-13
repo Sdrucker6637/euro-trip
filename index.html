@@ -3151,72 +3151,90 @@ function visibleTips(entry){
 // do I ask a local for directions to the place I'm standing near right now?"
 // so it can be pulled up and shown/read aloud on the spot.
 //
-// Like Country Guide, this is static/curated, not fetched or researched -
-// there's no translation API in this no-backend app, and naively translating
-// an arbitrary English stop name word-for-word would often produce the wrong
-// article/case or an unnaturally literal phrase (see PRODUCT.md's static-
-// data philosophy and the Country Guide comment above for the same
-// reasoning). Instead, each real, ask-a-stranger-worthy stop in ITINERARY
-// (landmarks, museums, markets, neighborhoods, transit hubs) gets a small
-// hand-curated entry below giving its natural local name - already in the
-// correct grammatical form for each sentence it plugs into - which then
-// drives the three shared per-language templates in ASK_TEMPLATES. This is
-// "generated from the activity's name and the day's language" in the sense
-// that mirrors real translation apps: the sentence structure and grammar are
-// shared/templated, only the place name slots in, rather than every one of
-// the ~70 resulting sentences being hand-written prose.
+// This is DYNAMIC and automatic: every itinerary stop that looks like a real
+// destination (see stopIsAskable below) gets a HOW TO ASK block generated on
+// the fly from its own name plus the day's city -> language, with no per-stop
+// setup required. Add a new stop via "+ ADD STOP" - a restaurant, museum,
+// shop, whatever - and it gets one immediately, the same as every existing
+// stop, because the three sentences are built from shared per-language
+// templates (ASK_TEMPLATES) rather than hand-written per place.
 //
-// Purely descriptive activities with no fixed destination a local could
-// point you to (a river cruise, "free day", a generic "breakfast") simply
-// have no entry here and render no HOW TO ASK block at all - see
-// askPhrasesForStop() below, which is a lookup, not a guesser: an itinerary
-// stop added later via "+ ADD STOP" that isn't in this table quietly gets no
-// block, exactly like a stop with no Traveler Tips entry today.
+// There's no translation API in this no-backend app, so the place name
+// itself is never translated - it's used verbatim inside the local sentence
+// (a Paris stop named "Café Pli" produces "Où est Café Pli ?", not a guess at
+// a French name for it), exactly like a real traveler would say a proper
+// noun out loud mid-sentence. The tradeoff is that a plain auto-generated
+// sentence can be grammatically a little generic for languages where "to X"
+// needs an article baked in (French au/à la, German zum/zur) - ASKABLE_
+// OVERRIDES below is where a handful of well-known landmarks get that
+// polish. It is optional and never required for the block to appear at all.
 //
-// Per entry:
-//   lang - which ASK_TEMPLATES set applies (nl/fr/de/hu/it)
-//   name - English display name used in the English question text (may
-//          differ from the raw stop.name for a combo stop, e.g. "Fisherman's
-//          Bastion + Buda Castle" -> "Fisherman's Bastion")
-//   w    - the local name in its plain/citation form, used for "Where is
-//          ___?" (already carrying the right article, e.g. 'la Tour Eiffel',
-//          or unchanged when the name is already a local proper noun that
-//          takes no article, e.g. 'Stephansdom', per the Café Pli example)
-//   t    - the local name already inflected/prepositioned for "...to ___?",
-//          e.g. with French à/au or German zum/zur baked in - only differs
-//          from `w` when that language's grammar requires it for "to"
-//   sayW, sayT - phonetic pronunciation of w/t (sayT===sayW when t===w)
-const ASKABLE_PLACES = {
-  'Zaanse Schans': {lang:'nl', name:'Zaanse Schans', w:'Zaanse Schans', t:'Zaanse Schans', sayW:'ZAHN-suh skhahns', sayT:'ZAHN-suh skhahns'},
-  'Albert Cuyp Markt': {lang:'nl', name:'Albert Cuyp Markt', w:'de Albert Cuyp Markt', t:'de Albert Cuyp Markt', sayW:'duh AL-bert kowp markt', sayT:'duh AL-bert kowp markt'},
-  'Jordaan & Negen Straatjes': {lang:'nl', name:'the Jordaan', w:'de Jordaan', t:'de Jordaan', sayW:'duh yor-DAHN', sayT:'duh yor-DAHN'},
-  'Eiffel Tower': {lang:'fr', name:'the Eiffel Tower', w:'la Tour Eiffel', t:'à la Tour Eiffel', sayW:'lah toor eh-FEL', sayT:'ah lah toor eh-FEL'},
-  'Palace of Versailles': {lang:'fr', name:'the Palace of Versailles', w:'le Château de Versailles', t:'au Château de Versailles', sayW:'luh shah-TOH duh vehr-SIGH', sayT:'oh shah-TOH duh vehr-SIGH'},
-  'Latin Quarter + Notre-Dame': {lang:'fr', name:'Notre-Dame', w:'Notre-Dame', t:'à Notre-Dame', sayW:'NOH-truh dahm', sayT:'ah NOH-truh dahm'},
-  'Grindelwald Terminal': {lang:'de', name:'Grindelwald Terminal', w:'das Grindelwald Terminal', t:'zum Grindelwald Terminal', sayW:'dahs GRIN-del-vahlt TAIR-mih-nahl', sayT:'tsoom GRIN-del-vahlt TAIR-mih-nahl'},
-  'Männlichen': {lang:'de', name:'Männlichen', w:'der Männlichen', t:'zum Männlichen', sayW:'dair MEN-likh-en', sayT:'tsoom MEN-likh-en'},
-  'Kleine Scheidegg': {lang:'de', name:'Kleine Scheidegg', w:'Kleine Scheidegg', t:'nach Kleine Scheidegg', sayW:'KLY-nuh SHY-dek', sayT:'nahkh KLY-nuh SHY-dek'},
-  'Schönbrunn Palace': {lang:'de', name:'Schönbrunn Palace', w:'das Schloss Schönbrunn', t:'zum Schloss Schönbrunn', sayW:'dahs shloss SHURN-broon', sayT:'tsoom shloss SHURN-broon'},
-  'MuseumsQuartier + Albertina': {lang:'de', name:'the Albertina', w:'die Albertina', t:'zur Albertina', sayW:'dee ahl-behr-TEE-nah', sayT:'tsoor ahl-behr-TEE-nah'},
-  'Sigmund Freud Museum': {lang:'de', name:'the Sigmund Freud Museum', w:'das Sigmund-Freud-Museum', t:'zum Sigmund-Freud-Museum', sayW:'dahs ZEEK-moont froyt moo-ZAY-oom', sayT:'tsoom ZEEK-moont froyt moo-ZAY-oom'},
-  'Naschmarkt': {lang:'de', name:'the Naschmarkt', w:'der Naschmarkt', t:'zum Naschmarkt', sayW:'dair NAHSH-markt', sayT:'tsoom NAHSH-markt'},
-  'Belvedere Palace': {lang:'de', name:'Belvedere Palace', w:'das Schloss Belvedere', t:'zum Schloss Belvedere', sayW:'dahs shloss bel-veh-DAIR-uh', sayT:'tsoom shloss bel-veh-DAIR-uh'},
-  'Stephansdom': {lang:'de', name:'Stephansdom', w:'der Stephansdom', t:'zum Stephansdom', sayW:'dair SHTEF-ahns-dohm', sayT:'tsoom SHTEF-ahns-dohm'},
-  "Fisherman's Bastion + Buda Castle": {lang:'hu', name:"Fisherman's Bastion", w:'a Halászbástya', t:'a Halászbástyához', sayW:'oh HAH-lahss-bahsh-tyah', sayT:'oh HAH-lahss-bahsh-tyah-hoz'},
-  'Széchenyi Thermal Bath': {lang:'hu', name:'Széchenyi Thermal Bath', w:'a Széchenyi fürdő', t:'a Széchenyi fürdőhöz', sayW:'oh SAY-cheh-nyee FEWR-dur', sayT:'oh SAY-cheh-nyee FEWR-dur-hurz'},
-  'Hungarian Parliament': {lang:'hu', name:'the Parliament', w:'a Parlament', t:'a Parlamenthez', sayW:'oh PAR-lah-ment', sayT:'oh PAR-lah-ment-hez'},
-  'Central Market Hall': {lang:'hu', name:'the Central Market Hall', w:'a Nagyvásárcsarnok', t:'a Nagyvásárcsarnokhoz', sayW:'oh NAJ-vah-shar-char-nok', sayT:'oh NAJ-vah-shar-char-nok-hoz'},
-  'Colosseum + Roman Forum': {lang:'it', name:'the Colosseum', w:'il Colosseo', t:'al Colosseo', sayW:'eel koh-loh-SEH-oh', sayT:'ahl koh-loh-SEH-oh'},
-  "St Peter's Basilica": {lang:'it', name:"St. Peter's Basilica", w:'la Basilica di San Pietro', t:'alla Basilica di San Pietro', sayW:'lah bah-ZEE-lee-kah dee sahn PYEH-troh', sayT:'AH-lah bah-ZEE-lee-kah dee sahn PYEH-troh'},
-  'Pantheon': {lang:'it', name:'the Pantheon', w:'il Pantheon', t:'al Pantheon', sayW:'eel PAHN-teh-ohn', sayT:'ahl PAHN-teh-ohn'},
-  'Trevi Fountain': {lang:'it', name:'the Trevi Fountain', w:'la Fontana di Trevi', t:'alla Fontana di Trevi', sayW:'lah fon-TAH-nah dee TREH-vee', sayT:'AH-lah fon-TAH-nah dee TREH-vee'},
-  'Trastevere': {lang:'it', name:'Trastevere', w:'Trastevere', t:'a Trastevere', sayW:'trah-STEH-veh-reh', sayT:'ah trah-STEH-veh-reh'}
+// Per override entry (all fields optional - anything omitted falls back to
+// the stop's own name):
+//   displayName - English name for the question text, for a combo stop
+//                 whose title covers two things ("Fisherman's Bastion + Buda
+//                 Castle" -> "Fisherman's Bastion")
+//   w  - the local name in its plain/citation form for "Where is ___?"
+//        (carrying the right article, e.g. 'la Tour Eiffel')
+//   t  - the local name already inflected/prepositioned for "...to ___?"
+//        (e.g. French à/au or German zum/zur baked in)
+//   sayW, sayT - phonetic pronunciation of w/t, for a name whose obvious
+//        English reading is wrong (e.g. "Eiffel" isn't said the English way)
+const ASKABLE_OVERRIDES = {
+  'Zaanse Schans': {w:'Zaanse Schans', sayW:'ZAHN-suh skhahns'},
+  'Albert Cuyp Markt': {w:'de Albert Cuyp Markt', sayW:'duh AL-bert kowp markt'},
+  'Jordaan & Negen Straatjes': {displayName:'the Jordaan', w:'de Jordaan', sayW:'duh yor-DAHN'},
+  'Eiffel Tower': {displayName:'the Eiffel Tower', w:'la Tour Eiffel', t:'à la Tour Eiffel', sayW:'lah toor eh-FEL', sayT:'ah lah toor eh-FEL'},
+  'Palace of Versailles': {displayName:'the Palace of Versailles', w:'le Château de Versailles', t:'au Château de Versailles', sayW:'luh shah-TOH duh vehr-SIGH', sayT:'oh shah-TOH duh vehr-SIGH'},
+  'Latin Quarter + Notre-Dame': {displayName:'Notre-Dame', w:'Notre-Dame', t:'à Notre-Dame', sayW:'NOH-truh dahm', sayT:'ah NOH-truh dahm'},
+  'Männlichen': {w:'der Männlichen', t:'zum Männlichen', sayW:'dair MEN-likh-en', sayT:'tsoom MEN-likh-en'},
+  'Kleine Scheidegg': {t:'nach Kleine Scheidegg', sayW:'KLY-nuh SHY-dek', sayT:'nahkh KLY-nuh SHY-dek'},
+  'Schönbrunn Palace': {w:'das Schloss Schönbrunn', t:'zum Schloss Schönbrunn', sayW:'dahs shloss SHURN-broon', sayT:'tsoom shloss SHURN-broon'},
+  'MuseumsQuartier + Albertina': {displayName:'the Albertina', w:'die Albertina', t:'zur Albertina', sayW:'dee ahl-behr-TEE-nah', sayT:'tsoor ahl-behr-TEE-nah'},
+  'Sigmund Freud Museum': {displayName:'the Sigmund Freud Museum', w:'das Sigmund-Freud-Museum', t:'zum Sigmund-Freud-Museum', sayW:'dahs ZEEK-moont froyt moo-ZAY-oom', sayT:'tsoom ZEEK-moont froyt moo-ZAY-oom'},
+  'Naschmarkt': {displayName:'the Naschmarkt', w:'der Naschmarkt', t:'zum Naschmarkt', sayW:'dair NAHSH-markt', sayT:'tsoom NAHSH-markt'},
+  'Belvedere Palace': {w:'das Schloss Belvedere', t:'zum Schloss Belvedere', sayW:'dahs shloss bel-veh-DAIR-uh', sayT:'tsoom shloss bel-veh-DAIR-uh'},
+  'Stephansdom': {w:'der Stephansdom', t:'zum Stephansdom', sayW:'dair SHTEF-ahns-dohm', sayT:'tsoom SHTEF-ahns-dohm'},
+  "Fisherman's Bastion + Buda Castle": {displayName:"Fisherman's Bastion", w:'a Halászbástya', t:'a Halászbástyához', sayW:'oh HAH-lahss-bahsh-tyah', sayT:'oh HAH-lahss-bahsh-tyah-hoz'},
+  'Széchenyi Thermal Bath': {w:'a Széchenyi fürdő', t:'a Széchenyi fürdőhöz', sayW:'oh SAY-cheh-nyee FEWR-dur', sayT:'oh SAY-cheh-nyee FEWR-dur-hurz'},
+  'Hungarian Parliament': {displayName:'the Parliament', w:'a Parlament', t:'a Parlamenthez', sayW:'oh PAR-lah-ment', sayT:'oh PAR-lah-ment-hez'},
+  'Central Market Hall': {displayName:'the Central Market Hall', w:'a Nagyvásárcsarnok', t:'a Nagyvásárcsarnokhoz', sayW:'oh NAJ-vah-shar-char-nok', sayT:'oh NAJ-vah-shar-char-nok-hoz'},
+  'Colosseum + Roman Forum': {displayName:'the Colosseum', w:'il Colosseo', t:'al Colosseo', sayW:'eel koh-loh-SEH-oh', sayT:'ahl koh-loh-SEH-oh'},
+  "St Peter's Basilica": {displayName:"St. Peter's Basilica", w:'la Basilica di San Pietro', t:'alla Basilica di San Pietro', sayW:'lah bah-ZEE-lee-kah dee sahn PYEH-troh', sayT:'AH-lah bah-ZEE-lee-kah dee sahn PYEH-troh'},
+  'Pantheon': {displayName:'the Pantheon', w:'il Pantheon', t:'al Pantheon', sayW:'eel PAHN-teh-ohn', sayT:'ahl PAHN-teh-ohn'},
+  'Trevi Fountain': {displayName:'the Trevi Fountain', w:'la Fontana di Trevi', t:'alla Fontana di Trevi', sayW:'lah fon-TAH-nah dee TREH-vee', sayT:'AH-lah fon-TAH-nah dee TREH-vee'},
+  'Trastevere': {t:'a Trastevere', sayW:'trah-STEH-veh-reh', sayT:'ah trah-STEH-veh-reh'}
+};
+
+// Which language a stop's sentences use, driven entirely by the day's city -
+// the same mapping the rest of the app already keys off (see CITY_COUNTRY).
+const CITY_LANG = {Amsterdam:'nl', Paris:'fr', Interlaken:'de', Vienna:'de', Budapest:'hu', Rome:'it'};
+
+// Default "to ___" form for a stop with no override - deliberately doesn't
+// try to guess an article or grammatical case for an arbitrary name (that's
+// exactly the "awkward machine translation" this app avoids), just the
+// preposition a local would use before any proper noun.
+const ASK_DEFAULT_TO = {
+  nl: w => w,
+  fr: w => `à ${w}`,
+  de: w => `zu ${w}`,
+  it: w => `a ${w}`,
+  hu: w => `${w} felé` // "felé" (toward) takes the plain name, no case suffix needed - safe for any name
+};
+// The preposition's own pronunciation is always knowable even when the name
+// isn't - only pronounces the fixed word, then reads the name back verbatim
+// (see askPhrasesForStop's sayT fallback) rather than guessing at it.
+const ASK_DEFAULT_TO_SAY = {
+  nl: sw => sw,
+  fr: sw => `ah ${sw}`,
+  de: sw => `tsoo ${sw}`,
+  it: sw => `ah ${sw}`,
+  hu: sw => `${sw} feh-LAY`
 };
 
 // Three shared sentence templates per language - "Where is X?" / "How do I
 // get to X?" / "Is this the way to X?" - built once per language rather than
-// once per place, so adding a stop to ASKABLE_PLACES above only ever needs a
-// place name, never three hand-written sentences.
+// once per place, so a brand-new stop gets correct sentences immediately.
 const ASK_TEMPLATES = {
   nl: [
     {en:'Where is', build:(w,t)=>`Waar is ${w}?`, say:(sw,st)=>`VAHR iss ${sw}`},
@@ -3236,7 +3254,7 @@ const ASK_TEMPLATES = {
   hu: [
     {en:'Where is', build:(w,t)=>`Hol van ${w}?`, say:(sw,st)=>`hol vahn ${sw}`},
     {en:'How do I get to', build:(w,t)=>`Hogyan jutok el ${t}?`, say:(sw,st)=>`HOH-jahn YOO-tok el ${st}`},
-    {en:'Is this the way to', build:(w,t)=>`Jó irányba megyek ${t}?`, say:(sw,st)=>`yoh EE-rahny-bah MEH-jek ${st}`}
+    {en:'Is this the way to', build:(w,t)=>`Ez a jó irány ${t}?`, say:(sw,st)=>`ez ah yoh ee-RAHNY ${st}`}
   ],
   it: [
     {en:'Where is', build:(w,t)=>`Dov’è ${w}?`, say:(sw,st)=>`doh-VEH ${sw}`},
@@ -3245,23 +3263,44 @@ const ASK_TEMPLATES = {
   ]
 };
 
-function askPhrasesForStop(stop){
-  const entry = ASKABLE_PLACES[stop.name];
-  if(!entry) return null;
-  const templates = ASK_TEMPLATES[entry.lang];
-  if(!templates) return null;
+// Excludes stops that describe a time slot or generic downtime rather than a
+// place a local could point you to - a flight (identified the same way the
+// rest of the app already does, via flightDate) or a name that IS one of
+// these generic activities. Anything else - a restaurant, shop, museum,
+// neighborhood, viewpoint, hotel the traveler names - defaults to askable,
+// on the theory that showing it for an unusual name is a much smaller
+// problem than silently missing a real place someone just added.
+const NON_ASKABLE_STOP_NAME = /^(breakfast|lunch|dinner|brunch|coffee break|free\s*time|free\s*day|down\s*time|relax(ing)?|rest(\s*day)?|sunset|sunrise|walk(ing)?\s*around|travel\s*day|arrival|departure|check[- ]?in|check[- ]?out|packing|laundry)\b/i;
+
+function stopIsAskable(stop){
+  if(!stop || !stop.name) return false;
+  if(stop.flightDate !== undefined) return false; // a flight, not a local destination
+  return !NON_ASKABLE_STOP_NAME.test(stop.name.trim());
+}
+
+function askPhrasesForStop(stop, city){
+  if(!stopIsAskable(stop)) return null;
+  const lang = CITY_LANG[city];
+  const templates = ASK_TEMPLATES[lang];
+  if(!templates) return null; // a city with no language mapped yet - safe no-op, not a guess
+  const o = ASKABLE_OVERRIDES[stop.name] || {};
+  const displayName = o.displayName || stop.name;
+  const w = o.w || stop.name;
+  const t = o.t || ASK_DEFAULT_TO[lang](w);
+  const sayW = o.sayW || w;
+  const sayT = o.sayT || ASK_DEFAULT_TO_SAY[lang](sayW);
   return templates.map(tpl => ({
-    en: `${tpl.en} ${entry.name}?`,
-    local: tpl.build(entry.w, entry.t),
-    say: tpl.say(entry.sayW, entry.sayT)
+    en: `${tpl.en} ${displayName}?`,
+    local: tpl.build(w, t),
+    say: tpl.say(sayW, sayT)
   }));
 }
 
 let openAsk = new Set(); // session-only expand state, keyed 'dayId:stopIdx' (separate from openTips)
 
-function askBlockHtml(stop, askKey){
+function askBlockHtml(stop, askKey, city){
   try {
-    const phrases = askPhrasesForStop(stop);
+    const phrases = askPhrasesForStop(stop, city);
     if(!phrases || !phrases.length) return '';
     const isOpen = openAsk.has(askKey);
     const itemsHtml = phrases.map(p => `
@@ -3348,7 +3387,7 @@ function renderItinerary(){
               </div>
             ` : ''}
           </div>
-          ${askBlockHtml(s, d.id+':'+si)}
+          ${askBlockHtml(s, d.id+':'+si, d.city)}
           ${tipsBlockHtml(s, d.id+':'+si)}
           <div class="stop-actions">
             <div class="stop-actions-row">

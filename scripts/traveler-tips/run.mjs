@@ -7,6 +7,7 @@
 //   node scripts/traveler-tips/run.mjs --only=eiffel-tower,palace-of-versailles
 //   node scripts/traveler-tips/run.mjs --force           # ignore freshness, re-research everything selected
 //   node scripts/traveler-tips/run.mjs --dry-run          # print the result, don't write data/traveler-tips.json
+//   node scripts/traveler-tips/run.mjs --verbose          # also print every raw evidence item fetched
 //
 // Requires env vars GEMINI_API_KEY and YOUTUBE_API_KEY. Reads them from
 // a .env file in the repo root if present (see .env.example). Evidence
@@ -23,10 +24,11 @@ import { isStale } from './lib/freshness.mjs';
 import { readStore, writeStore, DATA_PATH } from './lib/store.mjs';
 
 function parseArgs(argv) {
-  const args = { force: false, dryRun: false, only: null };
+  const args = { force: false, dryRun: false, only: null, verbose: false };
   for (const a of argv) {
     if (a === '--force') args.force = true;
     else if (a === '--dry-run') args.dryRun = true;
+    else if (a === '--verbose') args.verbose = true;
     else if (a.startsWith('--only=')) args.only = a.slice('--only='.length).split(',').map((s) => s.trim()).filter(Boolean);
   }
   return args;
@@ -36,7 +38,7 @@ function parseArgs(argv) {
 // function NEVER returns something that should overwrite a previously-
 // good entry with emptiness. A transient failure (no evidence this run,
 // an LLM error, a parse failure) just leaves whatever was there before.
-async function researchOne(activity) {
+async function researchOne(activity, { verbose = false } = {}) {
   console.log(`\n=== ${activity.name} (${activity.slug}) ===`);
 
   const [youtube, official] = await Promise.all([
@@ -45,6 +47,9 @@ async function researchOne(activity) {
   ]);
   const evidence = [...youtube, ...official];
   console.log(`  evidence collected: ${youtube.length} youtube, ${official.length} official`);
+  if (verbose) {
+    for (const e of evidence) console.log(`    [${e.sourceId}] (${e.type}) ${e.label}\n      "${e.text.replace(/\n/g, ' ').slice(0, 300)}"`);
+  }
 
   if (!evidence.length) {
     console.log('  no evidence from any source this run - leaving existing data (if any) untouched.');
@@ -100,7 +105,7 @@ async function main() {
   for (const activity of targets) {
     let entry;
     try {
-      entry = await researchOne(activity);
+      entry = await researchOne(activity, { verbose: args.verbose });
     } catch (e) {
       console.error(`  UNEXPECTED ERROR researching "${activity.slug}": ${e.message} - leaving existing data untouched.`);
       continue;

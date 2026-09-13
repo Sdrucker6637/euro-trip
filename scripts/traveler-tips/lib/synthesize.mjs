@@ -7,8 +7,14 @@ import { GoogleGenAI } from '@google/genai';
 import { CATEGORIES } from './categories.mjs';
 
 // gemini-2.5-flash was retired for new API keys (Sep 2026); the API's own
-// 404 error names gemini-3.6-flash as the replacement.
-const MODEL = 'gemini-3.6-flash';
+// 404 error named gemini-3.6-flash as the replacement, but that model's
+// free tier turned out to be capped at just 20 requests/day - hit
+// immediately on a real run (2nd activity). Switched to the "lite"
+// variant, gemini-3.5-flash-lite, matching the model already proven
+// issue-free at real usage in a separate app (bar-rating) - lite
+// variants get meaningfully higher free-tier rate limits than a
+// newer/more capable flash model.
+const MODEL = 'gemini-3.5-flash-lite';
 
 const SYSTEM_PROMPT = `You are extracting firsthand traveler intelligence for a personal travel itinerary app. You will be given real evidence (YouTube video titles/descriptions/comments, and/or an official site excerpt) about ONE specific place - an attraction, museum, café/restaurant, train station, or neighborhood.
 

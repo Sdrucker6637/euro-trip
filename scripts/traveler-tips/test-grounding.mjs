@@ -15,7 +15,7 @@ import 'dotenv/config';
 import { GoogleGenAI } from '@google/genai';
 import { CATEGORIES } from './lib/categories.mjs';
 
-const MODEL = 'gemini-3.6-flash';
+const MODEL = 'gemini-3.5-flash-lite'; // see synthesize.mjs for why - gemini-3.6-flash's free tier is capped at 20 requests/day
 
 // The required test set from the redesign spec: a mix of major landmark,
 // museum, small independent business, a scenic/nature spot, and a train

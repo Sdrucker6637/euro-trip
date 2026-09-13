@@ -63,6 +63,7 @@
   header{padding:22px 20px 18px;border-bottom:1px solid var(--glass-line);position:relative;background:var(--glass);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}
   .eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:0.04em;color:var(--amber);display:flex;justify-content:space-between;align-items:center;}
   .eyebrow .stamp{display:inline-flex;align-items:center;gap:5px;}
+  .eyebrow-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;}
   h1{font-family:var(--font-display);font-weight:600;margin-top:14px;}
   .h1-from{display:block;font-size:14px;font-weight:600;letter-spacing:0.05em;color:var(--muted);text-transform:uppercase;font-family:var(--font-mono);}
   .h1-rule{display:flex;align-items:center;gap:5px;margin:7px 0;}
@@ -224,6 +225,37 @@
   .tips-sources.open{display:block;}
   .tips-source-item{font-size:11px;margin-bottom:4px;color:var(--muted);}
   .tips-source-item a{color:var(--amber);text-decoration:none;border-bottom:1px dotted var(--amber);}
+
+  /* ---- Country Guide (static per-country briefing, separate feature from
+     Traveler Tips above - see COUNTRY_GUIDES in the script for why) ---- */
+  .guide-list{display:flex;flex-direction:column;gap:10px;}
+  .guide-card{background:rgba(227,165,66,0.04);border:1px dashed var(--glass-line);border-radius:3px 14px 14px 3px;overflow:hidden;}
+  .guide-head{display:flex;align-items:center;gap:10px;padding:12px 13px;cursor:pointer;}
+  .guide-flag{font-size:22px;flex-shrink:0;line-height:1;}
+  .guide-head-text{min-width:0;flex:1;}
+  .guide-name{font-family:var(--font-display);font-weight:600;font-size:14.5px;}
+  .guide-teaser{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4;}
+  .guide-chevron{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+  .guide-card.open .guide-chevron{transform:rotate(180deg);}
+  .guide-detail{display:none;padding:0 13px 13px;}
+  .guide-card.open .guide-detail{display:block;border-top:1px dashed var(--glass-line);padding-top:11px;}
+  .guide-section{margin-bottom:12px;}
+  .guide-section:last-of-type{margin-bottom:0;}
+  .guide-section-head{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.03em;color:var(--amber);margin-bottom:6px;}
+  .guide-list-items{margin:0;padding:0;list-style:none;}
+  .guide-list-items li{position:relative;padding-left:13px;font-size:12px;line-height:1.45;color:var(--cream);margin-bottom:5px;}
+  .guide-list-items li:last-child{margin-bottom:0;}
+  .guide-list-items li::before{content:'\2013';position:absolute;left:0;color:var(--muted);}
+  .guide-watchouts li::before{content:'!';color:var(--red);font-weight:600;left:2px;}
+  .guide-phrases{display:flex;flex-direction:column;gap:6px;}
+  .guide-phrase{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;padding:7px 9px;background:rgba(133,152,173,0.08);border-radius:2px 8px 2px 8px;}
+  .guide-phrase-main{min-width:0;}
+  .guide-phrase-local{color:var(--cream);font-weight:600;}
+  .guide-phrase-say{color:var(--muted);font-size:10.5px;font-style:italic;display:block;margin-top:1px;}
+  .guide-phrase-en{color:var(--muted);font-size:10px;font-family:var(--font-mono);flex-shrink:0;text-align:right;}
+  .guide-local-tip{padding:10px 11px;background:rgba(227,165,66,0.1);border:1px dashed var(--amber);border-radius:2px 10px 10px 2px;font-size:12px;line-height:1.5;color:var(--cream);}
+  .guide-meta{font-family:var(--font-mono);font-size:9.5px;color:var(--muted);letter-spacing:0.02em;margin-top:10px;padding-top:10px;border-top:1px dotted var(--glass-line);}
+
   @keyframes flash-save{0%{background:rgba(127,174,122,0.4);}100%{background:transparent;}}
   .flash-save{animation:flash-save 1.2s ease-out;border-radius:7px;padding:1px 4px;margin:-1px -4px;}
   /* Compact action-chip button used for every travel/utility action on a
@@ -344,7 +376,10 @@ window.addEventListener('unhandledrejection', function(e){
   <header>
     <div class="eyebrow">
       <span class="stamp">✈ EUROPE · 6 COUNTRIES</span>
-      <button id="howto-btn" class="info-btn" aria-label="How to use transport">ⓘ HOW-TO</button>
+      <div class="eyebrow-actions">
+        <button id="guide-btn" class="info-btn" aria-label="Country guide">🌍 GUIDE</button>
+        <button id="howto-btn" class="info-btn" aria-label="How to use transport">ⓘ HOW-TO</button>
+      </div>
     </div>
     <h1 aria-label="Amsterdam to Rome">
       <span class="h1-from">Amsterdam</span>
@@ -376,6 +411,16 @@ window.addEventListener('unhandledrejection', function(e){
         <h2>Apps worth having</h2>
         <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
       </div>
+    </div>
+  </div>
+
+  <div id="country-guide-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-head">
+        <span>🌍 Country Guide</span>
+        <button id="guide-close" class="modal-close" aria-label="Close">&#10005;</button>
+      </div>
+      <div class="modal-body" id="country-guide-body"></div>
     </div>
   </div>
 
@@ -1896,6 +1941,468 @@ const CITY_COUNTRY = {
   Vienna:'Austria', Budapest:'Hungary', Rome:'Italy'
 };
 
+// ============================================================================
+// Country Guide - a SEPARATE feature from Traveler Tips above. Traveler Tips
+// answer "what do recent visitors to this exact place wish they'd known?"
+// (place-specific, would need real research per stop). Country Guide answers
+// a different, much more stable question: "what basic, practical, cultural
+// things should I know before visiting this whole country?" That doesn't
+// change month to month, so unlike TRAVELER_TIPS this is hand-curated once,
+// hardcoded here like ITINERARY/CITY_COLOR/TIP_CATEGORIES, and loaded
+// synchronously with the rest of the app - no fetch, no research pipeline,
+// nothing to go stale silently or fail to load offline. `lastReviewed` is a
+// manual reminder of when a human last checked these facts still hold, nothing
+// more. Keyed by lowercased country name (matches CITY_COUNTRY's values) so
+// countryGuideOrder() below can derive trip order straight from the itinerary
+// with zero duplicated country data, and so a future "you're in France now"
+// contextual surface can key off the exact same CITY_COUNTRY lookup.
+//
+// Schema per entry:
+//   { name, flag, lastReviewed: 'YYYY-MM',
+//     tipping:[str], clothing:[str],
+//     phrases:[{en, local, say}],   // say = simple phonetic pronunciation
+//     water:[str], food:[str], payments:[str],
+//     bathrooms:[str],              // omit/empty when nothing genuinely useful to add
+//     transit:[str], etiquette:[str], watchouts:[str],
+//     localTip: str }
+const COUNTRY_GUIDES = {
+  netherlands: {
+    name: 'Netherlands', flag: '🇳🇱', lastReviewed: '2026-09',
+    tipping: [
+      'Service is already included in the price - a tip is a bonus, not an obligation.',
+      'Rounding up is the norm (e.g. a €23.40 bill becomes €25), paid by card by telling the terminal the new total or tapping again for the difference.',
+      'Taxis: round up to the nearest euro - a fixed percentage isn’t expected.',
+      'Hotels: tipping porters/housekeeping is uncommon outside upscale hotels; a couple euros for bag help is plenty.',
+      'Americans commonly get wrong: leaving 15-20% like at home - servers won’t expect it and may find it confusing rather than generous.'
+    ],
+    clothing: [
+      'Casual, practical dress is the norm everywhere, including most nicer restaurants - no strict dress codes to worry about.',
+      'Churches: covered shoulders are polite but rarely enforced, unlike the hard rules further south.',
+      'Bikes are everywhere - avoid all-black or very dark clothing at dusk so you’re visible if you step into a bike lane.'
+    ],
+    phrases: [
+      {en:'Hello', local:'Hallo', say:'HAH-loh'},
+      {en:'Please', local:'Alstublieft', say:'AHL-stew-bleeft'},
+      {en:'Thank you', local:'Dank je wel', say:'dahnk yuh vel'},
+      {en:'Sorry / excuse me', local:'Sorry', say:'SOR-ee (yes, they just use the English word)'},
+      {en:'Cheers', local:'Proost', say:'PROHST'}
+    ],
+    water: [
+      'Tap water is safe and tastes good - Amsterdam’s is some of the most rigorously tested in Europe.',
+      'Bottled water isn’t expected; asking for tap water ("kraanwater") at a restaurant is normal and free, though you may need to ask specifically.',
+      'No widespread public drinking fountains in the city center like some other capitals - bring a refillable bottle.'
+    ],
+    food: [
+      'Dinner is early by Southern-European standards - most locals eat 6-7:30pm and kitchens can close by 9-9:30pm even in the center.',
+      'Bread isn’t automatically brought as a free starter the way it is in France - order it if you want it.',
+      'Splitting the bill ("apart betalen") is completely normal and servers are used to itemizing it on request.',
+      'Cafés are for coffee; "coffeeshops" sell cannabis - don’t mix the two up when asking a local for a coffee recommendation.',
+      'Service is efficient but not attentive by US standards - make eye contact or ask for "de rekening" when you want the bill; it won’t appear on its own.'
+    ],
+    payments: [
+      'Contactless/card is dominant, including small cafés and market stalls.',
+      'Carry a little cash for public toilets and some canal-side snack stands.',
+      'Make sure your card works chip-and-PIN - some unattended machines (transit kiosks, parking) don’t accept chip-and-signature.'
+    ],
+    bathrooms: [
+      'Train station toilets are coin-operated (roughly €0.50-1), often through a turnstile - keep coins on hand.'
+    ],
+    transit: [
+      'Tap in AND tap out on trams/buses/metro with your card - forgetting to tap out charges you the maximum possible fare.',
+      'Bike lanes are effectively a separate traffic system - look both ways before stepping into one, even on a green pedestrian light.',
+      'Escalators: stand right, walk left.'
+    ],
+    etiquette: [
+      'Directness is cultural, not rudeness - blunt opinions aren’t meant personally.',
+      'Punctuality matters even for casual plans - text ahead if you’ll be more than ~10 minutes late.'
+    ],
+    watchouts: [
+      'Tipping 15-20% like at home - it isn’t expected and can read as odd rather than generous.',
+      'Wandering into a bike lane without looking both ways - a leading cause of tourist injuries in Amsterdam.',
+      'Mixing up a "coffeeshop" with a café.',
+      'Forgetting to tap out on transit, which charges the maximum fare automatically.'
+    ],
+    localTip: 'Everyone budgets for the museums and canals - budget for a bike lane collision instead: look both ways, every time, even on a green light.'
+  },
+  france: {
+    name: 'France', flag: '🇫🇷', lastReviewed: '2026-09',
+    tipping: [
+      'A ~15% service charge ("service compris") is built into every restaurant bill by law - tipping is not required.',
+      'Rounding up or leaving a few extra euros for good service is appreciated but genuinely optional, never automatic.',
+      'Taxis: round up to the nearest euro or so - no percentage expected.',
+      'Hotels: €1-2 per bag for porters if used; housekeeping tips aren’t customary.',
+      'Americans commonly get wrong: over-tipping 15-20% like at home, which can look like you think service isn’t already included.'
+    ],
+    clothing: [
+      'Parisians dress a notch more polished than typical American tourist wear - sneakers-and-shorts can get a look at nicer restaurants.',
+      'Churches (Notre-Dame, Sacré-Cœur): shoulders and knees covered - actually checked more than in some countries, not just a polite suggestion.',
+      'Nice restaurants: smart casual minimum; some upscale spots still expect a collared shirt for men.'
+    ],
+    phrases: [
+      {en:'Hello', local:'Bonjour', say:'bohn-ZHOOR'},
+      {en:'Please', local:'S’il vous plaît', say:'seel voo PLAY'},
+      {en:'Thank you', local:'Merci', say:'mehr-SEE'},
+      {en:'Excuse me', local:'Pardon', say:'par-DOHN'},
+      {en:'Do you speak English?', local:'Parlez-vous anglais?', say:'par-lay voo ahn-GLAY'}
+    ],
+    water: [
+      'Tap water ("l’eau du robinet" or "une carafe d’eau") is safe and free - ask for it explicitly, since servers default to offering bottled.',
+      'Paris’s cast-iron "Wallace fountains" scattered around the city are drinkable and free - most tourists never notice them.'
+    ],
+    food: [
+      'Lunch is 12-2pm, dinner rarely before 7:30-8pm; kitchens often close completely in between, unlike US all-day dining.',
+      'Bread is free and automatic, but butter isn’t always offered with it - that’s normal, not an oversight.',
+      'The bill never comes automatically - you must ask ("l’addition, s’il vous plaît"); waiting to be offered it can mean waiting all evening.',
+      'Splitting the bill item-by-item is uncommon and can visibly annoy waitstaff - simpler to let one person pay and settle up privately.',
+      'Coffee is a small strong espresso taken standing at the bar (cheaper) or after the meal, not alongside it - a big milky coffee with dinner reads as a tourist move.'
+    ],
+    payments: [
+      'Cards and contactless are very widely accepted, including small cafés.',
+      'Cash is still useful for bakeries and small purchases under roughly €10-15 in smaller towns.',
+      'Some smaller or rural card terminals don’t take Amex - carry a Visa/Mastercard as backup.'
+    ],
+    bathrooms: [
+      'Paris’s free, self-cleaning street toilets ("sanisettes," the round gray kiosks) are safe and worth using.',
+      'Café bathrooms are technically for paying customers - buying a coffee at the bar first is the easiest way in.'
+    ],
+    transit: [
+      'Metro: keep your ticket until you exit - RER regional lines require it again at the exit gate.',
+      'RER/regional trains need paper tickets validated in the small yellow "Composteur" machines before boarding, unlike the plain metro - skipping it risks a fine.',
+      'Let people off before boarding - orderly, quiet boarding is expected.'
+    ],
+    etiquette: [
+      'Say "Bonjour"/"Bonsoir" entering any shop and "Au revoir" leaving, even buying nothing - skipping it before a request is considered ruder than the request itself.',
+      'Even a few words of French land far better than starting straight in English.'
+    ],
+    watchouts: [
+      'Skipping "Bonjour" before asking for anything - the single most common thing Americans get wrong culturally here.',
+      'Over-tipping 15-20%, which isn’t needed since service is already included.',
+      'Trying to split a restaurant bill item-by-item - ask first, or just cover it and settle up outside.',
+      'Forgetting to validate a regional/RER paper ticket, which can mean an on-the-spot fine even holding a valid ticket.'
+    ],
+    localTip: 'Say "Bonjour" first, every single time, before you say anything else in a shop or café - it matters more than your accent or your French.'
+  },
+  switzerland: {
+    name: 'Switzerland', flag: '🇨🇭', lastReviewed: '2026-09',
+    tipping: [
+      'Service is legally built into the price of every bill - tipping is not required at all.',
+      'Rounding up to the next franc or two for good service is common but genuinely optional.',
+      'Taxis: round up to the nearest franc; no percentage expected.',
+      'Hotels: tipping porters/housekeeping isn’t customary, though a franc or two for bag help is fine.',
+      'Americans commonly get wrong: assuming a tip is required the way it is at home - staff are salaried and don’t rely on tips.'
+    ],
+    clothing: [
+      'Dress is neat and understated rather than flashy - flip-flops or tank tops stand out more here than in most of Europe.',
+      'No strict church dress codes in the areas most travelers visit, but covered shoulders are still the polite default.',
+      'If visiting a thermal bath/spa near Interlaken, swimwear is required - pack a suit.'
+    ],
+    phrases: [
+      {en:'Hello', local:'Grüezi', say:'GROO-eh-tsee (Swiss German, not standard "Hallo")'},
+      {en:'Please', local:'Bitte', say:'BIT-uh'},
+      {en:'Thank you', local:'Merci vielmal', say:'mer-SEE feel-mahl (Swiss German borrows French "merci")'},
+      {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
+      {en:'Cheers', local:'Prost', say:'PROHST - hold eye contact when you say it'}
+    ],
+    water: [
+      'Tap water is exceptionally safe and high quality - among the best in the world - and asking for it at a restaurant is completely normal.',
+      'Public fountains in towns and villages almost always run drinkable water unless marked "kein Trinkwasser" (not drinking water) - free refills everywhere.'
+    ],
+    food: [
+      'Meals run earlier and more scheduled than Southern Europe - dinner is often 6:30-8pm and kitchens close promptly.',
+      'Restaurants are genuinely expensive by American standards even for casual food - a basic meal easily runs the equivalent of $25-35; that’s normal pricing, not a tourist markup.',
+      'Ask for separate checks ("getrennt, bitte") without any awkwardness - splitting is completely normal.',
+      '"Kaffee fertig" (coffee with a shot of schnapps) is a Bernese Oberland specialty worth trying near Interlaken.',
+      'Service is efficient but unhurried - nobody will rush your table, but nobody will bring the bill unasked either.'
+    ],
+    payments: [
+      'Cards and contactless (including Apple Pay) are accepted almost everywhere, even small kiosks and mountain huts.',
+      'Switzerland uses Swiss francs (CHF), not euros - some tourist spots near borders take euros but give change in francs at a poor rate, so pay in francs when possible.',
+      'Carry some cash for smaller mountain cafés/huts where card readers can lose signal.'
+    ],
+    bathrooms: [
+      'Major stations (including Interlaken) have "McClean" pay toilets (~2 CHF) that include a voucher usable at attached shops - not wasted money.'
+    ],
+    transit: [
+      'No ticket gates anywhere - it runs on an honor system, so buy your ticket via the SBB Mobile app or a machine before boarding; random inspections carry a real on-the-spot fine (~100 CHF).',
+      'Trains leave exactly on time, not a "few minutes late" buffer like many countries - arrive a couple minutes early.',
+      'Trains are quiet by default system-wide, not just in a designated car - take phone calls in the vestibule.',
+      'Escalators: stand right, walk left.'
+    ],
+    etiquette: [
+      'Punctuality is taken seriously for any plan, not just business.',
+      'Hold eye contact when toasting ("Prost"/"Santé") - skipping it is considered bad luck/bad manners here more strictly than most places.',
+      'Sorting trash/recycling properly is a real social norm, observed even at tourist spots.'
+    ],
+    watchouts: [
+      'Boarding without a valid ticket, assuming no gates means no enforcement - inspectors do check and fines are real.',
+      'Assuming euros work everywhere at a fair rate - ask first, or just use francs.',
+      'Breaking eye contact during a toast.',
+      'Underestimating meal costs - Switzerland runs roughly 30-50% above its neighbors.'
+    ],
+    localTip: 'Trains leave exactly on the minute shown - treat "the 10:14" as departing at 10:14:00, not "10:14-ish," and you’ll never miss a connection.'
+  },
+  austria: {
+    name: 'Austria', flag: '🇦🇹', lastReviewed: '2026-09',
+    tipping: [
+      'Round up or add ~5-10% for table service - state the total you want to pay when the bill arrives (bill is €27, say "thirty" to make it €30), rather than leaving cash behind.',
+      'At a traditional Kaffeehaus, a small tip (rounding up) is customary even for just one coffee.',
+      'Taxis: round up to the nearest euro or so.',
+      'Hotels: a euro or two for porters is appreciated but not obligatory.',
+      'Americans commonly get wrong: leaving cash on the table and walking away instead of stating the total when paying - tipping here is spoken, not left behind.'
+    ],
+    clothing: [
+      'Smart-casual is the norm; Vienna’s classical concerts/opera skew dressier, though there’s no strictly enforced code for tourists.',
+      'Churches (Stephansdom, etc.): shoulders and knees covered.',
+      'Traditional Austrian spas vary by facility on nude vs. suited areas, unlike Swiss/French spas - check the specific venue and bring a suit regardless.'
+    ],
+    phrases: [
+      {en:'Hello', local:'Grüß Gott', say:'GROOS got (more traditional/formal than "Hallo")'},
+      {en:'Please', local:'Bitte', say:'BIT-uh'},
+      {en:'Thank you', local:'Danke', say:'DAHN-kuh'},
+      {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
+      {en:'Cheers', local:'Prost', say:'PROHST'}
+    ],
+    water: [
+      'Tap water is safe and high quality - Vienna’s comes from Alpine springs and is genuinely some of the best-tasting of any capital.',
+      'A glass of water is often brought free alongside coffee automatically at a Kaffeehaus; asking for tap water at other restaurants is fine but less commonly requested than in the US.'
+    ],
+    food: [
+      'Ordering one coffee at a Kaffeehaus entitles you to the table for hours - no pressure to order more or leave quickly.',
+      'Lunch 12-2pm, dinner from 6:30-7pm on; many kitchens close earlier than in Southern Europe.',
+      'Ask for separate checks ("getrennt, bitte") - normal and expected.',
+      'Service is formal and reserved compared to the US - waitstaff won’t hover or small-talk; that’s professionalism, not rudeness.',
+      'Sides for large mains (like schnitzel) often need to be ordered separately - don’t expect them bundled in by default.'
+    ],
+    payments: [
+      'Cards/contactless are widely accepted in Vienna proper, but Austria overall still leans on cash more than the Netherlands.',
+      'Carry some cash for the Naschmarkt, smaller Heurigen (wine taverns), and traditional restaurants.'
+    ],
+    bathrooms: [
+      'Public toilets in central Vienna, including the historic Jugendstil pavilions, sometimes have a small fee or an attendant expecting ~€0.50.'
+    ],
+    transit: [
+      'U-Bahn/tram network has no ticket gates - it’s honor-system, but random inspections carry a real fine (€70+) for an unvalidated/invalid ticket.',
+      'Paper tickets must be stamped at the small machines at the platform entrance before boarding, even if bought in advance.',
+      'Escalators: stand right, walk left - taken seriously in Vienna’s deep U-Bahn stations.'
+    ],
+    etiquette: [
+      'Formality matters more here than in the Netherlands - use titles ("Herr/Frau") with anyone you don’t know well.',
+      'Jaywalking gets noticed, even on empty streets - locals wait for the green signal.'
+    ],
+    watchouts: [
+      'Leaving a tip on the table instead of stating the rounded total when paying.',
+      'Riding the U-Bahn/tram with an unvalidated ticket, assuming no gates means no enforcement.',
+      'Jaywalking on an empty street.',
+      'Expecting a quick Kaffeehaus stop - it’s built for lingering, which can throw off a tight schedule.'
+    ],
+    localTip: 'At a Kaffeehaus, one coffee buys you the table for as long as you want - nobody will rush you, so don’t rush yourself either.'
+  },
+  hungary: {
+    name: 'Hungary', flag: '🇭🇺', lastReviewed: '2026-09',
+    tipping: [
+      'Tipping ~10% is expected at restaurants, not just optional - check the bill first, since some tourist-area places already add a service charge ("szervizdíj").',
+      'Never leave cash on the table - hand it directly to the server or state your total when paying by card.',
+      'Taxis: round up or add ~10%, and only use licensed taxis (Bolt or marked city cabs) - unmetered cars near tourist spots are a known overcharge scam.',
+      'Hotels: a few hundred forint (~$1-2) for porters is appreciated.',
+      'Americans commonly get wrong: assuming a service charge is already included and skipping the tip - always check the bill for "szervizdíj" before deciding.'
+    ],
+    clothing: [
+      'Casual dress is fine for most of the city.',
+      'Churches (Matthias Church, St. Stephen’s Basilica): shoulders and knees covered.',
+      'Thermal baths (Széchenyi, Gellért): a swimsuit is required, bring or rent one plus a towel, and pack sandals since deck areas are slippery stone.'
+    ],
+    phrases: [
+      {en:'Hello', local:'Szia', say:'SEE-yah'},
+      {en:'Please', local:'Kérem', say:'KAY-rem'},
+      {en:'Thank you', local:'Köszönöm', say:'KUH-suh-nuhm'},
+      {en:'Excuse me', local:'Elnézést', say:'EL-nay-zaysht'},
+      {en:'Do you speak English?', local:'Beszél angolul?', say:'BES-ayl AHN-goh-lool'}
+    ],
+    water: [
+      'Tap water is safe to drink throughout Budapest.',
+      'Restaurants will bring water only if you ask, and some quietly default to charging for bottled unless you say "csapvíz" (tap water) specifically.'
+    ],
+    food: [
+      'Lunch is often the bigger meal for locals - set "menü" lunch specials are noticeably better value than dinner.',
+      'Bread is usually complimentary but can carry a small per-person cover charge - check the menu fine print.',
+      'Splitting the bill is fine to ask for.',
+      'Budapest’s grand old cafés rival Vienna’s - lingering over one coffee is normal and welcomed.',
+      'Portions run large and hearty (goulash, stews) - sharing a starter won’t raise eyebrows.'
+    ],
+    payments: [
+      'Hungary uses forint (HUF), not euros - tourist spots that quote prices in euros usually offer a bad exchange rate, so pay in forint when possible.',
+      'Cards/contactless are widely accepted in Budapest, including on public transit.',
+      'Carry some cash for thermal bath locker/towel deposits, small vendors, and tipping.'
+    ],
+    bathrooms: [
+      'At the thermal baths, attendants sometimes expect a small tip (~200-500 HUF) for locker/cabin assistance.'
+    ],
+    transit: [
+      'Metro/tram tickets must be validated at the small orange machines when boarding - Budapest is known for stricter-than-average fare inspection with real on-the-spot fines.',
+      'Metro Line 1 (one of the oldest in the world) has very short, closely-spaced trains - don’t expect subway-scale cars.',
+      'Escalators: stand right, walk left, especially in the very deep Soviet-era stations.'
+    ],
+    etiquette: [
+      'Never clink beer glasses when toasting - a 19th-century tradition (tied to the 1848-49 revolution) still widely observed; clink wine or spirits instead, or just say "Egészségedre" without clinking beer.',
+      'Hungarian is unrelated to German, French, or English - a few memorized phrases go further here than in most of Europe.'
+    ],
+    watchouts: [
+      'Getting into an unlicensed/unmetered taxi near tourist areas - a well-known overcharging scam; use Bolt or a marked city taxi instead.',
+      'Clinking beer glasses when toasting.',
+      'Assuming a menu’s euro price is a fair conversion - pay in forint.',
+      'Skipping the tip assuming it’s included - check for "szervizdíj" rather than guessing.'
+    ],
+    localTip: 'Don’t clink beer glasses when someone says "Egészségedre" - it’s a real, still-observed taboo, not travel-blog trivia.'
+  },
+  italy: {
+    name: 'Italy', flag: '🇮🇹', lastReviewed: '2026-09',
+    tipping: [
+      'Tipping isn’t expected the way it is in the US - rounding up a euro or two, or leaving small change, covers a casual meal.',
+      'Watch for "coperto" (a per-person cover charge, usually €1-3) on the bill - it’s standard practice, not a scam, and separate from any tip.',
+      'Taxis: round up to the nearest euro; no percentage expected.',
+      'Hotels: a euro or two for porters at nicer hotels; not expected at casual stays.',
+      'Americans commonly get wrong: tipping 15-20% like at home, or getting annoyed at the "coperto" thinking it’s a scam.'
+    ],
+    clothing: [
+      'Casual is fine, but Italians dress a notch more put-together day-to-day than typical American tourist wear, even in summer heat.',
+      'St. Peter’s Basilica and the Vatican strictly enforce shoulders AND knees covered for everyone, guards turn people away at the door - more than the "polite suggestion" norm elsewhere.',
+      'Nice restaurants expect smart casual; flip-flops/beachwear are notably out of place even steps from the coast.'
+    ],
+    phrases: [
+      {en:'Hello', local:'Buongiorno', say:'bwohn-JOR-noh (more polite than "Ciao" in shops)'},
+      {en:'Please', local:'Per favore', say:'pehr fah-VOH-reh'},
+      {en:'Thank you', local:'Grazie', say:'GRAH-tsee-eh'},
+      {en:'Excuse me', local:'Scusi', say:'SKOO-zee'},
+      {en:'Cheers', local:'Cin cin', say:'cheen cheen'}
+    ],
+    water: [
+      'Tap water is safe to drink throughout Rome and most of Italy.',
+      'Rome has hundreds of public drinking fountains ("nasoni") with free, cold, constantly-running water - bring a refillable bottle, it’s one of the best free perks in the city.',
+      'Restaurants default to bringing (and charging for) bottled water and will ask "still or sparkling" - tap water ("acqua del rubinetto") exists but is uncommon to request.'
+    ],
+    food: [
+      'Meal timing is late by American standards - lunch rarely before 12:30-1pm, dinner rarely before 7:30-8pm, with many kitchens simply closed between.',
+      'Cappuccino is a breakfast-only drink here - ordering one after 11am or with a meal is a dead giveaway; espresso is the norm afterward.',
+      'Bread is for eating with food, not dipped in oil as a starter the way American-Italian restaurants do it.',
+      'The bill won’t arrive until you ask ("il conto, per favore") - considered polite, not neglect.',
+      'Splitting the bill item-by-item is uncommon; easier to divide evenly or have one person cover it.',
+      'At an old-school bar/café, standing at the counter ("al banco") is cheaper than sitting at a table - order and pay at the register first in many.'
+    ],
+    payments: [
+      'Cards/contactless are widely accepted in Rome, including small shops and taxis, more so than older guidebooks suggest.',
+      'Carry some cash for small trattorias, market stalls, and public restrooms, especially outside the center.',
+      'Some small family-run restaurants prefer cash or have a card minimum - ask before ordering if unsure.'
+    ],
+    bathrooms: [
+      'Bar/café restrooms are technically for paying customers - a quick counter espresso (often €1-1.50) is the easiest way in.',
+      'Public pay toilets near major sights (Colosseum, Vatican area) typically cost ~€1.'
+    ],
+    transit: [
+      'Metro/bus tickets must be validated by stamping them at the platform or on board - an unvalidated ticket, even one that’s paid for, can mean a fine as if you had none.',
+      'Buses board through any door, but you must validate immediately, not just carry a ticket.',
+      'Escalators: stand right, walk left, though it’s less consistently observed in Rome than further north.'
+    ],
+    etiquette: [
+      'Greet shopkeepers with "Buongiorno"/"Buonasera" before asking anything, similar to French custom.',
+      'Dress modestly for churches beyond just the Vatican - many active churches enforce it, not only tourist sites.'
+    ],
+    watchouts: [
+      'Ordering a cappuccino after breakfast hours - a dead tourist giveaway.',
+      'Getting confused by the "coperto" cover charge and assuming it’s a scam - it’s standard and legal.',
+      'Getting turned away from the Vatican/St. Peter’s for bare shoulders or knees, even in extreme heat.',
+      'Riding transit with an unvalidated ticket, even if it’s technically paid for.'
+    ],
+    localTip: 'Carry a scarf or light cover-up specifically for church visits - you WILL be turned away from St. Peter’s for bare shoulders no matter how hot it is outside.'
+  }
+};
+
+// Session-only expand state for guide cards, exactly like openTips/openDays -
+// all collapsed by default so the modal opens compact, not a wall of text.
+let openGuides = new Set();
+
+function guideBulletsHtml(items, extraClass){
+  if(!items || !items.length) return '';
+  return `<ul class="guide-list-items${extraClass ? ' '+extraClass : ''}">${items.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
+}
+
+function guidePhrasesHtml(phrases){
+  if(!phrases || !phrases.length) return '';
+  return `<div class="guide-phrases">${phrases.map(p=>`
+    <div class="guide-phrase">
+      <div class="guide-phrase-main"><span class="guide-phrase-local">${escapeHtml(p.local)}</span><span class="guide-phrase-say">${escapeHtml(p.say)}</span></div>
+      <span class="guide-phrase-en">${escapeHtml(p.en)}</span>
+    </div>
+  `).join('')}</div>`;
+}
+
+function guideSectionHtml(icon, title, bodyHtml){
+  if(!bodyHtml) return '';
+  return `<div class="guide-section"><div class="guide-section-head">${icon} ${title}</div>${bodyHtml}</div>`;
+}
+
+function countryGuideCardHtml(slug){
+  const g = COUNTRY_GUIDES[slug];
+  if(!g) return '';
+  const isOpen = openGuides.has(slug);
+  return `
+    <div class="guide-card${isOpen ? ' open' : ''}">
+      <div class="guide-head" data-act="toggle-guide" data-key="${escapeHtml(slug)}">
+        <span class="guide-flag">${g.flag}</span>
+        <div class="guide-head-text">
+          <div class="guide-name">${escapeHtml(g.name)}</div>
+          <div class="guide-teaser">⭐ ${escapeHtml(g.localTip)}</div>
+        </div>
+        <span class="guide-chevron">▾</span>
+      </div>
+      <div class="guide-detail">
+        ${guideSectionHtml('💶', 'TIPPING', guideBulletsHtml(g.tipping))}
+        ${guideSectionHtml('👕', 'WHAT TO WEAR', guideBulletsHtml(g.clothing))}
+        ${guideSectionHtml('🗣️', 'USEFUL PHRASES', guidePhrasesHtml(g.phrases))}
+        ${guideSectionHtml('💧', 'WATER', guideBulletsHtml(g.water))}
+        ${guideSectionHtml('🍽️', 'FOOD & RESTAURANT CUSTOMS', guideBulletsHtml(g.food))}
+        ${guideSectionHtml('💳', 'PAYMENTS', guideBulletsHtml(g.payments))}
+        ${guideSectionHtml('🚻', 'BATHROOMS', guideBulletsHtml(g.bathrooms))}
+        ${guideSectionHtml('🚆', 'TRANSIT', guideBulletsHtml(g.transit))}
+        ${guideSectionHtml('🧠', 'CULTURAL ETIQUETTE', guideBulletsHtml(g.etiquette))}
+        ${guideSectionHtml('⚠️', 'WATCH OUTS', guideBulletsHtml(g.watchouts, 'guide-watchouts'))}
+        ${guideSectionHtml('⭐', 'LOCAL TIP', `<div class="guide-local-tip">${escapeHtml(g.localTip)}</div>`)}
+        <div class="guide-meta">Last reviewed ${escapeHtml(g.lastReviewed)}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Trip order, derived from the itinerary itself (via cityBlocks + CITY_COUNTRY)
+// rather than hardcoded a second time - stays correct automatically if stops
+// are ever reordered, and gives a future "you're in France now" contextual
+// surface the exact same country-per-day mapping to key off.
+function countryGuideOrder(){
+  const seen = new Set();
+  const order = [];
+  for(const block of cityBlocks()){
+    const country = CITY_COUNTRY[block.city];
+    if(!country) continue;
+    const slug = country.toLowerCase();
+    if(seen.has(slug) || !COUNTRY_GUIDES[slug]) continue;
+    seen.add(slug);
+    order.push(slug);
+  }
+  return order;
+}
+
+function renderCountryGuides(){
+  const el = document.getElementById('country-guide-body');
+  if(!el) return;
+  el.innerHTML = `<div class="guide-list">${countryGuideOrder().map(countryGuideCardHtml).join('')}</div>`;
+  el.querySelectorAll('[data-act="toggle-guide"]').forEach(head=>{
+    head.addEventListener('click', ()=>{
+      const key = head.dataset.key;
+      if(openGuides.has(key)) openGuides.delete(key); else openGuides.add(key);
+      head.closest('.guide-card').classList.toggle('open');
+    });
+  });
+}
+
 const geocodeCache = {};
 async function geocodeQuery(q){
   try {
@@ -2856,6 +3363,16 @@ document.getElementById('howto-modal').addEventListener('click', (e)=>{
   if(e.target.id === 'howto-modal') e.target.classList.remove('open');
 });
 
+document.getElementById('guide-btn').addEventListener('click', ()=>{
+  document.getElementById('country-guide-modal').classList.add('open');
+});
+document.getElementById('guide-close').addEventListener('click', ()=>{
+  document.getElementById('country-guide-modal').classList.remove('open');
+});
+document.getElementById('country-guide-modal').addEventListener('click', (e)=>{
+  if(e.target.id === 'country-guide-modal') e.target.classList.remove('open');
+});
+
 document.getElementById('booking-modal-close').addEventListener('click', ()=>{
   document.getElementById('booking-modal').classList.remove('open');
 });
@@ -2870,6 +3387,7 @@ async function init(){
   await loadItineraryState();
   await loadTravelerTips();
   renderItinerary();
+  renderCountryGuides();
   await loadPackingState();
   renderChecklist();
   renderRouteLine();

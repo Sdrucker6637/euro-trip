@@ -21,9 +21,77 @@ visited, not generic AI travel advice. The bar every tip has to clear:
 "Book in advance." "Use public transportation." "Check the official
 website." Any advice that could apply to almost any tourist attraction.
 
+**Also bad** (real firsthand accounts, but isolated review noise with
+no broader pattern - a review is evidence to extract patterns from, not
+content to republish): "One reviewer said their waiter was rude."
+"Someone waited 40 minutes for food." "It rained when someone visited."
+"Staff was friendly." These are genuine experiences, but not
+decision-relevant - knowing them beforehand wouldn't actually change
+anyone's visit. Contrast with "Several visitors mention that seating is
+extremely limited" (same evidence pool, but a real repeatable pattern
+worth knowing).
+
 The litmus test used throughout the prompt and validation: **if a tip
-could have been written without researching this specific place, it
-should not be included.**
+could have been written without researching this specific place, or
+if it's a random one-off complaint with no repeatable pattern, it
+should not be included.** The key filter for every candidate tip: would
+knowing this *before* visiting actually help someone decide, avoid a
+problem, save time/money, or have a better experience? If no, discard
+it - regardless of whether it's generic advice or a real quote.
+
+## Why not "search the whole web" - the free-search investigation
+
+The ambition was to genuinely broaden research beyond YouTube +
+official sites - a small place like Café Pli may have no video
+coverage but real Google/Maps reviews, Yelp, Tripadvisor, blog
+mentions, or Reddit discussion that a general web search would surface
+and a research LLM could read. Several real options were investigated
+and each hit a wall:
+
+- **Gemini's own Google Search grounding** (`tools: [{googleSearch:{}}]`,
+  confirmed real and usable from the classic `generateContent` method
+  with per-claim citations via `groundingMetadata`) - every single
+  call failed immediately with a 429 quota/billing error. Google
+  Search grounding is not covered by the Gemini API's free tier, only
+  plain text generation is.
+- **Google Custom Search JSON API** - closed to new signups in 2025,
+  fully discontinued January 2027.
+- **Bing Web Search API** - Microsoft fully retired all Bing Search
+  APIs in August 2025.
+- **Brave Search API** - had a genuine no-card free tier through 2025,
+  but killed it in early 2026; new signups now hand over a card that
+  becomes an active billing instrument past a small threshold.
+- **Tavily** (a newer "search API for AI agents") - marketed as
+  1,000 free credits/month with no card required, and its own docs
+  describe a keyless mode needing zero signup. Neither held up in
+  practice: the signup flow asked for a card, and the documented
+  keyless endpoint returned "Unauthorized: missing or invalid API key"
+  when actually called.
+- **You.com's keyless MCP endpoint** - genuinely no-signup, but it's an
+  MCP-protocol-only endpoint (not a plain REST API), so using it from a
+  Node.js batch script would mean building an MCP client for a novel,
+  informal product feature with a very low daily cap (100/day) - the
+  same "could change or disappear without notice" risk category as a
+  volunteer SearXNG instance, which was already ruled out.
+
+Conclusion: as of September 2026, there is no reliable general web
+search API that is genuinely free with no card on file. Every real
+candidate either requires billing (even nominally "free" ones), has
+been discontinued outright, or didn't work as documented when actually
+tested. This was a deliberate, product-owner-approved decision to stop
+searching rather than keep spending effort chasing another one - see
+`scripts/traveler-tips/test-grounding.mjs`, a diagnostic harness for
+the Gemini-grounding approach, kept in the repo as a record of what was
+tried (not wired into the real pipeline; would need a paid Gemini tier
+to run).
+
+The fallback - and the current real architecture - is YouTube +
+official sites, executed as well as this can be: place-type-adapted
+queries, strict firsthand/non-generic/non-noise filtering, proper
+single-vs-multiple-source attribution. Café Pli (and any other small
+business with no YouTube presence) will legitimately come back with no
+tips - that's a correct "researched broadly within the available
+sources, found nothing that cleared the bar" outcome, not a bug.
 
 ## What's implemented
 
@@ -96,8 +164,11 @@ filter to stale-or-new (freshness.mjs), or an explicit --only list
         |
 per activity, in parallel, each independently wrapped so one failing
 never blocks the others:
-   YouTube Data API search (title/description) + a generous pool of
-   comments per video, filtered for substance before use (see below)
+   YouTube Data API search - queries adapted by place type (cafe/
+   restaurant, museum, train station, neighborhood, or a general
+   attraction default; classified heuristically from the name, see
+   classifyPlaceType() in youtube.mjs) - + a generous pool of comments
+   per video, filtered for substance before use (see below)
    official site (only if a hand-verified URL exists for this slug)
         |
 if literally zero evidence -> leave existing data untouched, move on
@@ -131,20 +202,25 @@ the most substantive ~15 per video.
 
 Each fetched item becomes `{ sourceId, type, label, url, text,
 publishedAt }`. The prompt (`lib/synthesize.mjs`) gets nothing but a
-list of these, tagged, for one named attraction, plus the goal framing
-and good/bad examples above. It is told, in order: only claim what's in
-the evidence; cite the exact `sourceId`(s); never invent a source,
-quote, or URL; YouTube evidence is title/description/comments only,
-never "the video shows X"; attribute community-sourced tips to real
-people ("Several visitors said...", "One traveler mentioned..."), state
+list of these, tagged, for one named place, plus the goal framing and
+good/bad examples above - now covering both failure modes: generic
+advice AND isolated review-noise complaints with no repeatable pattern
+(a review is evidence to extract a pattern from, not content to
+republish - "35 of 50 reviews say the food is good" is not a tip,
+"5 of 50 say seating is very limited" is). It is told, in order: only
+claim what's in the evidence; cite the exact `sourceId`(s); never
+invent a source, quote, or URL; YouTube evidence is title/description/
+comments only, never "the video shows X"; **consensus language must
+match the real evidence** - "One visitor said..." for a single source,
+"Several visitors said..."/"Multiple visitors mention..." only when
+independent sources actually agree, "visitors consistently..." only for
+genuinely strong repeated agreement, never manufactured; state
 official-site facts plainly since they aren't personal anecdotes;
 prefer official over YouTube evidence on conflicts; prefer recent over
-old; dedupe (multiple people saying the same specific thing is itself a
-signal, so merge and cite together rather than duplicate); use only the
-app's 9 category values; and never self-report a confidence level
-(rule 9 - confidence is computed by code, not trusted from the model).
-An empty tips array is a correct, useful answer when nothing clears the
-bar - explicitly preferred over padding with generic advice.
+old; dedupe; use only the app's 9 category values; and never
+self-report a confidence level (confidence is computed by code, not
+trusted from the model). An empty tips array is a correct, useful
+answer when nothing clears the bar - explicitly preferred over padding.
 
 ### Anti-hallucination / anti-generic gate (`validate.mjs`)
 
@@ -152,14 +228,20 @@ Nothing the LLM writes reaches `data/traveler-tips.json` un-checked:
 
 1. `category` must be one of the app's 9 known values.
 2. `text` must be non-empty.
-3. **`text` must not match a known-generic phrase pattern** ("go early",
-   "wear comfortable shoes", "bring water", "book in advance", "use
-   public transportation", "check the official website", "avoid
-   crowds", and close variants) - a mechanical backstop for the "5 real
-   visitors" bar, on the same "never fully trust the model" principle as
-   confidence below. Not exhaustive - a model could still phrase generic
-   advice a way this doesn't catch - but it catches the most common
-   failure mode regardless of how the prompt is worded.
+3. **`text` must not match a known-bad phrase pattern** - two lists in
+   `GENERIC_PHRASE_PATTERNS`: generic advice ("go early", "wear
+   comfortable shoes", "bring water", "book in advance", "use public
+   transportation", "check the official website", "avoid crowds") and
+   isolated review-noise ("staff was rude", "food was cold", "staff was
+   friendly", "bathroom was dirty", "reservation was messed up", "had a
+   bad experience", and close variants) - a mechanical backstop for the
+   "5 real visitors" bar, on the same "never fully trust the model"
+   principle as confidence below. Deliberately narrow/exact-phrase where
+   a broader match could false-reject a genuinely useful tip (e.g. no
+   blanket "busy" filter, since "gets very busy after 7pm" is a real,
+   specific, useful tip). Not exhaustive - a model could still phrase a
+   bad tip a way this doesn't catch - but it catches the most common
+   failure modes regardless of how the prompt is worded.
 4. Every cited `sourceId` is checked against a map of this run's
    **actually-fetched** evidence - a citation pointing at anything else
    is dropped silently.
@@ -275,6 +357,21 @@ no `--only`/`--force` only touches what's actually stale or new -
   mid-word ("...far more manageab") by a plain `slice()` - fixed to
   truncate at a word boundary with an ellipsis, plus a prompt nudge to
   keep tips concise so this triggers less often.
+- **Café Pli** specifically hit a real, separate bug: `slugify()`
+  dropped accented characters as separators instead of treating them as
+  their base letter ("Café Plié" -> "caf-pli", splitting/losing
+  letters; "Schönbrunn Palace" -> "sch-nbrunn-palace", already-real
+  itinerary stops affected too) - fixed with NFD Unicode normalization
+  before the existing collapse step. After the fix, Café Pli correctly
+  produced `entry: null` - a small independent café with no YouTube
+  coverage and no hand-curated official-site entry, so genuinely no
+  evidence to synthesize from. Confirmed this is the honest result, not
+  a bug, by attempting to broaden research beyond YouTube - see "Why
+  not 'search the whole web'" above.
+- **The review-noise rejection, place-type-adapted YouTube queries, and
+  updated consensus-language prompt have not yet been run against live
+  APIs** - that's the next real test, same dry-run-and-review discipline
+  as every prior change to this pipeline.
 
 ## Live research for newly-added stops (Vercel + Redis)
 

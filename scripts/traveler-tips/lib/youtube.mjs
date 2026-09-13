@@ -29,6 +29,56 @@ function isSubstantiveComment(text) {
   return true;
 }
 
+// No explicit "type" field exists on itinerary stops (adding one would
+// mean a schema change to the itinerary source, not just this research
+// pipeline) - classify from the name instead. Rough and heuristic, but
+// good enough to pick more relevant search angles than one generic
+// query for every place, per the redesign spec's "adapt research to
+// the type of place" requirement.
+function classifyPlaceType(name) {
+  // JS regex \b is ASCII-only - "café" followed by a space has no
+  // detectable word boundary after the accented "é" (it isn't \w
+  // either), so \bcaf[eé]\b silently fails to match. Strip diacritics
+  // first (same normalize/strip approach as index.html's slugify())
+  // so accented names classify correctly.
+  const n = String(name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/\b(cafe|restaurant|bistro|brasserie|bakery|patisserie|coffee|bar)\b/.test(n)) return 'cafe';
+  // No \b before "museum" here (unlike the other checks) - German/Dutch
+  // compound names (Rijksmuseum, Pergamonmuseum) have no space before
+  // it, and "museum" as a substring is specific enough to not misfire.
+  if (/museums?\b|\b(gallery|galleries)\b/.test(n)) return 'museum';
+  if (/\b(station|gare|bahnhof|hauptbahnhof|centraal|airport)\b/.test(n)) return 'station';
+  if (/\b(market|quarter|district|neighbo?rhood|old town)\b/.test(n)) return 'neighborhood';
+  return 'attraction';
+}
+
+// Two query angles per type, not one generic query for everything -
+// still bounded (2 search.list calls x 100 units, not proportionally
+// more video/comment fetches, since results are deduped and capped
+// below) to stay well inside the free daily quota across a full
+// itinerary. A YouTube search alone won't rescue a place with no video
+// coverage at all (a small café is unlikely to have YouTube videos
+// regardless of query wording) - that's a real, honest limitation of
+// this source, not something query-tuning can fix.
+const QUERY_ANGLES = {
+  cafe: ['review experience', 'what to order seating'],
+  museum: ['tips review', 'worth it queue exhibits'],
+  station: ['tips navigating', 'platforms transfer luggage'],
+  neighborhood: ['guide tips', 'hidden worth it mistakes'],
+  attraction: ['tips review', 'wish I knew mistakes worth it'],
+};
+
+async function searchVideos(query, apiKey, maxResults) {
+  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${maxResults}&relevanceLanguage=en&q=${encodeURIComponent(query)}&key=${apiKey}`;
+  const searchRes = await fetch(searchUrl);
+  if (!searchRes.ok) {
+    console.warn(`  [youtube] search failed (${searchRes.status}) for "${query}"`);
+    return [];
+  }
+  const searchData = await searchRes.json();
+  return searchData.items || [];
+}
+
 export async function fetchYoutubeEvidence(activity, { maxVideos = 8, maxCommentsPerVideo = 15 } = {}) {
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
@@ -36,14 +86,11 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 8, maxComment
     return [];
   }
 
-  const q = `${activity.name} tips review`;
-  const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${maxVideos}&relevanceLanguage=en&q=${encodeURIComponent(q)}&key=${apiKey}`;
-  const searchRes = await fetch(searchUrl);
-  if (!searchRes.ok) {
-    console.warn(`  [youtube] search failed (${searchRes.status}) for "${q}"`);
-    return [];
-  }
-  const searchData = await searchRes.json();
+  const placeType = classifyPlaceType(activity.name);
+  const angles = QUERY_ANGLES[placeType];
+  const perQueryResults = await Promise.all(
+    angles.map((angle) => searchVideos(`${activity.name} ${angle}`, apiKey, maxVideos))
+  );
 
   // Fetch every video's comments in parallel (each video's fetch was
   // previously sequential, adding real latency for no benefit - now
@@ -51,15 +98,24 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 8, maxComment
   // within an HTTP request). sourceIds are assigned in a final pass over
   // videos in their original order, not fetch-completion order, so they
   // stay deterministic regardless of which comment fetch finishes first.
-  const videos = (searchData.items || [])
-    .filter((item) => item.id?.videoId)
-    .map((item) => ({
-      videoId: item.id.videoId,
-      url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
-      title: decodeHtmlEntities(item.snippet.title || ''),
-      description: decodeHtmlEntities((item.snippet.description || '').slice(0, 600)),
-      publishedAt: item.snippet.publishedAt || null,
-    }));
+  const seenVideoIds = new Set();
+  const videos = [];
+  for (const items of perQueryResults) {
+    for (const item of items) {
+      const videoId = item.id?.videoId;
+      if (!videoId || seenVideoIds.has(videoId)) continue;
+      seenVideoIds.add(videoId);
+      videos.push({
+        videoId,
+        url: `https://www.youtube.com/watch?v=${videoId}`,
+        title: decodeHtmlEntities(item.snippet.title || ''),
+        description: decodeHtmlEntities((item.snippet.description || '').slice(0, 600)),
+        publishedAt: item.snippet.publishedAt || null,
+      });
+      if (videos.length >= maxVideos) break;
+    }
+    if (videos.length >= maxVideos) break;
+  }
 
   const commentsByVideo = await Promise.all(
     videos.map(async (v) => {

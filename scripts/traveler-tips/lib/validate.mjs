@@ -9,13 +9,23 @@ const VALID_CONFIDENCE = new Set(['high', 'medium', 'low']);
 // Mechanical backstop for synthesize.mjs's "would 5 recent visitors
 // actually say this" bar - never fully trust a prompt to enforce this
 // on its own (same reasoning as computing confidence in code instead of
-// trusting the LLM). Catches the exact generic phrasings the product
-// spec calls out as bad, and close variants, regardless of how the
-// prompt is worded. Not exhaustive - a determined model could still
-// phrase generic advice a way this doesn't catch - but it's a real
-// backstop for the most common failure mode, not just relying on
-// prompt wording.
+// trusting the LLM). Catches the exact phrasings the product spec calls
+// out as bad, and close variants, regardless of how the prompt is
+// worded. Not exhaustive - a determined model could still phrase a bad
+// tip a way this doesn't catch - but it's a real backstop for the most
+// common failure modes, not just relying on prompt wording.
+//
+// Two distinct failure modes, both rejected the same way:
+// (1) generic AI travel advice that could apply to almost any place
+// (2) isolated review-noise complaints/sentiment with no broader
+//     pattern - genuinely firsthand, but not decision-relevant. Kept
+//     narrow/exact-phrase here on purpose: something like "gets very
+//     busy after 7pm, arrive before then" is a real, useful, specific
+//     tip that happens to mention crowding - a blanket "busy" filter
+//     would wrongly reject it, so patterns below match the vague
+//     complaint shape, not any mention of the underlying topic.
 const GENERIC_PHRASE_PATTERNS = [
+  // generic advice
   /\bgo(\s+there)?\s+early\b/i,
   /\barrive\s+early\b/i,
   /\bwear\s+comfortable\s+shoes\b/i,
@@ -27,6 +37,18 @@ const GENERIC_PHRASE_PATTERNS = [
   /\bavoid\s+(the\s+)?crowds?\b/i,
   /\bwear\s+sunscreen\b/i,
   /\btake\s+plenty\s+of\s+photos?\b/i,
+  // isolated review-noise / trivial complaints
+  /\b(waiter|server|staff)\s+(was|were|seemed)\s+(rude|unfriendly|tired)\b/i,
+  /\bstaff\s+(was|were)\s+(friendly|nice)\b/i,
+  /\b(food|meal|order)\s+(was|is)\s+cold\b/i,
+  /\bbathroom\s+was\s+dirty\b/i,
+  /\bit\s+(was\s+)?rain(ed|ing)\s+(when|during)\b/i,
+  /\breservation\s+(was\s+)?(messed|mixed)\s+up\b/i,
+  /\bdidn'?t\s+like\s+the\s+music\b/i,
+  /\bline\s+was\s+annoying\b/i,
+  /\bhad\s+a\s+bad\s+experience\b/i,
+  /\b(meal|food|order)\s+wasn'?t\s+good\b/i,
+  /\bpeople\s+(generally\s+)?lik(e|ed)\s+the\s+food\b/i,
 ];
 
 function isGenericPhrase(text) {

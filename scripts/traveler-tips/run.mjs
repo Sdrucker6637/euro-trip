@@ -59,9 +59,21 @@ async function researchOne(activity) {
     return null;
   }
 
+  // Distinguish "the LLM itself found nothing worth reporting" (a
+  // correct, valuable outcome per the quality bar) from "the LLM
+  // proposed tips but validate.mjs rejected them" (also correct, but
+  // worth being able to see WHY when reviewing real output) - a bare
+  // "no tip survived validation" message hides which of these happened.
+  if (!synth.tips.length) {
+    console.log('  Gemini returned zero tips (nothing cleared its own quality bar) - leaving existing data untouched.');
+    return null;
+  }
+  console.log(`  Gemini proposed ${synth.tips.length} tip(s) before validation:`);
+  for (const t of synth.tips) console.log(`    [${t.category}] ${t.text} (cited: ${JSON.stringify(t.sourceIds)})`);
+
   const entry = validateAndBuildEntry(synth.tips, evidence);
   if (!entry) {
-    console.log('  no tip survived validation - leaving existing data untouched.');
+    console.log('  none survived validation (invalid category/citation, or matched a known-bad phrase pattern) - leaving existing data untouched.');
     return null;
   }
   console.log(`  validated: ${entry.tips.length} tip(s) from ${entry.sources.length} source(s).`);

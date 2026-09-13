@@ -247,6 +247,9 @@
   .guide-list-items li:last-child{margin-bottom:0;}
   .guide-list-items li::before{content:'\2013';position:absolute;left:0;color:var(--muted);}
   .guide-watchouts li::before{content:'!';color:var(--red);font-weight:600;left:2px;}
+  .guide-phrase-group{margin-bottom:10px;}
+  .guide-phrase-group:last-child{margin-bottom:0;}
+  .guide-phrase-group-label{font-family:var(--font-mono);font-size:9.5px;font-weight:600;letter-spacing:0.04em;color:var(--muted);text-transform:uppercase;margin-bottom:5px;}
   .guide-phrases{display:flex;flex-direction:column;gap:6px;}
   .guide-phrase{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:12px;padding:7px 9px;background:rgba(133,152,173,0.08);border-radius:2px 8px 2px 8px;}
   .guide-phrase-main{min-width:0;}
@@ -1960,7 +1963,11 @@ const CITY_COUNTRY = {
 // Schema per entry:
 //   { name, flag, lastReviewed: 'YYYY-MM',
 //     tipping:[str], clothing:[str],
-//     phrases:[{en, local, say}],   // say = simple phonetic pronunciation
+//     phrases:[{group, items:[{en, local, say}]}],  // grouped by situation
+//                                    // (Basics / Dining Out / Getting Around
+//                                    // & Help) rather than one flat list, so
+//                                    // it stays scannable as it grows; say =
+//                                    // simple phonetic pronunciation
 //     water:[str], food:[str], payments:[str],
 //     bathrooms:[str],              // omit/empty when nothing genuinely useful to add
 //     transit:[str], etiquette:[str], watchouts:[str],
@@ -1981,11 +1988,24 @@ const COUNTRY_GUIDES = {
       'Bikes are everywhere - avoid all-black or very dark clothing at dusk so you’re visible if you step into a bike lane.'
     ],
     phrases: [
-      {en:'Hello', local:'Hallo', say:'HAH-loh'},
-      {en:'Please', local:'Alstublieft', say:'AHL-stew-bleeft'},
-      {en:'Thank you', local:'Dank je wel', say:'dahnk yuh vel'},
-      {en:'Sorry / excuse me', local:'Sorry', say:'SOR-ee (yes, they just use the English word)'},
-      {en:'Cheers', local:'Proost', say:'PROHST'}
+      {group:'Basics', items:[
+        {en:'Hello', local:'Hallo', say:'HAH-loh'},
+        {en:'Please', local:'Alstublieft', say:'AHL-stew-bleeft'},
+        {en:'Thank you', local:'Dank je wel', say:'dahnk yuh vel'},
+        {en:'Sorry / excuse me', local:'Sorry', say:'SOR-ee (yes, they just use the English word)'},
+        {en:'Yes / No', local:'Ja / Nee', say:'yah / nay'}
+      ]},
+      {group:'Dining Out', items:[
+        {en:'Cheers', local:'Proost', say:'PROHST'},
+        {en:'The bill, please', local:'De rekening, alstublieft', say:'duh RAY-ken-ing ahl-stew-bleeft'},
+        {en:'Tap water, please', local:'Kraanwater, alstublieft', say:'KRAHN-vah-ter ahl-stew-bleeft'},
+        {en:'Delicious', local:'Heerlijk', say:'HAIR-luk'}
+      ]},
+      {group:'Getting Around & Help', items:[
+        {en:'Do you speak English?', local:'Spreekt u Engels?', say:'spraykt oo ENG-uhls'},
+        {en:'Where is...?', local:'Waar is...?', say:'vahr iss'},
+        {en:'Help!', local:'Help!', say:'help (same as English)'}
+      ]}
     ],
     water: [
       'Tap water is safe and tastes good - Amsterdam’s is some of the most rigorously tested in Europe.',
@@ -2039,11 +2059,24 @@ const COUNTRY_GUIDES = {
       'Nice restaurants: smart casual minimum; some upscale spots still expect a collared shirt for men.'
     ],
     phrases: [
-      {en:'Hello', local:'Bonjour', say:'bohn-ZHOOR'},
-      {en:'Please', local:'S’il vous plaît', say:'seel voo PLAY'},
-      {en:'Thank you', local:'Merci', say:'mehr-SEE'},
-      {en:'Excuse me', local:'Pardon', say:'par-DOHN'},
-      {en:'Do you speak English?', local:'Parlez-vous anglais?', say:'par-lay voo ahn-GLAY'}
+      {group:'Basics', items:[
+        {en:'Hello', local:'Bonjour', say:'bohn-ZHOOR'},
+        {en:'Please', local:'S’il vous plaît', say:'seel voo PLAY'},
+        {en:'Thank you', local:'Merci', say:'mehr-SEE'},
+        {en:'Excuse me', local:'Pardon', say:'par-DOHN'},
+        {en:'Yes / No', local:'Oui / Non', say:'wee / nohn'}
+      ]},
+      {group:'Dining Out', items:[
+        {en:'Cheers', local:'Santé', say:'sahn-TAY'},
+        {en:'The bill, please', local:'L’addition, s’il vous plaît', say:'lah-dee-syohn seel voo PLAY'},
+        {en:'A carafe of tap water', local:'Une carafe d’eau', say:'oon kah-RAHF doh'},
+        {en:'It was delicious', local:'C’était délicieux', say:'say-TAY day-lee-syuh'}
+      ]},
+      {group:'Getting Around & Help', items:[
+        {en:'Do you speak English?', local:'Parlez-vous anglais?', say:'par-lay voo ahn-GLAY'},
+        {en:'Where is...?', local:'Où est...?', say:'oo eh'},
+        {en:'Help!', local:'Au secours!', say:'oh suh-KOOR'}
+      ]}
     ],
     water: [
       'Tap water ("l’eau du robinet" or "une carafe d’eau") is safe and free - ask for it explicitly, since servers default to offering bottled.',
@@ -2097,11 +2130,24 @@ const COUNTRY_GUIDES = {
       'If visiting a thermal bath/spa near Interlaken, swimwear is required - pack a suit.'
     ],
     phrases: [
-      {en:'Hello', local:'Grüezi', say:'GROO-eh-tsee (Swiss German, not standard "Hallo")'},
-      {en:'Please', local:'Bitte', say:'BIT-uh'},
-      {en:'Thank you', local:'Merci vielmal', say:'mer-SEE feel-mahl (Swiss German borrows French "merci")'},
-      {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
-      {en:'Cheers', local:'Prost', say:'PROHST - hold eye contact when you say it'}
+      {group:'Basics', items:[
+        {en:'Hello', local:'Grüezi', say:'GROO-eh-tsee (Swiss German, not standard "Hallo")'},
+        {en:'Please', local:'Bitte', say:'BIT-uh'},
+        {en:'Thank you', local:'Merci vielmal', say:'mer-SEE feel-mahl (Swiss German borrows French "merci")'},
+        {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
+        {en:'Yes / No', local:'Ja / Nei', say:'yah / nye'}
+      ]},
+      {group:'Dining Out', items:[
+        {en:'Cheers', local:'Prost / Santé', say:'PROHST - hold eye contact when you say it'},
+        {en:'The bill, please', local:'Zahlen, bitte', say:'TSAH-len BIT-uh'},
+        {en:'Tap water, please', local:'Leitungswasser, bitte', say:'LYE-toongs-vahs-ser BIT-uh'},
+        {en:'Very good / delicious', local:'Sehr guet', say:'zair goot'}
+      ]},
+      {group:'Getting Around & Help', items:[
+        {en:'Do you speak English?', local:'Sprechen Sie Englisch?', say:'SHPREH-khen zee ENG-lish'},
+        {en:'Where is...?', local:'Wo isch...?', say:'voh ish'},
+        {en:'Help!', local:'Hilfe!', say:'HIL-fuh'}
+      ]}
     ],
     water: [
       'Tap water is exceptionally safe and high quality - among the best in the world - and asking for it at a restaurant is completely normal.',
@@ -2156,11 +2202,24 @@ const COUNTRY_GUIDES = {
       'Traditional Austrian spas vary by facility on nude vs. suited areas, unlike Swiss/French spas - check the specific venue and bring a suit regardless.'
     ],
     phrases: [
-      {en:'Hello', local:'Grüß Gott', say:'GROOS got (more traditional/formal than "Hallo")'},
-      {en:'Please', local:'Bitte', say:'BIT-uh'},
-      {en:'Thank you', local:'Danke', say:'DAHN-kuh'},
-      {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
-      {en:'Cheers', local:'Prost', say:'PROHST'}
+      {group:'Basics', items:[
+        {en:'Hello', local:'Grüß Gott', say:'GROOS got (more traditional/formal than "Hallo")'},
+        {en:'Please', local:'Bitte', say:'BIT-uh'},
+        {en:'Thank you', local:'Danke', say:'DAHN-kuh'},
+        {en:'Excuse me', local:'Entschuldigung', say:'ent-SHOOL-di-gung'},
+        {en:'Yes / No', local:'Ja / Nein', say:'yah / nine'}
+      ]},
+      {group:'Dining Out', items:[
+        {en:'Cheers', local:'Prost', say:'PROHST'},
+        {en:'The bill, please', local:'Zahlen, bitte', say:'TSAH-len BIT-uh'},
+        {en:'A glass of water, please', local:'Ein Glas Wasser, bitte', say:'eyn glahs VAH-ser BIT-uh'},
+        {en:'It was delicious', local:'Es war köstlich', say:'es var KUHST-likh'}
+      ]},
+      {group:'Getting Around & Help', items:[
+        {en:'Do you speak English?', local:'Sprechen Sie Englisch?', say:'SHPREH-khen zee ENG-lish'},
+        {en:'Where is...?', local:'Wo ist...?', say:'voh ist'},
+        {en:'Help!', local:'Hilfe!', say:'HIL-fuh'}
+      ]}
     ],
     water: [
       'Tap water is safe and high quality - Vienna’s comes from Alpine springs and is genuinely some of the best-tasting of any capital.',
@@ -2212,11 +2271,24 @@ const COUNTRY_GUIDES = {
       'Thermal baths (Széchenyi, Gellért): a swimsuit is required, bring or rent one plus a towel, and pack sandals since deck areas are slippery stone.'
     ],
     phrases: [
-      {en:'Hello', local:'Szia', say:'SEE-yah'},
-      {en:'Please', local:'Kérem', say:'KAY-rem'},
-      {en:'Thank you', local:'Köszönöm', say:'KUH-suh-nuhm'},
-      {en:'Excuse me', local:'Elnézést', say:'EL-nay-zaysht'},
-      {en:'Do you speak English?', local:'Beszél angolul?', say:'BES-ayl AHN-goh-lool'}
+      {group:'Basics', items:[
+        {en:'Hello', local:'Szia', say:'SEE-yah'},
+        {en:'Please', local:'Kérem', say:'KAY-rem'},
+        {en:'Thank you', local:'Köszönöm', say:'KUH-suh-nuhm'},
+        {en:'Excuse me', local:'Elnézést', say:'EL-nay-zaysht'},
+        {en:'Yes / No', local:'Igen / Nem', say:'EE-gen / nem'}
+      ]},
+      {group:'Dining Out', items:[
+        {en:'Cheers (wine/spirits, never beer)', local:'Egészségedre', say:'EG-esh-shay-ged-reh'},
+        {en:'The bill, please', local:'A számlát, kérem', say:'ah SAHM-laht KAY-rem'},
+        {en:'Tap water', local:'Csapvíz', say:'CHOP-veez'},
+        {en:'Delicious', local:'Finom', say:'FEE-nom'}
+      ]},
+      {group:'Getting Around & Help', items:[
+        {en:'Do you speak English?', local:'Beszél angolul?', say:'BES-ayl AHN-goh-lool'},
+        {en:'Where is...?', local:'Hol van...?', say:'hol vahn'},
+        {en:'Help!', local:'Segítség!', say:'SHEH-geet-shayg'}
+      ]}
     ],
     water: [
       'Tap water is safe to drink throughout Budapest.',
@@ -2269,11 +2341,24 @@ const COUNTRY_GUIDES = {
       'Nice restaurants expect smart casual; flip-flops/beachwear are notably out of place even steps from the coast.'
     ],
     phrases: [
-      {en:'Hello', local:'Buongiorno', say:'bwohn-JOR-noh (more polite than "Ciao" in shops)'},
-      {en:'Please', local:'Per favore', say:'pehr fah-VOH-reh'},
-      {en:'Thank you', local:'Grazie', say:'GRAH-tsee-eh'},
-      {en:'Excuse me', local:'Scusi', say:'SKOO-zee'},
-      {en:'Cheers', local:'Cin cin', say:'cheen cheen'}
+      {group:'Basics', items:[
+        {en:'Hello', local:'Buongiorno', say:'bwohn-JOR-noh (more polite than "Ciao" in shops)'},
+        {en:'Please', local:'Per favore', say:'pehr fah-VOH-reh'},
+        {en:'Thank you', local:'Grazie', say:'GRAH-tsee-eh'},
+        {en:'Excuse me', local:'Scusi', say:'SKOO-zee'},
+        {en:'Yes / No', local:'Sì / No', say:'see / no'}
+      ]},
+      {group:'Dining Out', items:[
+        {en:'Cheers', local:'Cin cin', say:'cheen cheen'},
+        {en:'The bill, please', local:'Il conto, per favore', say:'eel KOHN-toh pehr fah-VOH-reh'},
+        {en:'Still or sparkling water?', local:'Naturale o frizzante?', say:'nah-too-RAH-leh oh freed-ZAHN-teh'},
+        {en:'It was delicious', local:'Era delizioso', say:'EH-rah day-lee-tsee-OH-zoh'}
+      ]},
+      {group:'Getting Around & Help', items:[
+        {en:'Do you speak English?', local:'Parla inglese?', say:'PAR-lah een-GLAY-zeh'},
+        {en:'Where is...?', local:'Dov’è...?', say:'doh-VEH'},
+        {en:'Help!', local:'Aiuto!', say:'ah-YOO-toh'}
+      ]}
     ],
     water: [
       'Tap water is safe to drink throughout Rome and most of Italy.',
@@ -2325,14 +2410,23 @@ function guideBulletsHtml(items, extraClass){
   return `<ul class="guide-list-items${extraClass ? ' '+extraClass : ''}">${items.map(t=>`<li>${escapeHtml(t)}</li>`).join('')}</ul>`;
 }
 
-function guidePhrasesHtml(phrases){
-  if(!phrases || !phrases.length) return '';
-  return `<div class="guide-phrases">${phrases.map(p=>`
+function guidePhraseItemsHtml(items){
+  return `<div class="guide-phrases">${items.map(p=>`
     <div class="guide-phrase">
       <div class="guide-phrase-main"><span class="guide-phrase-local">${escapeHtml(p.local)}</span><span class="guide-phrase-say">${escapeHtml(p.say)}</span></div>
       <span class="guide-phrase-en">${escapeHtml(p.en)}</span>
     </div>
   `).join('')}</div>`;
+}
+
+function guidePhrasesHtml(groups){
+  if(!groups || !groups.length) return '';
+  return groups.map(g=>`
+    <div class="guide-phrase-group">
+      <div class="guide-phrase-group-label">${escapeHtml(g.group)}</div>
+      ${guidePhraseItemsHtml(g.items)}
+    </div>
+  `).join('');
 }
 
 function guideSectionHtml(icon, title, bodyHtml){

@@ -68,6 +68,22 @@ const QUERY_ANGLES = {
   attraction: ['tips review', 'wish I knew mistakes worth it'],
 };
 
+// `activity.place` is typically "<name-ish prefix>, <actual location>"
+// (e.g. "Sigmund Freud Museum, Vienna", "Zaanse Schans, Zaandam,
+// Netherlands") - repeating the whole string in a query would duplicate
+// the activity name. Take just the part after the first comma, which is
+// often MORE precise than `city` (Zaanse Schans's day is filed under
+// "Amsterdam" but the place itself is in Zaandam; Palace of Versailles's
+// day is "Paris" but the place is in Versailles). Falls back to city
+// when place has no comma to split on or is missing entirely.
+function locationContext(activity) {
+  if (activity.place) {
+    const commaIdx = activity.place.indexOf(',');
+    if (commaIdx !== -1) return activity.place.slice(commaIdx + 1).trim();
+  }
+  return activity.city || '';
+}
+
 async function searchVideos(query, apiKey, maxResults) {
   const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${maxResults}&relevanceLanguage=en&q=${encodeURIComponent(query)}&key=${apiKey}`;
   const searchRes = await fetch(searchUrl);
@@ -88,8 +104,14 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 8, maxComment
 
   const placeType = classifyPlaceType(activity.name);
   const angles = QUERY_ANGLES[placeType];
+  // Scope every query to the actual location - the place name alone can
+  // collide with a same-named place elsewhere (the Sigmund Freud Museum
+  // exists in both Vienna and London). Without this, a search can
+  // silently pull in evidence about the wrong physical location.
+  const location = locationContext(activity);
+  const queryPrefix = location ? `${activity.name} ${location}` : activity.name;
   const perQueryResults = await Promise.all(
-    angles.map((angle) => searchVideos(`${activity.name} ${angle}`, apiKey, maxVideos))
+    angles.map((angle) => searchVideos(`${queryPrefix} ${angle}`, apiKey, maxVideos))
   );
 
   // Fetch every video's comments in parallel (each video's fetch was

@@ -91,7 +91,12 @@ export async function synthesizeTips(activity, evidence) {
     return { tips: [] };
   }
 
-  const ai = new GoogleGenAI({ apiKey });
+  // vertexai explicitly false: without this, the SDK can pick the Vertex
+  // AI (OAuth-based) backend over the plain API-key Gemini Developer API
+  // depending on ambient environment variables - seen in practice as a
+  // 401 "Expected OAuth 2 access token" on Vercel that never happened
+  // running the same code locally. Pinning this removes the ambiguity.
+  const ai = new GoogleGenAI({ apiKey, vertexai: false });
   const response = await ai.models.generateContent({
     model: MODEL,
     contents: buildUserMessage(activity, evidence),

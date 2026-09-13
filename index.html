@@ -3180,6 +3180,13 @@ function visibleTips(entry){
 //        (e.g. French à/au or German zum/zur baked in)
 //   sayW, sayT - phonetic pronunciation of w/t, for a name whose obvious
 //        English reading is wrong (e.g. "Eiffel" isn't said the English way)
+//   plural - true for a place whose local grammar treats it as plural (die
+//        X/zu den X in German, i/gli/le X in Italian, etc.), which also
+//        switches the "Where is/are" verb and the English "the X" article.
+//        French detects this on its own from the name's own spelling (see
+//        resolveFrenchForm) and never needs it set here; for every other
+//        language it isn't auto-detected, so a genuinely plural place only
+//        gets it right via this flag.
 const ASKABLE_OVERRIDES = {
   'Zaanse Schans': {w:'Zaanse Schans', sayW:'ZAHN-suh skhahns'},
   'Albert Cuyp Markt': {w:'de Albert Cuyp Markt', sayW:'duh AL-bert kowp markt'},
@@ -3400,8 +3407,8 @@ const GENDER_KEYWORDS = {
        ['schloss','das'],['museum','das'],['theater','das'],['rathaus','das'],['stadion','das'],['hotel','das'],['restaurant','das'],['café','das'],['cafe','das']],
   nl: [['huis','het'],['museum','het'],['paleis','het'],['station','het'],['plein','het'],
        ['kerk','de'],['markt','de'],['straat','de'],['gracht','de'],['toren','de'],['brug','de']],
-  fr: [['tour','la'],['place','la'],['cathédrale','la'],['cathedrale','la'],['église','la'],['eglise','la'],['gare','la'],['rue','la'],['basilique','la'],['fontaine','la'],['avenue','la'],
-       ['pont','le'],['château','le'],['chateau','le'],['musée','le'],['musee','le'],['parc','le'],['jardin','le'],['marché','le'],['marche','le'],['quartier','le'],['hôtel','le'],['hotel','le'],['restaurant','le'],['café','le'],['cafe','le'],['théâtre','le'],['theatre','le'],['palais','le']],
+  fr: [['tour','la'],['place','la'],['cathédrale','la'],['cathedrale','la'],['église','la'],['eglise','la'],['chapelle','la'],['gare','la'],['rue','la'],['basilique','la'],['fontaine','la'],['avenue','la'],
+       ['pont','le'],['château','le'],['chateau','le'],['musée','le'],['musee','le'],['parc','le'],['jardin','le'],['marché','le'],['marche','le'],['quartier','le'],['hôtel','le'],['hotel','le'],['restaurant','le'],['café','le'],['cafe','le'],['théâtre','le'],['theatre','le'],['palais','le'],['opéra','le'],['opera','le'],['arc','le']],
   it: [['torre','la'],['piazza','la'],['chiesa','la'],['basilica','la'],['fontana','la'],['via','la'],['stazione','la'],['cattedrale','la'],['galleria','la'],
        ['ponte','il'],['castello','il'],['museo','il'],['parco','il'],['mercato','il'],['palazzo','il'],['ristorante','il'],['duomo','il'],['teatro','il']]
 };
@@ -3419,8 +3426,10 @@ function findGenderKeyword(name, lang){
     for(const [kw, g] of list) if(words.some(w => w.endsWith(kw))) return g;
     return null;
   }
+  // Boundary is whitespace OR a hyphen, so a classifying word joined by a
+  // hyphen ("Sainte-Chapelle") is still found, not just one joined by a space.
   for(const [kw, g] of list){
-    if(new RegExp('(^|\\s)'+kw+'(\\s|$)','i').test(name.toLowerCase())) return g;
+    if(new RegExp('(^|[\\s-])'+kw+'([\\s-]|$)','i').test(name.toLowerCase())) return g;
   }
   return null;
 }
@@ -3440,37 +3449,104 @@ const IT_VOWEL_START = /^[aeiou]/i;
 // "lo Zoo") - a real spelling rule, checked against the actual resolved
 // name, independent of what type/keyword gave us its gender.
 const IT_LO_TRIGGER = /^(s[bcdfgjklmnpqrstvwxz]|z|gn|pn|ps|x|y)/i;
-// A handful of well-known Paris landmarks that are grammatically plural in
-// French ("les Invalides", not "l'Invalides") - too irregular to derive
-// from a type or a generic keyword, so listed directly.
-const FR_PLURAL_NAMES = ['invalides', 'les invalides', 'tuileries', 'les tuileries'];
-function guessArticleForm(name, lang, placeType){
+// ----------------------------------------------------------------------
+// French needs a dimension none of the other languages here do: NUMBER.
+// "le/la/l'" vs "les", and "au/à la/à l'" vs "aux", depend on whether the
+// place name's own HEAD NOUN is singular or plural - not on its type, and
+// not on the last word of the whole string ("Pavillons de Bercy" and
+// "Jardins du Luxembourg" are plural because "Pavillons"/"Jardins" are,
+// regardless of what follows; "Musée d'Orsay" and "Gare du Nord" are
+// singular for the same reason - the head is "Musée"/"Gare").
+//
+// A French plural noun (almost) always ends in -s/-x, so the head word's
+// own spelling is a genuinely reliable signal - not a per-landmark guess.
+// The exceptions are a small, CLOSED set of ordinary French nouns that are
+// singular despite ending in -s/-x/-z ("mots invariables" - le palais, le
+// bois, le prix...) - that's real grammar to list once, not overfitting to
+// any specific landmark in this itinerary.
+const FR_INVARIANT_SINGULAR_HEADS = new Set([
+  'palais','bois','puits','prix','choix','corps','temps','univers','discours',
+  'repos','progrès','progres','procès','proces','avis','nez','taux','jus',
+  'cours','poids','concours','secours','velours','autobus','bras','fils'
+]);
+// A very small set of well-known plural place names whose head word
+// wouldn't otherwise look plural by spelling - genuinely irregular
+// vocabulary (like an English plural-only place name), not a workaround.
+const FR_KNOWN_PLURAL_HEADS = new Set(['halles']);
+function frenchHeadIsPlural(name){
+  const head = (name.split(/[\s-]+/)[0] || '').toLowerCase();
+  if(FR_KNOWN_PLURAL_HEADS.has(head)) return true;
+  if(FR_INVARIANT_SINGULAR_HEADS.has(head)) return false;
+  return head.length > 2 && /[sx]$/i.test(head);
+}
+// Resolves a French place name into {w, t, plural} - the local/lookup name
+// as its grammatical OBJECT (gender AND number), not a bare string glued
+// after a fixed template. If the name already carries its own French
+// article (common when Nominatim's localized name already includes it,
+// e.g. "Les Invalides"), that's more authoritative than any guess and is
+// used directly instead of re-deriving gender/number from scratch.
+function resolveFrenchForm(name, placeType){
+  let m;
+  if((m = /^les\s+(.+)$/i.exec(name))){
+    return {w:`les ${m[1]}`, t:`aux ${m[1]}`, plural:true};
+  }
+  if((m = /^(le|la)\s+(.+)$/i.exec(name))){
+    const rest = m[2];
+    if(FR_VOWEL_START.test(rest)) return {w:`l’${rest}`, t:`à l’${rest}`, plural:false};
+    return m[1].toLowerCase() === 'le'
+      ? {w:`le ${rest}`, t:`au ${rest}`, plural:false}
+      : {w:`la ${rest}`, t:`à la ${rest}`, plural:false};
+  }
+  if((m = /^l[’']\s*(.+)$/i.exec(name))){
+    // Already elided in the source name - the surface form "l'X"/"à l'X" is
+    // correct regardless of the underlying gender, so none is needed here.
+    return {w:`l’${m[1]}`, t:`à l’${m[1]}`, plural:false};
+  }
+  if(frenchHeadIsPlural(name)){
+    return {w:`les ${name}`, t:`aux ${name}`, plural:true};
+  }
+  const gender = resolveGender(name, 'fr', placeType);
+  if(!gender) return {w: name, t: `à ${name}`, plural:false}; // proper name, no article - unchanged
+  if(FR_VOWEL_START.test(name)) return {w:`l’${name}`, t:`à l’${name}`, plural:false};
+  return gender === 'le'
+    ? {w:`le ${name}`, t:`au ${name}`, plural:false}
+    : {w:`la ${name}`, t:`à la ${name}`, plural:false};
+}
+
+function guessArticleForm(name, lang, placeType, forcePlural){
   if(lang === 'de' && placeType === 'place'){
     // A city/town/village/country is a destination name, not a der/die/das
     // noun - German says "nach Wien", never "zum Wien".
-    return {w: name, t: `nach ${name}`};
+    return {w: name, t: `nach ${name}`, plural:false};
   }
-  if(lang === 'fr' && FR_PLURAL_NAMES.includes(name.toLowerCase())){
-    return {w:`les ${name}`, t:`aux ${name}`};
+  // Plural forms for German/Dutch/Italian aren't auto-detected from spelling
+  // (unlike French, their plurals aren't reliably guessable from the ending
+  // alone) - `forcePlural` only ever comes from an explicit curated
+  // ASKABLE_OVERRIDES `plural:true` flag, never from automatic detection.
+  if(forcePlural){
+    if(lang === 'de') return {w:`die ${name}`, t:`zu den ${name}`, plural:true};
+    if(lang === 'nl') return {w:`de ${name}`, t:`de ${name}`, plural:true};
+    if(lang === 'it'){
+      const gender = resolveGender(name, lang, placeType);
+      if(gender === 'la') return {w:`le ${name}`, t:`alle ${name}`, plural:true}; // fem plural never elides
+      const needsGli = IT_VOWEL_START.test(name) || IT_LO_TRIGGER.test(name);
+      return needsGli ? {w:`gli ${name}`, t:`agli ${name}`, plural:true} : {w:`i ${name}`, t:`ai ${name}`, plural:true};
+    }
   }
   const gender = resolveGender(name, lang, placeType);
   if(!gender) return null;
   if(lang === 'de'){
     const prep = {der:'zum', die:'zur', das:'zum'}[gender];
-    return {w:`${gender} ${name}`, t:`${prep} ${name}`};
+    return {w:`${gender} ${name}`, t:`${prep} ${name}`, plural:false};
   }
   if(lang === 'nl'){
-    return {w:`${gender} ${name}`, t:`${gender} ${name}`}; // bij/naar don't contract
-  }
-  if(lang === 'fr'){
-    if(FR_VOWEL_START.test(name)) return {w:`l’${name}`, t:`à l’${name}`};
-    return gender === 'le' ? {w:`le ${name}`, t:`au ${name}`} : {w:`la ${name}`, t:`à la ${name}`};
+    return {w:`${gender} ${name}`, t:`${gender} ${name}`, plural:false}; // bij/naar don't contract
   }
   if(lang === 'it'){
-    if(IT_VOWEL_START.test(name)) return {w:`l’${name}`, t:`all’${name}`};
-    if(gender === 'la') return {w:`la ${name}`, t:`alla ${name}`};
+    if(IT_VOWEL_START.test(name)) return {w:`l’${name}`, t:`all’${name}`, plural:false};
+    if(gender === 'la') return {w:`la ${name}`, t:`alla ${name}`, plural:false};
     const lo = IT_LO_TRIGGER.test(name);
-    return lo ? {w:`lo ${name}`, t:`allo ${name}`} : {w:`il ${name}`, t:`al ${name}`};
+    return lo ? {w:`lo ${name}`, t:`allo ${name}`, plural:false} : {w:`il ${name}`, t:`al ${name}`, plural:false};
   }
   return null;
 }
@@ -3487,9 +3563,15 @@ function hungarianArticleForm(name){
   const article = /^[aeiouáéíóöőúüű]/i.test(name) ? 'az' : 'a';
   return {w:`${article} ${name}`, t:`${name} felé`};
 }
-function resolveAskLocalForm(name, lang, placeType){
-  if(lang === 'hu') return hungarianArticleForm(name);
-  return guessArticleForm(name, lang, placeType) || {w: name, t: ASK_DEFAULT_TO[lang](name)};
+// French is dispatched to its own resolver (see resolveFrenchForm) since it
+// needs to resolve NUMBER as well as gender - every other language here
+// only has singular auto-detection, so `forcePlural` (only ever set by an
+// explicit curated override, never guessed) is what exercises their plural
+// forms; ASK_DEFAULT_TO's safe no-article fallback is always singular.
+function resolveAskLocalForm(name, lang, placeType, forcePlural){
+  if(lang === 'fr') return resolveFrenchForm(name, placeType);
+  if(lang === 'hu') return {...hungarianArticleForm(name), plural: !!forcePlural};
+  return guessArticleForm(name, lang, placeType, forcePlural) || {w: name, t: ASK_DEFAULT_TO[lang](name), plural: !!forcePlural};
 }
 
 // Default "to ___" form when no gender/article guess matched either -
@@ -3504,34 +3586,41 @@ const ASK_DEFAULT_TO = {
   hu: w => `${w} felé`
 };
 
-// Three shared sentence templates per language - "Where is X?" / "How do I
-// get to X?" / "Is this the way to X?" - built once per language rather than
-// once per place, so a brand-new stop gets correct sentences immediately.
+// Three shared sentence templates per language - "Where is/are X?" / "How
+// do I get to X?" / "Is this the way to X?" - built once per language
+// rather than once per place, so a brand-new stop gets correct sentences
+// immediately. Only the first template's VERB depends on number (est/sont,
+// ist/sind, van/vannak, è/sono, is/zijn, is/are) - "how do I get to"/"is
+// this the way to" use an infinitive/fixed construction in every one of
+// these languages, so number never changes their wording, only whichever
+// of `w`/`t` they already insert (already fully number-resolved upstream).
+// `en`/`build`/`say` are always called as (arg1, arg2, plural) so every
+// template has the same shape even though only the first uses `plural`.
 const ASK_TEMPLATES = {
   nl: [
-    {en:'Where is', build:(w,t)=>`Waar is ${w}?`, say:(sw,st)=>`VAHR iss ${sw}`},
-    {en:'How do I get to', build:(w,t)=>`Hoe kom ik bij ${t}?`, say:(sw,st)=>`hoo kom ik bay ${st}`},
-    {en:'Is this the way to', build:(w,t)=>`Is dit de weg naar ${t}?`, say:(sw,st)=>`iss dit duh vekh nahr ${st}`}
+    {en:pl=>pl?'Where are':'Where is', build:(w,t,pl)=>`Waar ${pl?'zijn':'is'} ${w}?`, say:(sw,st,pl)=>`vahr ${pl?'zayn':'iss'} ${sw}`},
+    {en:()=>'How do I get to', build:(w,t)=>`Hoe kom ik bij ${t}?`, say:(sw,st)=>`hoo kom ik bay ${st}`},
+    {en:()=>'Is this the way to', build:(w,t)=>`Is dit de weg naar ${t}?`, say:(sw,st)=>`iss dit duh vekh nahr ${st}`}
   ],
   fr: [
-    {en:'Where is', build:(w,t)=>`Où est ${w} ?`, say:(sw,st)=>`oo eh ${sw}`},
-    {en:'How do I get to', build:(w,t)=>`Comment aller ${t} ?`, say:(sw,st)=>`koh-mahn tah-lay ${st}`},
-    {en:'Is this the way to', build:(w,t)=>`C’est le chemin vers ${w} ?`, say:(sw,st)=>`say luh shuh-man vehr ${sw}`}
+    {en:pl=>pl?'Where are':'Where is', build:(w,t,pl)=>`Où ${pl?'sont':'est'} ${w} ?`, say:(sw,st,pl)=>`oo ${pl?'sohn':'eh'} ${sw}`},
+    {en:()=>'How do I get to', build:(w,t)=>`Comment aller ${t} ?`, say:(sw,st)=>`koh-mahn tah-lay ${st}`},
+    {en:()=>'Is this the way to', build:(w,t)=>`C’est le chemin vers ${w} ?`, say:(sw,st)=>`say luh shuh-man vehr ${sw}`}
   ],
   de: [
-    {en:'Where is', build:(w,t)=>`Wo ist ${w}?`, say:(sw,st)=>`voh ist ${sw}`},
-    {en:'How do I get to', build:(w,t)=>`Wie komme ich ${t}?`, say:(sw,st)=>`vee KOM-uh ikh ${st}`},
-    {en:'Is this the way to', build:(w,t)=>`Ist das der Weg ${t}?`, say:(sw,st)=>`ist dahs dair vayk ${st}`}
+    {en:pl=>pl?'Where are':'Where is', build:(w,t,pl)=>`Wo ${pl?'sind':'ist'} ${w}?`, say:(sw,st,pl)=>`voh ${pl?'zint':'ist'} ${sw}`},
+    {en:()=>'How do I get to', build:(w,t)=>`Wie komme ich ${t}?`, say:(sw,st)=>`vee KOM-uh ikh ${st}`},
+    {en:()=>'Is this the way to', build:(w,t)=>`Ist das der Weg ${t}?`, say:(sw,st)=>`ist dahs dair vayk ${st}`}
   ],
   hu: [
-    {en:'Where is', build:(w,t)=>`Hol van ${w}?`, say:(sw,st)=>`hol vahn ${sw}`},
-    {en:'How do I get to', build:(w,t)=>`Hogyan jutok el ${t}?`, say:(sw,st)=>`HOH-jahn YOO-tok el ${st}`},
-    {en:'Is this the way to', build:(w,t)=>`Ez a jó irány ${t}?`, say:(sw,st)=>`ez ah yoh ee-RAHNY ${st}`}
+    {en:pl=>pl?'Where are':'Where is', build:(w,t,pl)=>`Hol ${pl?'vannak':'van'} ${w}?`, say:(sw,st,pl)=>`hol ${pl?'VAHN-nahk':'vahn'} ${sw}`},
+    {en:()=>'How do I get to', build:(w,t)=>`Hogyan jutok el ${t}?`, say:(sw,st)=>`HOH-jahn YOO-tok el ${st}`},
+    {en:()=>'Is this the way to', build:(w,t)=>`Ez a jó irány ${t}?`, say:(sw,st)=>`ez ah yoh ee-RAHNY ${st}`}
   ],
   it: [
-    {en:'Where is', build:(w,t)=>`Dov’è ${w}?`, say:(sw,st)=>`doh-VEH ${sw}`},
-    {en:'How do I get to', build:(w,t)=>`Come arrivo ${t}?`, say:(sw,st)=>`KOH-meh ah-REE-voh ${st}`},
-    {en:'Is this the way to', build:(w,t)=>`È questa la strada per ${w}?`, say:(sw,st)=>`eh KWES-tah lah STRAH-dah pehr ${sw}`}
+    {en:pl=>pl?'Where are':'Where is', build:(w,t,pl)=>pl?`Dove sono ${w}?`:`Dov’è ${w}?`, say:(sw,st,pl)=>pl?`DOH-veh SOH-noh ${sw}`:`doh-VEH ${sw}`},
+    {en:()=>'How do I get to', build:(w,t)=>`Come arrivo ${t}?`, say:(sw,st)=>`KOH-meh ah-REE-voh ${st}`},
+    {en:()=>'Is this the way to', build:(w,t)=>`È questa la strada per ${w}?`, say:(sw,st)=>`eh KWES-tah lah STRAH-dah pehr ${sw}`}
   ]
 };
 
@@ -3641,9 +3730,8 @@ function askPhrasesForStop(stop, city){
   if(!templates) return null; // a city with no language mapped yet - safe no-op, not a guess
   const hasOverride = Object.prototype.hasOwnProperty.call(ASKABLE_OVERRIDES, stop.name);
   const o = ASKABLE_OVERRIDES[stop.name] || {};
-  const displayName = o.displayName || stop.name;
 
-  let w, t;
+  let w, t, plural;
   if(hasOverride){
     // A curated entry exists - even a partial one (say, just a pronunciation
     // fix with no `w`) means a human already reviewed this place and decided
@@ -3651,6 +3739,7 @@ function askPhrasesForStop(stop, city){
     // exactly as-is. That decision always wins over a network lookup.
     w = o.w || stop.name;
     t = o.t || ASK_DEFAULT_TO[lang](w);
+    plural = !!o.plural; // an explicit, curated signal - see ASKABLE_OVERRIDES' schema comment
   } else {
     const lookupQuery = stop.place || stop.name;
     const cached = askLookupCache[askLookupCacheKey(lang, lookupQuery)];
@@ -3660,14 +3749,26 @@ function askPhrasesForStop(stop, city){
     const form = resolveAskLocalForm(baseName, lang, placeType);
     w = form.w;
     t = form.t;
+    plural = !!form.plural;
   }
+  // English "the" is lexical (the Louvre, but not "the" Notre-Dame) and a
+  // curated displayName always wins - but a place this app itself detected
+  // as grammatically plural (only French does this automatically today)
+  // reads naturally with "the" in English almost without exception ("the
+  // Invalides", "the Hamptons"), so that one case is worth getting right
+  // automatically rather than leaving it as "Where are Invalides?".
+  // A stop already named with its own leading article ("Les Invalides")
+  // shouldn't also get English "the" glued in front of that same word -
+  // strip it first so this doesn't produce "the Les Invalides".
+  const englishBase = stop.name.replace(/^les\s+/i, '');
+  const displayName = o.displayName || (plural ? `the ${englishBase}` : stop.name);
 
   const sayW = o.sayW || phoneticizeName(w, lang);
   const sayT = o.sayT || phoneticizeName(t, lang);
   return templates.map(tpl => ({
-    en: `${tpl.en} ${displayName}?`,
-    local: tpl.build(w, t),
-    say: tpl.say(sayW, sayT)
+    en: `${tpl.en(plural)} ${displayName}?`,
+    local: tpl.build(w, t, plural),
+    say: tpl.say(sayW, sayT, plural)
   }));
 }
 

@@ -3250,9 +3250,14 @@ const PHONETIC_RULES = {
     [/a/g, 'AH'], [/e/g, 'UH'], [/i/g, 'EE'], [/o/g, 'OH']
   ],
   de: [
+    // "museum" is a Latin loanword, not a native diphthong - each vowel
+    // keeps its own syllable, unlike a genuine German "eu" - handled before
+    // any other rule so it's protected whether standalone or fused into a
+    // compound (e.g. a hypothetical "Stadtmuseum").
+    [/museum/g, 'MOOZAYUHM'],
     [/sch/g, 'SH'], [/tsch/g, 'CH'], [/ck/g, 'K'], [/chs/g, 'KS'], [/ch/g, 'KH'],
     [/ph/g, 'F'], [/qu/g, 'KV'], [/th/g, 'T'], [/tz/g, 'TS'], [/z/g, 'TS'],
-    [/ei/g, 'EYE'], [/ie/g, 'EE'], [/eu|äu/g, 'OY'],
+    [/ei/g, 'EYE'], [/ie/g, 'EE'], [/au/g, 'OW'], [/eu|äu/g, 'OY'],
     [/ü/g, 'EW'], [/ö/g, 'UR'], [/ä/g, 'EH'], [/ß/g, 'S'],
     [/v/g, 'F'], [/w/g, 'V'], [/j/g, 'Y'],
     [/a/g, 'AH'], [/e/g, 'EH'], [/i/g, 'IH'], [/o/g, 'OH'], [/u/g, 'OO']
@@ -3264,8 +3269,9 @@ const PHONETIC_RULES = {
     [/a/g, 'AH'], [/e/g, 'EH'], [/i/g, 'EE'], [/o/g, 'OH'], [/u/g, 'OO']
   ],
   nl: [
-    [/sch/g, 'SKH'], [/ij|uy/g, 'EYE'], [/ui/g, 'OW'], [/oe/g, 'OO'], [/eu/g, 'UH'],
-    [/ie/g, 'EE'], [/aa/g, 'AH'], [/ee/g, 'AY'], [/oo/g, 'OH'],
+    [/museum/g, 'MUZAYUM'], // loanword - see the German rules' comment above
+    [/sch/g, 'SKH'], [/ij|uy/g, 'EYE'], [/ui/g, 'OW'], [/oe/g, 'OO'],
+    [/ie/g, 'EE'], [/eu/g, 'UH'], [/aa/g, 'AH'], [/ee/g, 'AY'], [/oo/g, 'OH'],
     [/g|ch/g, 'KH'], [/w/g, 'V'], [/j/g, 'Y'],
     [/a/g, 'AH'], [/e/g, 'EH'], [/i/g, 'IH'], [/o/g, 'OH'], [/u/g, 'UH']
   ],
@@ -3285,10 +3291,27 @@ const PHONETIC_RULES = {
 const PHONETIC_DIACRITIC_FALLBACK = [
   [/[àáâãä]/g, 'AH'], [/[èéêë]/g, 'EH'], [/[ìíîï]/g, 'EE'], [/[òóôõö]/g, 'OH'], [/[ùúûü]/g, 'OO']
 ];
+// Whole-word exceptions checked before the letter-by-letter rules above -
+// for two different kinds of case those rules can't get right on their own:
+//  - French's very short, extremely common function words (le, les, des...)
+//    whose final vowel is a genuine (if light) schwa/vowel sound, not the
+//    "silent word-final e" the general rules correctly strip from a longer
+//    word like "Notre" - stripping it from "le" itself leaves nothing.
+//  - International loanwords (museum) where a letter pair that's a real
+//    diphthong in native vocabulary (German/Dutch eu) is NOT one here,
+//    since each vowel keeps its own syllable in the borrowed word.
+const PHONETIC_WORD_OVERRIDES = {
+  fr: {le:'luh', la:'lah', les:'lay', des:'day', du:'dew', de:'duh', que:'kuh', qu:'k',
+       ne:'nuh', se:'suh', ce:'suh', te:'tuh', me:'muh', je:'zhuh',
+       mes:'may', ces:'say', tes:'tay', ses:'say', et:'ay', un:'uhn', une:'ewn'}
+};
 function phoneticizeWord(word, lang){
+  const overrides = PHONETIC_WORD_OVERRIDES[lang];
+  const lower = word.toLowerCase();
+  if(overrides && Object.prototype.hasOwnProperty.call(overrides, lower)) return overrides[lower];
   const rules = PHONETIC_RULES[lang];
-  if(!rules || !word) return word.toLowerCase();
-  let s = word.toLowerCase();
+  if(!rules || !word) return lower;
+  let s = lower;
   for(const [pat, rep] of rules) s = s.replace(pat, rep);
   for(const [pat, rep] of PHONETIC_DIACRITIC_FALLBACK) s = s.replace(pat, rep);
   return s.toLowerCase();
@@ -3304,15 +3327,73 @@ function phoneticizeName(name, lang){
 }
 
 // ----------------------------------------------------------------------
-// Best-effort grammatical gender/article guess, used only when a stop has
-// no ASKABLE_OVERRIDES entry. Real grammatical gender can't be computed
-// from spelling alone, but a landmark's own name very often contains the
-// generic noun that gives it away (a "Platz" is a der-word, a "Kirche" is a
-// die-word, a "Museum" is a das-word) - this checks the name for exactly
-// that, as either its first word ("Schloss Schönbrunn") or the tail of a
-// fused compound ("Naschmarkt" ends in "markt"). No match just falls back to
-// no article at all, same as before - this only ever adds accuracy, never
-// removes the safety net.
+// Grammatical gender/article resolution, used only when a stop has no
+// ASKABLE_OVERRIDES entry. Two signals feed this, most-trusted first:
+//
+//   1. WHAT KIND OF PLACE Nominatim says this is (its OSM category+type,
+//      e.g. tourism/museum, amenity/place_of_worship, railway/station),
+//      when a lookup succeeded - real data about the place, not a guess.
+//      This is what correctly turns "Louvre Museum" into "le Louvre" even
+//      though the word "musée" never appears anywhere in that name: the
+//      lookup's local name may or may not contain a giveaway word, but its
+//      TYPE reliably does. See TYPE_GENDER below.
+//   2. A fallback keyword dictionary that checks the resolved name's own
+//      text for a classifying word (a "Platz" is a der-word, a "Kirche" is
+//      a die-word) - used only when there's no lookup type available yet
+//      (no override, a pending/failed lookup, or a type this app doesn't
+//      recognize). See GENDER_KEYWORDS below.
+//
+// Neither signal matching just falls back to no article at all, same as
+// always - this only ever adds accuracy, never removes the safety net.
+
+// Normalizes Nominatim's `type`/`category` (jsonv2) into one of the kinds
+// TYPE_GENDER knows about. Deliberately narrow - only the OSM tag values
+// actually common on real travel-itinerary stops.
+const NOMINATIM_TYPE_TO_KIND = {
+  museum:'museum', gallery:'gallery', artwork:'museum', attraction:'attraction', theme_park:'attraction',
+  place_of_worship:'church', church:'church', cathedral:'church', chapel:'church', mosque:'church', synagogue:'church',
+  castle:'castle', palace:'castle', fort:'castle', fortress:'castle',
+  monument:'monument', memorial:'monument', ruins:'monument', viewpoint:'viewpoint',
+  restaurant:'restaurant', cafe:'cafe', fast_food:'restaurant', bar:'bar', pub:'bar',
+  station:'station', railway_station:'station', subway_station:'station', halt:'station', bus_station:'station', tram_stop:'station',
+  university:'university', college:'university', school:'school', hospital:'hospital', library:'library',
+  hotel:'hotel', hostel:'hotel', guest_house:'hotel', motel:'hotel',
+  park:'park', garden:'park', nature_reserve:'park', zoo:'zoo', aquarium:'zoo',
+  square:'square', plaza:'square', pedestrian:'square',
+  bridge:'bridge', market:'market', marketplace:'market', mall:'mall', department_store:'mall', supermarket:'mall',
+  theatre:'theatre', cinema:'theatre', stadium:'stadium', arena:'stadium',
+  city:'place', town:'place', village:'place', administrative:'place', country:'place', state:'place', suburb:'place', neighbourhood:'place'
+};
+function normalizeNominatimType(hit){
+  if(!hit) return null;
+  const type = hit.type;
+  if(type && NOMINATIM_TYPE_TO_KIND[type]) return NOMINATIM_TYPE_TO_KIND[type];
+  if(hit.category === 'boundary' || hit.category === 'place') return 'place';
+  return null;
+}
+// Gender per normalized "kind" - the PRIMARY signal when available. `null`
+// means the type alone doesn't imply a gender (a generic "attraction" could
+// be any of the three) and the name-keyword fallback should decide instead.
+// Italian intentionally only ever stores 'il'/'la' here - whether a
+// masculine noun surfaces as "il"/"lo"/"l'" depends on the actual spelling
+// of the resolved NAME, not its type, so that's computed separately below.
+const TYPE_GENDER = {
+  de: {museum:'das', gallery:'die', attraction:null, viewpoint:'der', church:'die', castle:'das', monument:'das',
+       restaurant:'das', cafe:'das', bar:'die', station:'der', university:'die', school:'die', hospital:'das', library:'die',
+       hotel:'das', park:'der', zoo:'der', square:'der', bridge:'die', market:'der', mall:'das', theatre:'das', stadium:'das'},
+  nl: {museum:'het', gallery:'de', attraction:null, viewpoint:'het', church:'de', castle:'het', monument:'het',
+       restaurant:'het', cafe:'het', bar:'de', station:'het', university:'de', school:'de', hospital:'het', library:'de',
+       hotel:'het', park:'het', zoo:'de', square:'het', bridge:'de', market:'de', mall:'het', theatre:'het', stadium:'het'},
+  fr: {museum:'le', gallery:'la', attraction:null, viewpoint:'le', church:'la', castle:'le', monument:'le',
+       restaurant:'le', cafe:'le', bar:'le', station:'la', university:'la', school:'la', hospital:'le', library:'la',
+       hotel:'le', park:'le', zoo:'le', square:'la', bridge:'le', market:'le', mall:'le', theatre:'le', stadium:'le'},
+  it: {museum:'il', gallery:'la', attraction:null, viewpoint:'il', church:'la', castle:'il', monument:'il',
+       restaurant:'il', cafe:'il', bar:'il', station:'la', university:'la', school:'la', hospital:'il', library:'la',
+       hotel:'il', park:'il', zoo:'il', square:'la', bridge:'il', market:'il', mall:'il', theatre:'il', stadium:'il'}
+};
+// Fallback keyword dictionary: checks the resolved name's own text for a
+// classifying word, either as its first word ("Schloss Schönbrunn") or the
+// tail of a fused compound ("Naschmarkt" ends in "...markt").
 const GENDER_KEYWORDS = {
   de: [['dom','der'],['platz','der'],['turm','der'],['markt','der'],['bahnhof','der'],['brunnen','der'],['park','der'],['berg','der'],
        ['kirche','die'],['brücke','die'],['bruecke','die'],['burg','die'],['straße','die'],['strasse','die'],['gasse','die'],['allee','die'],['galerie','die'],['universität','die'],['universitaet','die'],
@@ -3343,10 +3424,36 @@ function findGenderKeyword(name, lang){
   }
   return null;
 }
+// Lookup type (if any) wins over the name-keyword guess - see the big
+// comment above this section for why.
+function resolveGender(name, lang, placeType){
+  if(placeType){
+    const g = TYPE_GENDER[lang] && TYPE_GENDER[lang][placeType];
+    if(g) return g;
+  }
+  return findGenderKeyword(name, lang);
+}
 const FR_VOWEL_START = /^[aeiouyàâäéèêëïîôöùûü]/i;
 const IT_VOWEL_START = /^[aeiou]/i;
-function guessArticleForm(name, lang){
-  const gender = findGenderKeyword(name, lang);
+// Triggers Italian "lo"/"gli" instead of "il"/"i" for a masculine noun
+// starting with s+consonant, z, gn, pn, ps, x, or y (e.g. "lo Stadio",
+// "lo Zoo") - a real spelling rule, checked against the actual resolved
+// name, independent of what type/keyword gave us its gender.
+const IT_LO_TRIGGER = /^(s[bcdfgjklmnpqrstvwxz]|z|gn|pn|ps|x|y)/i;
+// A handful of well-known Paris landmarks that are grammatically plural in
+// French ("les Invalides", not "l'Invalides") - too irregular to derive
+// from a type or a generic keyword, so listed directly.
+const FR_PLURAL_NAMES = ['invalides', 'les invalides', 'tuileries', 'les tuileries'];
+function guessArticleForm(name, lang, placeType){
+  if(lang === 'de' && placeType === 'place'){
+    // A city/town/village/country is a destination name, not a der/die/das
+    // noun - German says "nach Wien", never "zum Wien".
+    return {w: name, t: `nach ${name}`};
+  }
+  if(lang === 'fr' && FR_PLURAL_NAMES.includes(name.toLowerCase())){
+    return {w:`les ${name}`, t:`aux ${name}`};
+  }
+  const gender = resolveGender(name, lang, placeType);
   if(!gender) return null;
   if(lang === 'de'){
     const prep = {der:'zum', die:'zur', das:'zum'}[gender];
@@ -3361,24 +3468,28 @@ function guessArticleForm(name, lang){
   }
   if(lang === 'it'){
     if(IT_VOWEL_START.test(name)) return {w:`l’${name}`, t:`all’${name}`};
-    return gender === 'il' ? {w:`il ${name}`, t:`al ${name}`} : {w:`la ${name}`, t:`alla ${name}`};
+    if(gender === 'la') return {w:`la ${name}`, t:`alla ${name}`};
+    const lo = IT_LO_TRIGGER.test(name);
+    return lo ? {w:`lo ${name}`, t:`allo ${name}`} : {w:`il ${name}`, t:`al ${name}`};
   }
   return null;
 }
 // Hungarian's definite article ("a" vs "az") is a real, unambiguous spelling
 // rule (not a guess) based purely on whether the name starts with a vowel
 // sound, so - unlike the heuristics above - it always applies, even with no
-// keyword match. "felé" (toward) is a postposition that takes the plain
-// name with no case suffix, which is what makes it safe to use for a name
-// this app has never seen before (see ASK_DEFAULT_TO below for every other
-// language's equivalent safe default).
+// keyword/type match. "felé" (toward) is a postposition that takes the
+// plain name with no case suffix, which is what makes it safe to use for a
+// name this app has never seen before - a curated ASKABLE_OVERRIDES entry
+// is still what supplies the more natural -hoz/-hez/-höz allative form for
+// a landmark worth getting exactly right (see ASK_DEFAULT_TO below for
+// every other language's equivalent safe default).
 function hungarianArticleForm(name){
   const article = /^[aeiouáéíóöőúüű]/i.test(name) ? 'az' : 'a';
   return {w:`${article} ${name}`, t:`${name} felé`};
 }
-function resolveAskLocalForm(name, lang){
+function resolveAskLocalForm(name, lang, placeType){
   if(lang === 'hu') return hungarianArticleForm(name);
-  return guessArticleForm(name, lang) || {w: name, t: ASK_DEFAULT_TO[lang](name)};
+  return guessArticleForm(name, lang, placeType) || {w: name, t: ASK_DEFAULT_TO[lang](name)};
 }
 
 // Default "to ___" form when no gender/article guess matched either -
@@ -3467,7 +3578,7 @@ function askLookupCacheKey(lang, query){
   return lang + '|' + slugify(query);
 }
 let lastAskLookupAt = 0;
-async function fetchAskLocalName(query, lang){
+async function fetchAskPlaceInfo(query, lang){
   // Nominatim's usage policy asks for roughly one request/second from any
   // one client - since every result is cached indefinitely this is only
   // ever hit once per unique place, but this keeps several new stops added
@@ -3483,7 +3594,8 @@ async function fetchAskLocalName(query, lang){
   if(!hit || typeof hit !== 'object') return null;
   const nd = (hit.namedetails && typeof hit.namedetails === 'object') ? hit.namedetails : {};
   const localName = nd['name:'+lang] || (typeof hit.name === 'string' ? hit.name : null);
-  return (typeof localName === 'string' && localName.trim()) ? localName.trim() : null;
+  if(!(typeof localName === 'string' && localName.trim())) return null;
+  return {localName: localName.trim(), placeType: normalizeNominatimType(hit)};
 }
 // Fires at most one request per unique (language, place) - ever. Always
 // checks the persisted cache before the network, so a place resolved in an
@@ -3511,8 +3623,8 @@ async function maybeLookupAskPlace(query, lang){
 
   let entry;
   try {
-    const localName = await fetchAskLocalName(query, lang);
-    entry = localName ? {status:'ok', localName, at:Date.now()} : {status:'miss', at:Date.now()};
+    const info = await fetchAskPlaceInfo(query, lang);
+    entry = info ? {status:'ok', localName: info.localName, placeType: info.placeType, at:Date.now()} : {status:'miss', at:Date.now()};
   } catch(e){
     entry = {status:'miss', at:Date.now()};
   }
@@ -3542,8 +3654,10 @@ function askPhrasesForStop(stop, city){
   } else {
     const lookupQuery = stop.place || stop.name;
     const cached = askLookupCache[askLookupCacheKey(lang, lookupQuery)];
-    const baseName = (cached && cached.status === 'ok' && cached.localName) || stop.name;
-    const form = resolveAskLocalForm(baseName, lang);
+    const lookupOk = cached && cached.status === 'ok';
+    const baseName = (lookupOk && cached.localName) || stop.name;
+    const placeType = lookupOk ? cached.placeType : null;
+    const form = resolveAskLocalForm(baseName, lang, placeType);
     w = form.w;
     t = form.t;
   }

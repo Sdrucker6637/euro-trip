@@ -1154,7 +1154,12 @@ function bookingComSearchUrl(term){
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(term)}`;
 }
 function slugify(str){
-  return String(str).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'');
+  // Strip accents/diacritics (é->e, ö->o, etc.) before collapsing
+  // non-alphanumerics, so "Schönbrunn Palace" -> "schonbrunn-palace"
+  // instead of splitting apart into "sch-nbrunn-palace". Matters a lot
+  // for a multi-country European trip - keep in sync with
+  // scripts/traveler-tips/lib/extract-itinerary.mjs's slugify().
+  return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-+|-+$)/g,'');
 }
 // Best-effort "Open Booking" link for an accommodation stay, since none of
 // this trip's stays carry a real confirmation number/deep link. Hostels

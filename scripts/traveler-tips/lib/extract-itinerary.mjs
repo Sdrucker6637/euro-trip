@@ -12,9 +12,12 @@ const INDEX_HTML_PATH = path.resolve(here, '../../../index.html');
 
 // Mirrors index.html's own slugify() exactly - this MUST stay identical
 // to that function, since it's what makes a stop in the UI and an entry
-// in data/traveler-tips.json refer to the same key.
+// in data/traveler-tips.json refer to the same key. Strips accents
+// before collapsing non-alphanumerics ("Schönbrunn Palace" ->
+// "schonbrunn-palace", not "sch-nbrunn-palace") - matters for a
+// multi-country European trip.
 export function slugify(str) {
-  return String(str).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
+  return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-+|-+$)/g, '');
 }
 
 // Finds `const ITINERARY = [ ... ];` and extracts just the array literal

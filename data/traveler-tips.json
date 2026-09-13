@@ -1,4 +1,39 @@
 {
+  "albert-cuyp-markt": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-13T02:13:43.777Z",
+    "tips": [
+      {
+        "category": "watchout",
+        "text": "Dutch locals advise buying stroopwafels plain rather than with chocolate or extra toppings, noting that added toppings are an overpriced tourist trend.",
+        "confidence": "high",
+        "anecdotal": false
+      },
+      {
+        "category": "tip",
+        "text": "Travelers seeking halal options noted that the market features several halal food stalls.",
+        "confidence": "low",
+        "anecdotal": true
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Everything I ate at the Albert Cuyp Market in Amsterdam 😍🥞🍟🍓🇳🇱\"",
+        "url": "https://www.youtube.com/watch?v=T_77QQpqCvU"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"ALBERT CUYP MARKET FOOD TRIP | AMSTERDAM NETHERLANDS TRAVEL VLOG\"",
+        "url": "https://www.youtube.com/watch?v=7qrjk6aslSA"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Only eating Dutch food in Amsterdam #amsterdam #food #dutch #foodie #shorts\"",
+        "url": "https://www.youtube.com/watch?v=mFz8kMEOhZI"
+      }
+    ]
+  },
   "eiffel-tower": {
     "researchLabel": "Sep 2026",
     "researchedAt": "2026-09-12T22:17:21.395Z",
@@ -54,6 +89,66 @@
         "type": "youtube",
         "label": "YouTube video title/description - \"We Found 3 Restaurants Near the Eiffel Tower That Aren't a Rip-Off\"",
         "url": "https://www.youtube.com/watch?v=40swa_TQrU8"
+      }
+    ]
+  },
+  "jordaan-negen-straatjes": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-13T02:13:52.296Z",
+    "tips": [
+      {
+        "category": "watchout",
+        "text": "A local noted that accommodations in the Jordaan often come with high prices and steep, narrow stairs to navigate with luggage.",
+        "confidence": "low",
+        "anecdotal": true
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Where To Stay in Amsterdam? 3 Best Areas + Where to Avoid! ❌\"",
+        "url": "https://www.youtube.com/watch?v=Lw1OsQAW6vw"
+      }
+    ]
+  },
+  "latin-quarter-notre-dame": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-13T02:14:12.167Z",
+    "tips": [
+      {
+        "category": "tickets",
+        "text": "A visitor noted that Notre-Dame entry is free with official timed slots opening 48 hours prior, warning against buying third-party skip-the-line tickets.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "nearby",
+        "text": "Travelers recommended gathering picnic supplies at Maubert Marché on Saint-Germain and enjoying them on the lawns at Jardin du Luxembourg.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "watchout",
+        "text": "A traveler cautioned that accommodation too close to the hospital on Boulevard de l'Hôpital in the 5th arrondissement experiences frequent ambulance siren noise.",
+        "confidence": "low",
+        "anecdotal": true
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Do Paris' Latin Quarter Like a Local - FULL DAY ITINERARY\"",
+        "url": "https://www.youtube.com/watch?v=UFO70NiwdD4"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"12 Ways Paris Tourists Waste Money (You're Doing It Too)\"",
+        "url": "https://www.youtube.com/watch?v=1fZuBlolRfQ"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Where To Stay in Paris + PROS & CONS of 10 Best Areas for Hotels\"",
+        "url": "https://www.youtube.com/watch?v=cq9XRf7WblA"
       }
     ]
   },
@@ -138,6 +233,48 @@
       }
     ]
   },
+  "seine-river-cruise": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-13T02:14:02.375Z",
+    "tips": [
+      {
+        "category": "watchout",
+        "text": "One visitor warned that sitting on the lower deck during a crowded cruise obscured their views around Île de la Cité due to the river walls.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "tickets",
+        "text": "A traveler noted that Les Vedettes du Pont Neuf offers open-ended tickets for a small surcharge, allowing flexibility based on weather and mood.",
+        "confidence": "low",
+        "anecdotal": true
+      },
+      {
+        "category": "transit",
+        "text": "Travelers highlighted the Batobus hop-on hop-off boat as a convenient transport option between sights, especially useful during metro strikes.",
+        "confidence": "medium",
+        "anecdotal": false
+      },
+      {
+        "category": "tip",
+        "text": "A visitor suggested trying a Canal Saint-Martin cruise, which passes through river locks and under the Bastille vault before connecting to the Seine.",
+        "confidence": "low",
+        "anecdotal": true
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"Cruising the Seine: A Comprehensive Guide to Paris River Cruises in 2026\"",
+        "url": "https://www.youtube.com/watch?v=xQrIY960aCA"
+      },
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"We Tried the BATOBUS River Cruise in Paris (Water Taxi)\"",
+        "url": "https://www.youtube.com/watch?v=CRRpDnFAeoQ"
+      }
+    ]
+  },
   "trevi-fountain": {
     "researchLabel": "Sep 2026",
     "researchedAt": "2026-09-12T22:17:49.637Z",
@@ -171,6 +308,25 @@
         "type": "youtube",
         "label": "YouTube comment on \"Get pictures at the Trevi Fountain without the crowd #travel #photography #tips\"",
         "url": "https://www.youtube.com/watch?v=HyMI437Wfxo"
+      }
+    ]
+  },
+  "zaanse-schans": {
+    "researchLabel": "Sep 2026",
+    "researchedAt": "2026-09-13T02:13:35.021Z",
+    "tips": [
+      {
+        "category": "watchout",
+        "text": "A local advised that the cycle path through Zaanse Schans is an active public road for bicycles, so pedestrians should walk on the dike instead.",
+        "confidence": "low",
+        "anecdotal": true
+      }
+    ],
+    "sources": [
+      {
+        "type": "youtube",
+        "label": "YouTube comment on \"A trip to Zaandam and Zaanse Schans windmills near Amsterdam 💚 Netherlands travel vlog\"",
+        "url": "https://www.youtube.com/watch?v=WujV1t4MwPk"
       }
     ]
   }

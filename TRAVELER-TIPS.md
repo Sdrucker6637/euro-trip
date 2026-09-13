@@ -276,6 +276,56 @@ no `--only`/`--force` only touches what's actually stale or new -
   truncate at a word boundary with an ellipsis, plus a prompt nudge to
   keep tips concise so this triggers less often.
 
+## Live research for newly-added stops (Vercel + Redis)
+
+The monthly batch job above only knows about activities already in
+`index.html`'s `ITINERARY` array. A stop added live via the app's own
+"+ ADD STOP" button (saved to that browser's `localStorage`, not the
+repo) would otherwise never get tips until someone manually adds it to
+the source and re-runs the batch job. When this app is deployed on
+Vercel, that gap is closed live instead:
+
+```
+api/
+  research-stop.mjs   <- POST { name, place? } - live counterpart to run.mjs
+  tips.mjs             <- GET - all live-researched tips, for the frontend to merge in
+  _lib/kv-store.mjs    <- Redis-backed store (Upstash, via Vercel's Storage/Marketplace)
+```
+
+`research-stop.mjs` reuses the *exact same* `youtube.mjs` / `official.mjs`
+/ `synthesize.mjs` / `validate.mjs` pipeline as the offline job - same
+evidence sources, same "5 real visitors" prompt, same anti-hallucination
+gate. The only real difference is where the result is persisted: a
+serverless function's filesystem is ephemeral and can't durably hold a
+write across requests, so this writes to Redis (Upstash, provisioned via
+Vercel's Storage tab) instead of the committed JSON file. Same freshness
+check too (`isStale()`) - a repeat call for an already-fresh slug returns
+the cached entry instead of re-spending quota.
+
+`index.html`'s `loadTravelerTips()` fetches the static baseline file
+*and* `GET /api/tips`, merging the live results over it (live wins on a
+given slug). When "+ ADD STOP" adds a stop with no existing tips,
+`maybeResearchNewStop()` fires `POST /api/research-stop` in the
+background, showing a "🔎 Looking for traveler tips…" state
+(`tipsBlockHtml()`'s `entry.researching` branch) until it resolves. Both
+calls fail silently (try/catch, same pattern as every other network call
+in this file) when the API isn't reachable - opened via `file://`, a
+plain static host without these routes, or a network hiccup - so a stop
+just renders with no tips block, exactly like any never-researched stop
+already does.
+
+`GEMINI_API_KEY`/`YOUTUBE_API_KEY` live as Vercel server-side environment
+variables here, never shipped to the browser - the API routes are the
+only thing that can spend that quota. This isn't authenticated (see the
+"Abuse note" comment in `research-stop.mjs`): a deliberate call given
+this is a personal, single-user app with no billing enabled anywhere in
+the chain, so the worst case of someone finding the URL is a wasted free
+daily quota, not a real cost.
+
+The GitHub Action + committed `data/traveler-tips.json` keep working
+unchanged as the baseline/fallback layer - this is additive, not a
+replacement.
+
 ## Personalization hook (unchanged - not built yet)
 
 Stops still don't carry a time-of-day field, so there's nothing to key

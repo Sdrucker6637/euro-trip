@@ -45,53 +45,69 @@ export async function fetchYoutubeEvidence(activity, { maxVideos = 8, maxComment
   }
   const searchData = await searchRes.json();
 
+  // Fetch every video's comments in parallel (each video's fetch was
+  // previously sequential, adding real latency for no benefit - now
+  // matters more since /api/research-stop calls this synchronously
+  // within an HTTP request). sourceIds are assigned in a final pass over
+  // videos in their original order, not fetch-completion order, so they
+  // stay deterministic regardless of which comment fetch finishes first.
+  const videos = (searchData.items || [])
+    .filter((item) => item.id?.videoId)
+    .map((item) => ({
+      videoId: item.id.videoId,
+      url: `https://www.youtube.com/watch?v=${item.id.videoId}`,
+      title: decodeHtmlEntities(item.snippet.title || ''),
+      description: decodeHtmlEntities((item.snippet.description || '').slice(0, 600)),
+      publishedAt: item.snippet.publishedAt || null,
+    }));
+
+  const commentsByVideo = await Promise.all(
+    videos.map(async (v) => {
+      try {
+        // maxResults up to 100 costs the same 1 unit as maxResults=5 -
+        // pull generously, then filter for substance client-side.
+        const commentsUrl = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${v.videoId}&order=relevance&maxResults=50&textFormat=plainText&key=${apiKey}`;
+        const commentsRes = await fetch(commentsUrl);
+        if (!commentsRes.ok) return []; // usually just means comments are disabled - not worth a warning
+        const commentsData = await commentsRes.json();
+        const kept = [];
+        for (const c of commentsData.items || []) {
+          if (kept.length >= maxCommentsPerVideo) break;
+          const snippet = c.snippet?.topLevelComment?.snippet;
+          if (!snippet?.textDisplay || !isSubstantiveComment(snippet.textDisplay)) continue;
+          kept.push({ text: snippet.textDisplay.slice(0, 800), publishedAt: snippet.publishedAt || null });
+        }
+        return kept;
+      } catch (e) {
+        console.warn(`  [youtube] comments fetch failed for ${v.url} - ${e.message}`);
+        return [];
+      }
+    })
+  );
+
   const evidence = [];
   let n = 0;
-  for (const item of searchData.items || []) {
-    const videoId = item.id?.videoId;
-    if (!videoId) continue;
+  videos.forEach((v, i) => {
     n++;
-    const url = `https://www.youtube.com/watch?v=${videoId}`;
-    const title = decodeHtmlEntities(item.snippet.title || '');
-    const description = decodeHtmlEntities((item.snippet.description || '').slice(0, 600));
     evidence.push({
       sourceId: `youtube#${n}`,
       type: 'youtube',
-      label: `YouTube video title/description - "${title}"`,
-      url,
-      text: `TITLE: ${title}\nDESCRIPTION: ${description}`,
-      publishedAt: item.snippet.publishedAt || null,
+      label: `YouTube video title/description - "${v.title}"`,
+      url: v.url,
+      text: `TITLE: ${v.title}\nDESCRIPTION: ${v.description}`,
+      publishedAt: v.publishedAt,
     });
-
-    try {
-      // maxResults up to 100 costs the same 1 unit as maxResults=5 - pull
-      // generously, then filter for substance client-side.
-      const commentsUrl = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&order=relevance&maxResults=50&textFormat=plainText&key=${apiKey}`;
-      const commentsRes = await fetch(commentsUrl);
-      if (commentsRes.ok) {
-        const commentsData = await commentsRes.json();
-        let kept = 0;
-        for (const c of commentsData.items || []) {
-          if (kept >= maxCommentsPerVideo) break;
-          const snippet = c.snippet?.topLevelComment?.snippet;
-          if (!snippet?.textDisplay || !isSubstantiveComment(snippet.textDisplay)) continue;
-          n++;
-          kept++;
-          evidence.push({
-            sourceId: `youtube#${n}`,
-            type: 'youtube',
-            label: `YouTube comment on "${title}"`,
-            url,
-            text: snippet.textDisplay.slice(0, 800),
-            publishedAt: snippet.publishedAt || null,
-          });
-        }
-      }
-      // A non-ok response here usually just means comments are disabled
-      // for this video - not worth surfacing as a warning.
-    } catch (e) {
-      console.warn(`  [youtube] comments fetch failed for ${url} - ${e.message}`);
+    for (const comment of commentsByVideo[i]) {
+      n++;
+      evidence.push({
+        sourceId: `youtube#${n}`,
+        type: 'youtube',
+        label: `YouTube comment on "${v.title}"`,
+        url: v.url,
+        text: comment.text,
+        publishedAt: comment.publishedAt,
+      });
     }
-  }
+  });
   return evidence;
 }

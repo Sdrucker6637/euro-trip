@@ -2351,6 +2351,47 @@ async function loadTravelerTips(){
     const res = await fetch('data/traveler-tips.json', {cache:'no-store'});
     if(res.ok) TRAVELER_TIPS = await res.json();
   } catch(e){ /* stays {} */ }
+  // Live tips researched on-demand (see maybeResearchNewStop below) via
+  // /api/tips, a Vercel serverless function backed by Redis - only
+  // present when this is deployed on Vercel with that API wired up.
+  // Opened via file://, offline, or on a plain static host without the
+  // API: this just 404s/fails and the static baseline above is all we
+  // get, exactly like the fetch above already handles.
+  try {
+    const res = await fetch('/api/tips', {cache:'no-store'});
+    if(res.ok) Object.assign(TRAVELER_TIPS, await res.json());
+  } catch(e){ /* static baseline only */ }
+}
+
+// Fires off live research for a stop that has no tips yet (added via
+// "+ ADD STOP", so it was never covered by the offline monthly batch
+// job). Shows a lightweight "researching" state in the UI while it's in
+// flight - see tipsBlockHtml()'s entry.researching branch - and quietly
+// does nothing if /api/research-stop isn't reachable (not deployed on
+// Vercel, or the API errored): the stop just renders with no tips block,
+// same as any never-researched stop always has.
+async function maybeResearchNewStop(stop){
+  const key = travelerTipsKey(stop);
+  if(TRAVELER_TIPS[key]) return; // already have real tips (or already researching)
+  TRAVELER_TIPS[key] = {researching:true};
+  renderItinerary();
+  try {
+    const res = await fetch('/api/research-stop', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({name: stop.name, place: stop.place || null})
+    });
+    if(res.ok){
+      const {entry} = await res.json();
+      if(entry) TRAVELER_TIPS[key] = entry;
+      else delete TRAVELER_TIPS[key];
+    } else {
+      delete TRAVELER_TIPS[key];
+    }
+  } catch(e){
+    delete TRAVELER_TIPS[key];
+  }
+  renderItinerary();
 }
 
 const TIP_CATEGORIES = {
@@ -2386,6 +2427,7 @@ function tipsBlockHtml(stop, tipsKey){
   try {
     const entry = TRAVELER_TIPS[travelerTipsKey(stop)];
     if(!entry) return '';
+    if(entry.researching) return `<div class="tips-wrap"><div class="tips-meta">🔎 Looking for traveler tips&hellip;</div></div>`;
     const tips = visibleTips(entry);
     if(!tips.length) return '';
     const isOpen = openTips.has(tipsKey);
@@ -2692,6 +2734,7 @@ function renderItinerary(){
           persistDay(id);
           openDays.add(id);
           renderItinerary();
+          maybeResearchNewStop({name, place});
         },
         onCancel: ()=>{ openDays.add(id); renderItinerary(); }
       });

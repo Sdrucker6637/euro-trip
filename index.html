@@ -336,6 +336,40 @@
   .stay-name{display:block;font-size:14px;font-weight:600;margin-top:3px;color:var(--cream);text-decoration:none;font-family:var(--font-display);}
   .stay-name:hover,.stay-name:active{text-decoration:underline;}
 
+  /* ---- Route optimizer ---- */
+  .route-optimize-row{margin-top:14px;padding-top:12px;border-top:1px dashed var(--glass-line);}
+  .route-optimize-btn{width:100%;font-family:var(--font-mono);font-size:11.5px;font-weight:600;letter-spacing:0.02em;color:var(--ink);background:var(--amber);border:none;border-radius:2px 10px 2px 10px;padding:11px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);}
+  .route-optimize-options{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:10px;}
+  .route-mode-toggle{display:flex;gap:1px;background:var(--glass-line);border-radius:8px;overflow:hidden;}
+  .route-mode-btn{font-family:var(--font-mono);font-size:12px;padding:6px 10px;border:none;background:var(--glass);color:var(--muted);cursor:pointer;}
+  .route-mode-btn.active{background:rgba(227,165,66,0.18);color:var(--amber);}
+  .route-restaurant-toggle{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10.5px;color:var(--muted);cursor:pointer;}
+  .route-restaurant-toggle input{width:15px;height:15px;accent-color:var(--amber);}
+  .route-restore-btn{display:block;margin:10px auto 0;font-family:var(--font-mono);font-size:10.5px;color:var(--muted);background:none;border:none;border-bottom:1px dotted var(--muted);padding:4px 1px;cursor:pointer;}
+  .route-preview{margin-top:12px;padding:14px;background:var(--bg);border-radius:2px 10px 10px 2px;border:1px solid var(--glass-line);}
+  .route-compare{display:flex;gap:10px;}
+  .route-compare-col{flex:1;text-align:center;padding:10px 6px;border-radius:8px;background:var(--surface);min-width:0;}
+  .route-compare-label{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.04em;color:var(--muted);}
+  .route-compare-time{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--cream);margin-top:4px;}
+  .route-compare-time.accent{color:var(--amber);}
+  .route-savings{text-align:center;font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--green);margin:10px 0 4px;}
+  .route-savings.neutral{color:var(--muted);font-weight:500;font-style:italic;}
+  .route-approx-note{font-size:10.5px;color:var(--muted);font-style:italic;text-align:center;margin-bottom:8px;}
+  .route-steps{margin-top:10px;}
+  .route-step{display:flex;align-items:baseline;gap:7px;font-size:13px;color:var(--cream);padding:3px 0;}
+  .route-leg-line{font-family:var(--font-mono);font-size:11px;color:var(--muted);padding:3px 0 3px 20px;}
+  .route-leg-line.plain{opacity:.65;}
+  .route-restaurant-card{margin:4px 0 4px 20px;padding:10px;background:var(--glass);border:1px dashed var(--amber);border-radius:2px 8px 2px 8px;}
+  .route-restaurant-head{font-family:var(--font-mono);font-size:10px;color:var(--amber);letter-spacing:0.03em;}
+  .route-restaurant-name{font-size:13px;font-weight:600;color:var(--cream);margin-top:3px;}
+  .route-restaurant-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+  .route-restaurant-detour{font-size:10.5px;color:var(--muted);margin-top:4px;font-style:italic;}
+  .route-restaurant-add{margin-top:8px;}
+  .route-stuck-note{font-size:11px;color:var(--muted);font-style:italic;margin-top:8px;padding-top:8px;border-top:1px dashed var(--glass-line);}
+  .route-preview-actions{display:flex;gap:12px;margin-top:14px;}
+  .route-apply-btn{flex:1;font-family:var(--font-mono);font-size:11.5px;font-weight:600;color:var(--ink);background:var(--amber);border:none;border-radius:2px 10px 2px 10px;padding:11px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,0.25);}
+  .route-keep-btn{flex:1;font-family:var(--font-mono);font-size:11px;color:var(--muted);background:none;border:1px solid var(--glass-line);border-radius:2px 10px 2px 10px;padding:11px;cursor:pointer;}
+
   /* ---- Checklist tab ---- */
   .checklist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
   .checklist-sub{font-size:12.5px;color:var(--muted);}
@@ -2637,6 +2671,19 @@ function renderCountryGuides(){
 }
 
 const geocodeCache = {};
+// Persisted the same way as everything else (localStorage) so a place
+// already resolved once - hardcoded itinerary stops included - never gets
+// re-geocoded on a later visit. Loaded once during init(), before anything
+// (nearby search, route optimizing) can call geocodePlace.
+async function loadGeocodeCache(){
+  try {
+    const r = await store.get('geocode-cache');
+    if(r && r.value) Object.assign(geocodeCache, JSON.parse(r.value));
+  } catch(e){ /* start with an empty in-memory cache */ }
+}
+function persistGeocodeCache(){
+  store.set('geocode-cache', JSON.stringify(geocodeCache));
+}
 async function geocodeQuery(q){
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(q)}`);
@@ -2669,6 +2716,7 @@ async function geocodePlace(place, city){
     if(coords) break;
   }
   geocodeCache[cacheKey] = coords;
+  persistGeocodeCache();
   return coords;
 }
 
@@ -2852,9 +2900,446 @@ function wireNearbyButtons(el){
   });
 }
 
+// ---- Route optimizer ("Optimize Route" feature) --------------------------
+// Reuses the app's existing free/keyless geocoding (geocodePlace, backed by
+// Nominatim) and restaurant search (fetchNearby, backed by Overpass) - no
+// new API keys, no paid services, nothing that runs unless the traveler
+// taps "Optimize Route". Real street-network walking times/distances come
+// from OSRM's public demo routing server (router.project-osrm.org, run by
+// FOSSGIS) - free, no key, fine for a personal app's occasional,
+// user-triggered use: one "table" request per tap covers a whole day's
+// stops in one call, well under the demo server's 1-request/second policy.
+//
+// There is no free, keyless, real-time public-transit API wired in (a real
+// one - e.g. Google's paid Directions "transit" mode, or the free but
+// "ask before heavy/automated use" Transitous/MOTIS API - would be needed
+// for actual timetables). Instead, Transit/Mixed modes estimate transit
+// time from the same walking distances OSRM already returned: very short
+// hops stay as walking (transit rarely beats a <15 min walk once you count
+// getting to/from a stop), longer hops assume a typical in-city
+// surface/metro speed plus a fixed wait+transfer overhead. This is always
+// labeled "(est.)" in the UI so it's never mistaken for a live schedule.
+
+function parseLatLon(place){
+  const m = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(place||'');
+  return m ? {lat:+m[1], lon:+m[2]} : null;
+}
+async function resolveStopCoords(place, city){
+  return parseLatLon(place) || await geocodePlace(place, city);
+}
+
+const OSRM_FOOT_TABLE_URL = 'https://router.project-osrm.org/table/v1/foot/';
+async function fetchWalkTable(coordsList){
+  const coordStr = coordsList.map(c=>`${c.lon},${c.lat}`).join(';');
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 12000);
+  try {
+    const res = await fetch(`${OSRM_FOOT_TABLE_URL}${coordStr}?annotations=duration,distance`, {signal: ctrl.signal});
+    const data = await res.json();
+    if(data.code !== 'Ok') return null;
+    return {durations: data.durations, distances: data.distances}; // seconds, meters
+  } catch(e){
+    return null; // offline, timed out, or the demo server is unavailable - fall back
+  } finally {
+    clearTimeout(timer);
+  }
+}
+// Straight-line fallback (at an average walking pace) for when the live
+// routing call fails - keeps the feature working, clearly marked as
+// approximate, rather than blocking the whole optimization on one flaky
+// network request.
+function haversineTable(coordsList){
+  const n = coordsList.length;
+  const WALK_KMH = 4.5;
+  const durations = [], distances = [];
+  for(let i=0;i<n;i++){
+    durations.push([]); distances.push([]);
+    for(let j=0;j<n;j++){
+      if(i===j){ durations[i].push(0); distances[i].push(0); continue; }
+      const km = haversineKm(coordsList[i].lat, coordsList[i].lon, coordsList[j].lat, coordsList[j].lon);
+      distances[i].push(km*1000);
+      durations[i].push((km/WALK_KMH)*3600);
+    }
+  }
+  return {durations, distances};
+}
+
+const TRANSIT_WALK_THRESHOLD_M = 900;
+const TRANSIT_AVG_KMH = 18;
+const TRANSIT_OVERHEAD_MIN = 8;
+function legMinutesForMode(mode, walkSeconds, distanceMeters){
+  const walkMin = walkSeconds/60;
+  if(mode==='walk') return {minutes: walkMin, label:'walk'};
+  const transitMin = distanceMeters <= TRANSIT_WALK_THRESHOLD_M
+    ? walkMin
+    : (distanceMeters/1000)/TRANSIT_AVG_KMH*60 + TRANSIT_OVERHEAD_MIN;
+  if(mode==='transit'){
+    return distanceMeters <= TRANSIT_WALK_THRESHOLD_M ? {minutes:walkMin, label:'walk'} : {minutes:transitMin, label:'transit (est.)'};
+  }
+  // mixed: whichever is faster for this specific leg
+  return transitMin < walkMin ? {minutes:transitMin, label:'transit (est.)'} : {minutes:walkMin, label:'walk'};
+}
+function buildCostMatrix(table, mode){
+  const n = table.durations.length;
+  const minutes = [], labels = [];
+  for(let i=0;i<n;i++){
+    minutes.push([]); labels.push([]);
+    for(let j=0;j<n;j++){
+      if(i===j){ minutes[i].push(0); labels[i].push(''); continue; }
+      const r = legMinutesForMode(mode, table.durations[i][j], table.distances[i][j]);
+      minutes[i].push(r.minutes); labels[i].push(r.label);
+    }
+  }
+  return {minutes, labels};
+}
+
+// Solves the open-path "visit every point once, minimize total time"
+// route - exactly for up to 8 movable stops (a day's stops are almost
+// never more than that; 8! permutations is instant), and with a
+// nearest-neighbor + 2-opt heuristic beyond that. `fixedStartIdx`, when
+// given (the day's hotel), always opens the route and is never reordered;
+// there's no forced return to it, since the day doesn't have to end back
+// at the hotel. This deliberately considers the whole route's total time,
+// not just each consecutive pair - so it's not equivalent to sorting by
+// coordinate.
+function solveOpenRoute(n, cost, fixedStartIdx){
+  const all = [...Array(n).keys()];
+  const movable = fixedStartIdx==null ? all : all.filter(i=>i!==fixedStartIdx);
+  const pathCost = (path)=>{
+    let total = 0;
+    for(let i=0;i<path.length-1;i++) total += cost[path[i]][path[i+1]];
+    return total;
+  };
+  const withStart = (perm)=> fixedStartIdx==null ? perm : [fixedStartIdx, ...perm];
+
+  if(movable.length <= 8){
+    let best = null, bestCost = Infinity;
+    const arr = movable.slice();
+    const permute = (k)=>{
+      if(k===arr.length){
+        const path = withStart(arr);
+        const c = pathCost(path);
+        if(c < bestCost){ bestCost = c; best = path.slice(); }
+        return;
+      }
+      for(let i=k;i<arr.length;i++){
+        [arr[k],arr[i]] = [arr[i],arr[k]];
+        permute(k+1);
+        [arr[k],arr[i]] = [arr[i],arr[k]];
+      }
+    };
+    permute(0);
+    return best;
+  }
+
+  let path = fixedStartIdx==null ? [movable[0]] : [fixedStartIdx];
+  const remaining = new Set(fixedStartIdx==null ? movable.slice(1) : movable);
+  while(remaining.size){
+    const last = path[path.length-1];
+    let bestNext = null, bestC = Infinity;
+    for(const cand of remaining){ if(cost[last][cand] < bestC){ bestC = cost[last][cand]; bestNext = cand; } }
+    path.push(bestNext);
+    remaining.delete(bestNext);
+  }
+  let improved = true;
+  while(improved){
+    improved = false;
+    for(let i=1;i<path.length-1;i++){
+      for(let j=i+1;j<path.length-1;j++){
+        const before = cost[path[i-1]][path[i]] + cost[path[j]][path[j+1]];
+        const after = cost[path[i-1]][path[j]] + cost[path[i]][path[j+1]];
+        if(after < before - 1e-6){
+          path = [...path.slice(0,i), ...path.slice(i, j+1).reverse(), ...path.slice(j+1)];
+          improved = true;
+        }
+      }
+    }
+  }
+  return path;
+}
+
+// Runs the full optimization for one day: geocodes stops (and the hotel,
+// if used, as an optional fixed start), fetches one real-routing table,
+// solves the best order, and re-threads any stop that couldn't be located
+// back into its original position rather than dropping it or failing the
+// whole day.
+async function optimizeDayRoute(stops, stay, city, mode){
+  const resolved = await Promise.all(stops.map(async (s, idx)=>{
+    try { return {idx, stop:s, coords: await resolveStopCoords(s.place, city)}; }
+    catch(e){ return {idx, stop:s, coords:null}; }
+  }));
+  const locatable = resolved.filter(r=>r.coords);
+  const stuck = resolved.filter(r=>!r.coords);
+
+  if(locatable.length < 2){
+    return {ok:false, reason: stuck.length ? "Couldn't locate enough stops to optimize right now - try again in a moment." : 'Add at least 2 stops to optimize a route.'};
+  }
+
+  let hotelCoords = null;
+  if(stay && stay.place){
+    try { hotelCoords = await resolveStopCoords(stay.place, city); } catch(e){ hotelCoords = null; }
+  }
+
+  const pointMeta = [];
+  const points = [];
+  if(hotelCoords){ points.push(hotelCoords); pointMeta.push({type:'hotel'}); }
+  for(const r of locatable){ points.push(r.coords); pointMeta.push({type:'stop', ref:r}); }
+  const fixedStartIdx = hotelCoords ? 0 : null;
+
+  let table = await fetchWalkTable(points);
+  let approximate = false;
+  if(!table){ table = haversineTable(points); approximate = true; }
+  const {minutes, labels} = buildCostMatrix(table, mode);
+
+  // Totals only cover activity-to-activity legs, matching exactly what the
+  // step list below shows (the optional hotel leg still steers which
+  // activity the route should start from, via fixedStartIdx, but isn't
+  // itself displayed as a step - so it's excluded here too, or the
+  // "Save ~X min" figure wouldn't reconcile with the visible legs).
+  // Rounded to whole minutes per leg (not just once at the end) so the
+  // displayed total always equals the sum of the displayed legs.
+  const activityStart = hotelCoords ? 1 : 0;
+  let currentTotal = 0;
+  for(let i=activityStart;i<points.length-1;i++) currentTotal += Math.round(minutes[i][i+1]);
+
+  const bestPath = solveOpenRoute(points.length, minutes, fixedStartIdx);
+  const orderedIdx = bestPath.filter(i=>i!==fixedStartIdx);
+  const orderedStops = orderedIdx.map(i=>pointMeta[i].ref.stop);
+
+  const legs = [];
+  let optimizedTotal = 0;
+  for(let k=0;k<orderedIdx.length-1;k++){
+    const ai = orderedIdx[k], bi = orderedIdx[k+1];
+    const legMin = Math.round(minutes[ai][bi]);
+    legs.push({from:pointMeta[ai].ref.stop, to:pointMeta[bi].ref.stop, fromCoords:points[ai], toCoords:points[bi], minutes:legMin, label:labels[ai][bi]});
+    optimizedTotal += legMin;
+  }
+
+  // Stops that couldn't be geocoded keep their original absolute slot;
+  // everything else reflows around them in optimized order.
+  const finalStops = new Array(stops.length);
+  for(const r of stuck) finalStops[r.idx] = r.stop;
+  let cursor = 0;
+  for(const s of orderedStops){
+    while(finalStops[cursor] !== undefined) cursor++;
+    finalStops[cursor] = s;
+  }
+
+  const sig = arr => arr.map(s=>s.name+'|'+s.place).join('~');
+  return {
+    ok:true, approximate,
+    order: finalStops,
+    legs,
+    currentTotalMin: currentTotal,
+    optimizedTotalMin: optimizedTotal,
+    stuckStops: stuck.map(r=>r.stop),
+    hotelName: hotelCoords ? (stay && stay.name) : null,
+    changed: sig(orderedStops) !== sig(locatable.map(r=>r.stop))
+  };
+}
+
+// Looks for 1-2 "logical gaps" in the optimized route to suggest a meal
+// stop - roughly the midpoint leg for lunch, the last leg for dinner (there
+// are no activity times to schedule against, so position in the day's
+// route stands in for time of day).
+function pickMealLegIndices(numLegs){
+  if(numLegs < 1) return [];
+  if(numLegs === 1) return [0];
+  const lunch = Math.max(0, Math.floor((numLegs-1)/2));
+  const dinner = numLegs - 1;
+  return lunch === dinner ? [lunch] : [lunch, dinner];
+}
+
+// Finds the best restaurant "along the way" for one leg: reuses the
+// existing Overpass-backed fetchNearby search (same one behind the
+// FOOD NEARBY button) centered on the leg's midpoint, then scores
+// candidates by actual detour (via-the-restaurant distance minus the
+// direct distance) rather than raw distance from the midpoint, so a
+// restaurant that requires backtracking loses even if it's technically
+// closer to the midpoint. Never fabricates rating/price - only whatever
+// Overpass/OSM actually has (usually just name + cuisine).
+const REST_DETOUR_MAX_MIN = 12;
+async function suggestRestaurantForLeg(leg){
+  let candidates;
+  try {
+    candidates = await fetchNearby((leg.fromCoords.lat+leg.toCoords.lat)/2, (leg.fromCoords.lon+leg.toCoords.lon)/2, 'food');
+  } catch(e){ return null; }
+  if(!candidates || !candidates.length) return null;
+  const directKm = haversineKm(leg.fromCoords.lat, leg.fromCoords.lon, leg.toCoords.lat, leg.toCoords.lon);
+  const WALK_KMH = 4.5;
+  let best = null, bestDetour = Infinity;
+  for(const c of candidates){
+    const viaKm = haversineKm(leg.fromCoords.lat, leg.fromCoords.lon, c.lat, c.lon)
+                + haversineKm(c.lat, c.lon, leg.toCoords.lat, leg.toCoords.lon);
+    const detourMin = ((viaKm - directKm)/WALK_KMH)*60;
+    if(detourMin < bestDetour){ bestDetour = detourMin; best = c; }
+  }
+  if(!best || bestDetour > REST_DETOUR_MAX_MIN) return null;
+  return {name:best.name, desc:best.desc, lat:best.lat, lon:best.lon, detourMin: Math.max(0, Math.round(bestDetour))};
+}
+
+function fmtMinutes(min){
+  const m = Math.max(1, Math.round(min));
+  if(m < 60) return `${m} min`;
+  const h = Math.floor(m/60), rem = m%60;
+  return rem ? `${h} hr ${rem} min` : `${h} hr`;
+}
+
+// Per-day UI selections (travel mode, restaurant toggle) and the last
+// computed preview - deliberately in-memory only (not persisted): they're
+// just controls for the next "Optimize Route" tap, not itinerary data.
+let routeUiState = {};
+let routePreviewState = {};
+
+async function runRouteOptimization(dayId, city, stops, stay){
+  routePreviewState[dayId] = {loading:true};
+  renderRoutePreview(dayId);
+  const ui = routeUiState[dayId] || {mode:'walk', restaurants:false};
+  let result;
+  try {
+    result = await optimizeDayRoute(stops, stay, city, ui.mode);
+  } catch(e){
+    result = {ok:false, reason:"Couldn't optimize this day right now - try again in a moment."};
+  }
+  const restaurants = {};
+  if(result.ok && ui.restaurants && result.legs.length){
+    const mealLegIdxs = pickMealLegIndices(result.legs.length);
+    for(let m=0; m<mealLegIdxs.length; m++){
+      const li = mealLegIdxs[m];
+      try {
+        const sug = await suggestRestaurantForLeg(result.legs[li]);
+        if(sug) restaurants[li] = {...sug, mealLabel: mealLegIdxs.length>1 ? (m===0?'Lunch':'Dinner') : 'a Meal'};
+      } catch(e){ /* one bad meal suggestion should never block the route preview */ }
+    }
+  }
+  routePreviewState[dayId] = {loading:false, result, restaurants};
+  renderRoutePreview(dayId);
+}
+
+function renderRoutePreview(dayId){
+  const panel = document.getElementById('route-optimize-'+dayId);
+  if(!panel) return;
+  const state = routePreviewState[dayId];
+  if(!state){ panel.innerHTML = ''; return; }
+  if(state.loading){
+    panel.innerHTML = `<div class="route-preview"><div class="nearby-loading">Finding the most efficient order…</div></div>`;
+    return;
+  }
+  if(!state.result || !state.result.ok){
+    panel.innerHTML = `<div class="route-preview"><div class="nearby-empty">${escapeHtml((state.result && state.result.reason) || "Couldn't optimize this day right now.")}</div></div>`;
+    return;
+  }
+  const r = state.result;
+  const restaurants = state.restaurants || {};
+  const legsByFrom = new Map(r.legs.map(l=>[l.from, l]));
+  const savings = Math.round(r.currentTotalMin - r.optimizedTotalMin);
+
+  let stepsHtml = '';
+  r.order.forEach((s, i)=>{
+    stepsHtml += `<div class="route-step"><span class="route-step-icon">📍</span><span>${i+1}. ${escapeHtml(s.name)}</span></div>`;
+    const next = r.order[i+1];
+    if(!next) return;
+    const leg = legsByFrom.get(s);
+    if(leg && leg.to === next){
+      const legIdx = r.legs.indexOf(leg);
+      const rest = restaurants[legIdx];
+      stepsHtml += `<div class="route-leg-line">↓ ${fmtMinutes(leg.minutes)} ${escapeHtml(leg.label)}</div>`;
+      if(rest){
+        stepsHtml += `
+          <div class="route-restaurant-card">
+            <div class="route-restaurant-head">🍽️ SUGGESTED ${escapeHtml(rest.mealLabel.toUpperCase())}</div>
+            <div class="route-restaurant-name">${escapeHtml(rest.name)}</div>
+            ${rest.desc ? `<div class="route-restaurant-meta">${escapeHtml(rest.desc)}</div>` : ''}
+            <div class="route-restaurant-detour">~${rest.detourMin} min off your route</div>
+            <button class="stop-map nearby-add-btn route-restaurant-add" type="button" data-day="${dayId}" data-leg="${legIdx}">+ ADD TO ITINERARY</button>
+          </div>
+          <div class="route-leg-line plain">↓</div>
+        `;
+      }
+    } else {
+      stepsHtml += `<div class="route-leg-line plain">↓ (kept in original position)</div>`;
+    }
+  });
+
+  const stuckNote = r.stuckStops.length
+    ? `<div class="route-stuck-note">⚠ Couldn't locate: ${r.stuckStops.map(s=>escapeHtml(s.name)).join(', ')} - left in its original spot.</div>`
+    : '';
+
+  panel.innerHTML = `
+    <div class="route-preview">
+      <div class="section-heading">🧭 OPTIMIZED ROUTE</div>
+      ${r.approximate ? `<div class="route-approx-note">Live routing was unavailable - using straight-line estimates.</div>` : ''}
+      ${r.hotelName ? `<div class="route-approx-note">Starting from ${escapeHtml(r.hotelName)}</div>` : ''}
+      <div class="route-compare">
+        <div class="route-compare-col">
+          <div class="route-compare-label">CURRENT ROUTE</div>
+          <div class="route-compare-time">~${fmtMinutes(r.currentTotalMin)} travel</div>
+        </div>
+        <div class="route-compare-col">
+          <div class="route-compare-label">OPTIMIZED ROUTE</div>
+          <div class="route-compare-time accent">~${fmtMinutes(r.optimizedTotalMin)} travel</div>
+        </div>
+      </div>
+      ${savings > 0 ? `<div class="route-savings">Save ~${fmtMinutes(savings)}</div>` : `<div class="route-savings neutral">Your current order is already efficient</div>`}
+      <div class="route-steps">${stepsHtml}</div>
+      ${stuckNote}
+      <div class="route-preview-actions">
+        <button class="route-apply-btn" type="button" data-act="apply-route" data-id="${dayId}">APPLY ROUTE</button>
+        <button class="route-keep-btn" type="button" data-act="keep-route" data-id="${dayId}">KEEP CURRENT ORDER</button>
+      </div>
+    </div>
+  `;
+  panel.querySelectorAll('.route-restaurant-add').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.day;
+      const legIdx = +btn.dataset.leg;
+      const st = routePreviewState[id];
+      if(!st || !st.restaurants || !st.restaurants[legIdx]) return;
+      const rest = st.restaurants[legIdx];
+      const leg = st.result.legs[legIdx];
+      const dayStops = dayStopsState[id] = dayStopsState[id] || [];
+      let insertAt = dayStops.indexOf(leg.from) + 1;
+      if(insertAt <= 0) insertAt = dayStops.length;
+      const newStop = {name:rest.name, desc:rest.desc || 'Suggested restaurant stop', place:`${rest.lat},${rest.lon}`};
+      dayStops.splice(insertAt, 0, newStop);
+      justSavedKey = 'stop:'+id+':'+insertAt;
+      persistDay(id);
+      delete st.restaurants[legIdx];
+      openDays.add(id);
+      renderItinerary();
+    });
+  });
+  panel.querySelectorAll('[data-act="apply-route"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const st = routePreviewState[id];
+      if(!st || !st.result || !st.result.ok) return;
+      if(!dayOriginalOrderState[id]){
+        dayOriginalOrderState[id] = (dayStopsState[id]||[]).map(s=>({name:s.name, desc:s.desc, place:s.place}));
+        persistOriginalOrder(id);
+      }
+      dayStopsState[id] = st.result.order;
+      persistDay(id);
+      delete routePreviewState[id];
+      openDays.add(id);
+      renderItinerary();
+    });
+  });
+  panel.querySelectorAll('[data-act="keep-route"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      delete routePreviewState[btn.dataset.id];
+      renderRoutePreview(btn.dataset.id);
+    });
+  });
+}
+
 let dayStopsState = {};
 let dayTitleState = {};
 let dayStayState = {};
+let dayOriginalOrderState = {};
 let openDays = new Set();
 // One-shot marker for the next render: which element (if any) should play
 // a brief "saved" flash. Set right before a save's renderItinerary() call,
@@ -2883,6 +3368,14 @@ async function loadItineraryState(){
       const r = await store.get('stay:'+d.id);
       if(r && r.value) dayStayState[d.id] = JSON.parse(r.value);
     } catch(e) { /* no saved override */ }
+
+    // The pre-optimization stop order, saved the first time "Apply Route"
+    // is used for this day (see renderRoutePreview) so "Restore Original
+    // Order" keeps working after a refresh.
+    try {
+      const r = await store.get('route-original:'+d.id);
+      if(r && r.value) dayOriginalOrderState[d.id] = JSON.parse(r.value);
+    } catch(e) { /* no saved snapshot yet */ }
   }
 }
 
@@ -2894,6 +3387,9 @@ function persistTitle(id){
 }
 function persistStay(id){
   store.set('stay:'+id, JSON.stringify(dayStayState[id]));
+}
+function persistOriginalOrder(id){
+  store.set('route-original:'+id, JSON.stringify(dayOriginalOrderState[id]));
 }
 
 // Shared Nominatim-backed place search, used both for adding a stop and
@@ -4048,6 +4544,30 @@ function tipsBlockHtml(stop, tipsKey){
   } catch(e){ return ''; }
 }
 
+// Discoverable but not overwhelming: a single primary button, with the
+// travel-mode choice and restaurant toggle as small secondary controls
+// underneath, matching the app's existing card/button language rather than
+// a dashboard-style tool.
+function routeOptimizeRowHtml(dayId){
+  const ui = routeUiState[dayId] || {mode:'walk', restaurants:false};
+  const hasOriginal = !!dayOriginalOrderState[dayId];
+  return `
+    <div class="route-optimize-row">
+      <button class="route-optimize-btn" type="button" data-act="optimize-route" data-id="${dayId}">🧭 OPTIMIZE ROUTE</button>
+      <div class="route-optimize-options">
+        <div class="route-mode-toggle" data-id="${dayId}">
+          <button class="route-mode-btn${ui.mode==='walk'?' active':''}" type="button" data-mode="walk" title="Walking">🚶</button>
+          <button class="route-mode-btn${ui.mode==='transit'?' active':''}" type="button" data-mode="transit" title="Public transit">🚇</button>
+          <button class="route-mode-btn${ui.mode==='mixed'?' active':''}" type="button" data-mode="mixed" title="Walking + transit">🚶+🚇</button>
+        </div>
+        <label class="route-restaurant-toggle"><input type="checkbox" class="route-restaurant-check" data-id="${dayId}" ${ui.restaurants?'checked':''}> 🍽️ Include restaurants</label>
+      </div>
+      ${hasOriginal ? `<button class="route-restore-btn" type="button" data-act="restore-route" data-id="${dayId}">↶ Restore Original Order</button>` : ''}
+    </div>
+    <div class="route-optimize-panel" id="route-optimize-${dayId}"></div>
+  `;
+}
+
 function renderItinerary(){
   const el = document.getElementById('panel-itinerary');
   const days = buildEffectiveDays();
@@ -4154,6 +4674,7 @@ function renderItinerary(){
           </div>
           <div class="nearby-results" id="nearby-${d.id}"></div>
           ${stopsHtml}
+          ${stops.length>=2 ? routeOptimizeRowHtml(d.id) : ''}
           <button class="add-stop-btn" data-id="${d.id}" data-city="${escapeHtml(d.city)}">+ ADD STOP</button>
           ${stayLengthHtml}
         </div>
@@ -4399,8 +4920,64 @@ function renderItinerary(){
     });
   });
 
+  el.querySelectorAll('[data-act="optimize-route"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const day = days.find(x=>x.id===id);
+      const stops = dayStopsState[id] || [];
+      const stay = dayStayState[id] || day.stay;
+      runRouteOptimization(id, day.city, stops, stay);
+    });
+  });
+  el.querySelectorAll('.route-mode-btn').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.closest('.route-mode-toggle').dataset.id;
+      routeUiState[id] = routeUiState[id] || {mode:'walk', restaurants:false};
+      routeUiState[id].mode = btn.dataset.mode;
+      btn.parentElement.querySelectorAll('.route-mode-btn').forEach(b=>b.classList.toggle('active', b===btn));
+    });
+  });
+  el.querySelectorAll('.route-restaurant-check').forEach(cb=>{
+    cb.addEventListener('click', e=>e.stopPropagation());
+    cb.addEventListener('change', ()=>{
+      const id = cb.dataset.id;
+      routeUiState[id] = routeUiState[id] || {mode:'walk', restaurants:false};
+      routeUiState[id].restaurants = cb.checked;
+    });
+  });
+  el.querySelectorAll('[data-act="restore-route"]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      const original = dayOriginalOrderState[id];
+      if(!original) return;
+      const current = dayStopsState[id] || [];
+      const sig = s => s.name+'|'+s.place;
+      const used = new Set();
+      const matched = [];
+      for(const o of original){
+        const idx = current.findIndex((c,i)=>!used.has(i) && sig(c)===sig(o));
+        if(idx !== -1){ matched.push(current[idx]); used.add(idx); }
+      }
+      const leftovers = current.filter((c,i)=>!used.has(i));
+      dayStopsState[id] = [...matched, ...leftovers];
+      persistDay(id);
+      delete routePreviewState[id];
+      openDays.add(id);
+      renderItinerary();
+    });
+  });
+
   wireNearbyButtons(el);
   wireBookingButtons(el);
+
+  // Keep an open optimize preview visible across an unrelated re-render
+  // (e.g. adding a suggested restaurant re-renders the whole itinerary).
+  Object.keys(routePreviewState).forEach(id=>{
+    if(days.some(d=>d.id===id)) renderRoutePreview(id);
+  });
 }
 
 function switchTab(tab){
@@ -4485,6 +5062,7 @@ document.getElementById('booking-modal').addEventListener('click', (e)=>{
 });
 
 async function init(){
+  await loadGeocodeCache();
   await loadJourneyDates();
   await loadJourneyStations();
   renderTransport();

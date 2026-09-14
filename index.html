@@ -3162,10 +3162,18 @@ function extractFoodElements(elements){
 // on quick back-to-back requests, which a per-leg loop could trip on a
 // day with several stops.
 async function fetchRouteFoodCandidates(midpoints){
+  for(const m of midpoints){
+    if(!Number.isFinite(m.lat) || !Number.isFinite(m.lon)){
+      throw new Error('invalid coordinates for a stop, cannot search');
+    }
+  }
   const clauses = midpoints.map(m=>`node["amenity"~"restaurant|cafe|bar|pub|fast_food"](around:900,${m.lat},${m.lon});`).join('\n      ');
   const query = `[out:json][timeout:25];(${clauses});out body 100;`;
   const res = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body: query});
-  if(!res.ok) throw new Error('overpass status '+res.status);
+  if(!res.ok){
+    const bodyText = await res.text().catch(()=>'');
+    throw new Error(`overpass ${res.status}${bodyText ? ': '+bodyText.replace(/\s+/g,' ').trim().slice(0,140) : ''}`);
+  }
   const data = await res.json();
   return extractFoodElements(data.elements);
 }
@@ -3193,7 +3201,7 @@ async function suggestRestaurantsForLegs(legs){
     candidates = await fetchRouteFoodCandidates(midpoints);
   } catch(e){
     console.error('Restaurant search (Overpass) failed:', e);
-    return {restaurants:{}, searchFailed:true};
+    return {restaurants:{}, searchFailed:true, errorDetail: (e && e.message) || String(e)};
   }
   if(!candidates.length) return {restaurants:{}, searchFailed:false};
 
@@ -3250,7 +3258,7 @@ async function runRouteOptimization(dayId, city, stops, stay){
         const found = await suggestRestaurantsForLegs(result.legs);
         restaurants = found.restaurants;
         if(found.searchFailed){
-          restaurantNote = "Restaurant search is unavailable right now - try again in a moment.";
+          restaurantNote = `Restaurant search is unavailable right now${found.errorDetail ? ' ('+found.errorDetail+')' : ''} - try again in a moment.`;
         } else if(!Object.keys(restaurants).length){
           restaurantNote = "No nearby restaurant found close enough to this route to suggest.";
         }

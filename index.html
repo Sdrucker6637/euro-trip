@@ -168,6 +168,54 @@
   .book-toggle{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;cursor:pointer;user-select:none;margin-top:8px;}
   .book-toggle input{width:14px;height:14px;accent-color:var(--green);}
 
+  /* ---- Travel Day card: same paper-ticket look as .journey above
+     (reused wholesale via the .journey class itself - see
+     travelDayCardHtml), just slotted into the Itinerary tab and given a
+     couple of its own pieces (state badge, next step, checklist, arrival
+     welcome) that the Transport tab doesn't need. Sits between .day-head
+     and .day-detail, always visible even while the day is collapsed -
+     the one piece of itinerary content that isn't. */
+  .travel-day-slot{padding:0 14px;margin-top:-2px;}
+  .travel-day-card{margin-bottom:0;}
+  .travel-day-head{padding-bottom:13px;}
+  .travel-day-banner{font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.04em;color:var(--red-deep);margin-bottom:6px;}
+  /* Calmer variant for the departure-day card once it's handed live
+     tracking off to the arrival day's card (see travelDayCardHtml) - same
+     ticket shape, quieter color, so it doesn't visually compete with the
+     one card actually carrying the live state. */
+  .travel-day-compact{box-shadow:0 4px 10px rgba(0,0,0,0.22);}
+  .travel-day-compact .travel-day-banner{color:var(--status-confirmed-text);}
+  .travel-day-compact .travel-day-body{padding-top:0;}
+  .travel-route{font-size:17px;}
+  .travel-arrow{color:var(--paper-ink-faint);font-size:14px;margin:0 2px;}
+  .travel-badge{display:inline-flex;align-items:center;font-family:var(--font-mono);font-size:11px;font-weight:700;letter-spacing:0.03em;padding:5px 10px;border-radius:2px 8px 2px 8px;margin-top:8px;}
+  .travel-badge.calm{background:var(--pill-neutral);color:var(--paper-ink-secondary);}
+  .travel-badge.warn{background:var(--amber);color:var(--ink);}
+  .travel-badge.urgent{background:var(--red-deep);color:#fff;animation:travel-urgent-pulse 1.8s ease-in-out infinite;}
+  @keyframes travel-urgent-pulse{0%,100%{opacity:1;}50%{opacity:.72;}}
+  .travel-day-body{padding:13px 16px 15px;}
+  .travel-next-step{margin-bottom:12px;}
+  .travel-next-step-label{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:0.04em;color:var(--red-deep);margin-bottom:3px;}
+  .travel-next-step-detail{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink);line-height:1.3;}
+  .travel-next-step-sub{font-size:12.5px;color:var(--paper-ink-secondary);margin-top:3px;}
+  .travel-upcoming{font-size:12px;color:var(--paper-ink-secondary);font-style:italic;margin-top:10px;}
+  .travel-checklist{margin-top:12px;border-top:1px dashed var(--paper-line);padding-top:10px;}
+  .travel-checklist-toggle{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;padding:0;cursor:pointer;font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:0.02em;color:var(--red-deep);text-align:left;}
+  .travel-checklist-chevron{margin-left:auto;font-size:9px;color:var(--paper-ink-faint);transition:transform .2s;}
+  .travel-checklist-toggle.open .travel-checklist-chevron,.travel-checklist.open .travel-checklist-chevron{transform:rotate(180deg);}
+  .travel-checklist-body{display:none;margin-top:9px;}
+  .travel-checklist.open .travel-checklist-body{display:block;}
+  .travel-checklist-item{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink);padding:5px 0;cursor:pointer;user-select:none;}
+  .travel-checklist-item input{width:15px;height:15px;accent-color:var(--red-deep);flex-shrink:0;}
+  .travel-checklist-item.checked{color:var(--paper-ink-faint);text-decoration:line-through;}
+  .travel-welcome-label{font-family:var(--font-mono);font-size:10px;font-weight:700;letter-spacing:0.04em;color:var(--red-deep);margin-bottom:3px;}
+  .travel-welcome-name{display:block;font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--ink);text-decoration:none;}
+  .travel-welcome-name:hover,.travel-welcome-name:active{text-decoration:underline;}
+  .travel-welcome-address{font-size:12px;color:var(--paper-ink-secondary);margin-top:3px;}
+  .travel-welcome-checkin{font-size:12px;color:var(--paper-ink-secondary);margin-top:4px;}
+  .travel-welcome-next{margin-top:14px;padding-top:12px;border-top:1px dashed var(--paper-line);}
+  .travel-welcome-next-name{font-family:var(--font-display);font-size:14.5px;font-weight:600;color:var(--ink);margin-top:2px;}
+
   /* ---- Itinerary tab ---- */
   .day-card{background:var(--glass);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border-radius:3px 14px 14px 3px;margin-bottom:12px;overflow:hidden;border-left:4px solid var(--muted);box-shadow:0 3px 10px rgba(0,0,0,0.22);}
   .day-head{display:flex;justify-content:space-between;align-items:center;padding:14px 15px;cursor:pointer;gap:10px;}
@@ -1060,11 +1108,21 @@ async function openBookingModal({key, title, bookingUrl, bookingLabel, kind, con
 }
 
 // ---- Grouped journeys (connecting legs shown together) ----
+// `depart`/`arrive` on each segment (added for Travel Day mode - see
+// that section below) are a 24h "HH:MM" local wall-clock time, the one
+// new piece of data this trip's transportation model didn't already
+// carry. Every other field is untouched and still drives the Transport
+// tab exactly as before. Chosen to land inside each leg's existing
+// `duration`/`note` text (e.g. s1's 14:04->17:24 is exactly "~3h20m";
+// s8's times come straight from its own duration string, which already
+// spelled them out as "19:30-09:30"), not independently invented -
+// approximate scheduling for a personal itinerary, not a claim of any
+// operator's real published timetable.
 const JOURNEYS = [
   {
     id:'j1', from:'Amsterdam', to:'Paris', fromCode:'AMS', toCode:'PAR', date:'Tue Oct 13',
     segments:[
-      {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',duration:'~3h20m',
+      {id:'s1',flag:'red',flagLabel:'BOOK NOW',title:'Eurostar / Thalys',duration:'~3h20m',depart:'14:04',arrive:'17:24',
        note:'Mandatory reservation, quota-limited for pass holders. Direct, no transfer.',
        from:{name:'Amsterdam Centraal',place:'Amsterdam Centraal, Amsterdam'},to:{name:'Paris Gare du Nord',place:'Paris Gare du Nord, Paris'},
        book:'https://www.eurostar.com/uk-en', bookLabel:'Eurostar'}
@@ -1073,11 +1131,11 @@ const JOURNEYS = [
   {
     id:'j2', from:'Paris', to:'Interlaken', fromCode:'PAR', toCode:'INT', date:'Fri Oct 16', via:'via Basel',
     segments:[
-      {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',duration:'~3h',
+      {id:'s2',flag:'red',flagLabel:'BOOK NOW',title:'TGV Lyria',duration:'~3h',depart:'07:04',arrive:'10:04',
        note:'Mandatory reservation. 90-day window already open.',
        from:{name:'Paris Gare de Lyon',place:'Paris Gare de Lyon, Paris'},to:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},
        book:'https://www.tgv-lyria.com/en', bookLabel:'TGV Lyria'},
-      {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',duration:'~2h',
+      {id:'s3',flag:'green',flagLabel:'HOP-ON',title:'SBB regional',duration:'~2h',depart:'10:38',arrive:'12:38',
        note:'No reservation needed, runs roughly hourly. Same-station transfer.',
        from:{name:'Basel SBB',place:'Basel SBB, Basel, Switzerland'},to:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},
        book:'https://www.sbb.ch/en', transitApp:'sbb'}
@@ -1086,11 +1144,11 @@ const JOURNEYS = [
   {
     id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Mon Oct 19', via:'via Zurich',
     segments:[
-      {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',duration:'~2h',
+      {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',duration:'~2h',depart:'08:02',arrive:'10:04',
        note:'No reservation needed.',
        from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
        book:'https://www.sbb.ch/en', transitApp:'sbb'},
-      {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',duration:'~8h',
+      {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',duration:'~8h',depart:'10:32',arrive:'18:32',
        note:'Long day - reservation optional but worth it for comfort.',
        from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
        book:'https://www.oebb.at/en/'}
@@ -1099,7 +1157,7 @@ const JOURNEYS = [
   {
     id:'j4', from:'Vienna', to:'Budapest', fromCode:'VIE', toCode:'BUD', date:'Wed Oct 21',
     segments:[
-      {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',duration:'~2h40m',
+      {id:'s6',flag:'green',flagLabel:'HOP-ON',title:'ÖBB / MÁV Railjet',duration:'~2h40m',depart:'08:12',arrive:'10:52',
        note:'Hourly-ish, optional reservation. Direct, no transfer.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},
        book:'https://www.oebb.at/en/'}
@@ -1108,11 +1166,11 @@ const JOURNEYS = [
   {
     id:'j5', from:'Budapest', to:'Rome', fromCode:'BUD', toCode:'ROM', date:'Fri Oct 23', via:'via Vienna, overnight',
     segments:[
-      {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',duration:'~2h40m',
+      {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',duration:'~2h40m',depart:'15:08',arrive:'17:48',
        note:'Connects to the overnight sleeper in Vienna.',
        from:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
        book:'https://www.oebb.at/en/'},
-      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',duration:'19:30–09:30, ~14h',
+      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',duration:'19:30–09:30, ~14h',depart:'19:30',arrive:'09:30',
        note:'Fewest berths of any leg - historically sells out 60+ days ahead. Book earliest of all.',
        from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
        book:'https://www.nightjet.com/en', bookLabel:'Nightjet'}
@@ -1557,6 +1615,122 @@ function buildEffectiveDays(){
   return days;
 }
 
+// ---- Travel Day mode -------------------------------------------------
+// An itinerary-day-aware layer over the existing JOURNEYS/ITINERARY data,
+// not a second source of truth: it reads JOURNEYS and buildEffectiveDays()
+// exactly as they already exist, and every button it renders reuses the
+// same booking modal / transit-app / Google Maps helpers as the Transport
+// tab (see trainSegLinksHtml above). Answers "what do I need to do right
+// now to get to my next city?" on the one or two itinerary days that
+// actually involve intercity transportation - every other day is
+// untouched.
+//
+// The only new *data* anywhere is a `depart`/`arrive` clock time on each
+// JOURNEYS segment (see the comment above the JOURNEYS array). Everything
+// else here is pure derivation from that plus the day list's own index
+// (which buildEffectiveDays already turns into a real calendar date, so
+// this stays correct across "+ ADD DAY"/"- SHORTEN STAY" edits without
+// any special-casing).
+
+function parseHM(str){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(str||'');
+  return m ? (+m[1])*60+(+m[2]) : null;
+}
+function fmtHM12(date){
+  if(!date) return '';
+  let h = date.getHours(), m = date.getMinutes();
+  const ampm = h>=12 ? 'PM' : 'AM';
+  h = h%12; if(h===0) h = 12;
+  return `${h}:${String(m).padStart(2,'0')} ${ampm}`;
+}
+// A segment's arrival counts as "next calendar day" whenever its arrive
+// clock time is numerically earlier than its depart time - true for any
+// leg under 24h, which every real one here is. Generic by design: a
+// future overnight leg added anywhere just needs its own depart/arrive
+// times, never a special case keyed by train name or id.
+function segmentDayOffset(seg){
+  const dep = parseHM(seg.depart), arr = parseHM(seg.arrive);
+  if(dep===null || arr===null) return 0;
+  return arr < dep ? 1 : 0;
+}
+function journeyTotalDayOffset(journey){
+  return journey.segments.reduce((sum,s)=>sum+segmentDayOffset(s), 0);
+}
+// Threads real Date objects through a (possibly multi-leg) journey:
+// segment 0 departs on `startDateOnly`'s calendar day at its own `depart`
+// time; each later segment departs on whatever calendar day the previous
+// segment's arrival landed on - a transfer's wait time lives inside that
+// next segment's own `depart` time, not a separate gap field.
+function buildJourneySchedule(journey, startDateOnly){
+  let y = startDateOnly.getFullYear(), mo = startDateOnly.getMonth(), da = startDateOnly.getDate();
+  const out = [];
+  for(const seg of journey.segments){
+    const dep = parseHM(seg.depart), arr = parseHM(seg.arrive);
+    const departDT = dep===null ? null : new Date(y,mo,da,Math.floor(dep/60),dep%60);
+    const arriveDT = arr===null ? null : new Date(y,mo,da+segmentDayOffset(seg),Math.floor(arr/60),arr%60);
+    out.push({...seg, departDT, arriveDT});
+    if(arriveDT){ y = arriveDT.getFullYear(); mo = arriveDT.getMonth(); da = arriveDT.getDate(); }
+  }
+  return out;
+}
+function realDayDate(dayIndex){
+  return new Date(TRIP_START.getFullYear(), TRIP_START.getMonth(), TRIP_START.getDate()+dayIndex);
+}
+
+// For every adjacent pair of effective days whose city changes, finds the
+// one matching JOURNEYS entry (by from/to city name) and works out which
+// real calendar day each end of the trip falls on, purely from the days'
+// own index in `days` - stays correct even after a city's stay length is
+// edited, since every later day's index (and so its real date) shifts
+// together with it.
+function computeCityTransitions(days){
+  const out = [];
+  for(let i=1;i<days.length;i++){
+    if(days[i].city === days[i-1].city) continue;
+    const journey = JOURNEYS.find(j=>j.from===days[i-1].city && j.to===days[i].city);
+    if(!journey) continue;
+    const totalOffset = journeyTotalDayOffset(journey);
+    const arrivalDate = realDayDate(i);
+    const departureDateForSchedule = new Date(arrivalDate.getFullYear(), arrivalDate.getMonth(), arrivalDate.getDate()-totalOffset);
+    out.push({
+      journey, totalOffset,
+      departureIdx: i-1, arrivalIdx: i,
+      departureDate: realDayDate(i-1), arrivalDate,
+      schedule: buildJourneySchedule(journey, departureDateForSchedule)
+    });
+  }
+  return out;
+}
+
+// Which travel-day context(s) a given rendered day should show. A same-
+// day journey only ever needs the arrival day (the whole trip - checkout
+// through first activity - happens inside that one calendar day); an
+// overnight one also needs the departure day, since the traveler is
+// actually boarding *that* evening, not the next morning.
+function travelContextsForDay(transitions, dayIndex){
+  const ctxs = [];
+  for(const t of transitions){
+    if(t.arrivalIdx === dayIndex) ctxs.push({...t, role:'arrival'});
+    if(t.departureIdx === dayIndex && t.totalOffset > 0) ctxs.push({...t, role:'departure'});
+  }
+  return ctxs;
+}
+
+// Where a journey's schedule currently stands relative to `now` - the one
+// piece of state every other Travel Day bit (badge, next step, header)
+// is derived from. 'riding'/'transfer' indices point at the schedule
+// array so the caller knows exactly which leg is active.
+function travelPhase(schedule, now){
+  const first = schedule[0];
+  if(!first.departDT || now < first.departDT) return {phase:'pre-departure', idx:0};
+  for(let i=0;i<schedule.length;i++){
+    const seg = schedule[i];
+    if(seg.arriveDT && now < seg.arriveDT) return {phase:'riding', idx:i};
+    if(i < schedule.length-1 && schedule[i+1].departDT && now < schedule[i+1].departDT) return {phase:'transfer', idx:i, nextIdx:i+1};
+  }
+  return {phase:'arrived', idx:schedule.length-1};
+}
+
 const CHECKLIST_GROUPS = [
   {label:'On You', items:['Phone','Wallet','Keys','Passport','AirPods']},
   {label:'Packed', items:['Chargers','Toiletries','Camera','Earplugs','Locks']},
@@ -1895,6 +2069,28 @@ function effectiveJourneyEndpoints(j){
   };
 }
 
+// Shared segment action row (transit-app shortcut, Rail Planner, Google
+// Maps directions, booking/screenshot) - used by both the Transport tab
+// and the Travel Day card (see below) so a screenshot or saved share
+// link added from either place shows up in the other automatically,
+// since both pass the exact same `train:${s.id}` data-key into the same
+// shared booking modal.
+function trainSegLinksHtml(s, effFrom, effTo, dateLabel){
+  return `
+    ${s.transitApp ? transitAppButtonHtml(s.transitApp, {
+      dataKey: `transit:${s.transitApp}:${s.id}`,
+      title: s.title,
+      contextLine: `${effFrom.name} → ${effTo.name} · ${dateLabel}`
+    }) : ''}
+    <span style="display:inline-flex;align-items:center;gap:4px;">
+      <a class="pill-link secondary" href="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}" title="${escapeHtml('Runs the "'+RAIL_PLANNER_SHORTCUT_NAME+'" Shortcut, which opens Rail Planner')}">🚆 RAIL PLANNER ↗</a>
+      <button class="date-edit-btn" type="button" data-act="booking" data-kind="railplanner" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner" data-shortcut="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}" title="Rail Planner website / saved link" aria-label="Rail Planner website and saved-link options">✎</button>
+    </span>
+    <a class="pill-link secondary" href="${directionsUrl(effFrom.place,effTo.place)}" target="_blank" title="Directions ${effFrom.name} → ${effTo.name}">🧭 DIRECTIONS</a>
+    <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
+  `;
+}
+
 function renderTransport(){
   const el = document.getElementById('panel-transport');
   el.innerHTML = `<div class="section-heading">INTER-COUNTRY TRAINS</div><div class="booking-rollup" id="booking-rollup"></div><div class="reserve-rollup" id="reserve-rollup"></div>` + JOURNEYS.map(j => {
@@ -1929,17 +2125,7 @@ function renderTransport(){
             <div class="seg-note">${s.note}</div>
             <div class="seg-station-edit-slot"></div>
             <div class="seg-links">
-              ${s.transitApp ? transitAppButtonHtml(s.transitApp, {
-                dataKey: `transit:${s.transitApp}:${s.id}`,
-                title: s.title,
-                contextLine: `${effFrom.name} → ${effTo.name} · ${journeyDateOverrides[j.id] || j.date}`
-              }) : ''}
-              <span style="display:inline-flex;align-items:center;gap:4px;">
-                <a class="pill-link secondary" href="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}" title="${escapeHtml('Runs the "'+RAIL_PLANNER_SHORTCUT_NAME+'" Shortcut, which opens Rail Planner')}">🚆 RAIL PLANNER ↗</a>
-                <button class="date-edit-btn" type="button" data-act="booking" data-kind="railplanner" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(RAIL_PLANNER_URL)}" data-label="Rail Planner" data-shortcut="${escapeHtml(shortcutRunUrl(RAIL_PLANNER_SHORTCUT_NAME))}" title="Rail Planner website / saved link" aria-label="Rail Planner website and saved-link options">✎</button>
-              </span>
-              <a class="pill-link secondary" href="${directionsUrl(effFrom.place,effTo.place)}" target="_blank" title="Directions ${effFrom.name} → ${effTo.name}">🧭 DIRECTIONS</a>
-              <button class="pill-link secondary" type="button" data-act="booking" data-kind="train" data-key="train:${s.id}" data-title="${escapeHtml(s.title)}" data-url="${escapeHtml(s.book||'')}" data-label="${escapeHtml(s.bookLabel||'')}">🎫 BOOKING</button>
+              ${trainSegLinksHtml(s, effFrom, effTo, journeyDateOverrides[j.id] || j.date)}
             </div>
             <label class="book-toggle"><input type="checkbox" data-leg="${s.id}"> BOOKED</label>
           </div>
@@ -4657,11 +4843,350 @@ function routeOptimizeRowHtml(dayId){
   `;
 }
 
+// ---- Travel Day card rendering ---------------------------------------
+// Renders one `travelContextsForDay()` entry as a compact "paper ticket"
+// card (same .journey/.segment visual language as the Transport tab -
+// see the CSS comment above .journey). Kept read-only/derived: nothing
+// here writes to dayStopsState/dayStayState/ITINERARY, so it can't affect
+// day editing, the route optimizer, or any other existing feature.
+
+function fmtDuration(ms){
+  if(ms<=0) return '0m';
+  const totalMin = Math.round(ms/60000);
+  const days = Math.floor(totalMin/1440);
+  const hours = Math.floor((totalMin%1440)/60);
+  const mins = totalMin%60;
+  if(days>=1) return `${days}d ${hours}h`;
+  if(hours>=1) return `${hours}h ${mins}m`;
+  return `${mins}m`;
+}
+function sameCalendarDay(a,b){
+  return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+
+// A plain, stated cushion for finding the platform/checking a board once
+// a real walk-time is known - never claimed as an operator's official
+// recommendation. TRAVEL_DEFAULT_LEAVE_BUFFER_MIN is only used until that
+// real estimate resolves (see estimateWalkMinutes/refreshTravelWalkTimes).
+const TRAVEL_STATION_BUFFER_MIN = 15;
+const TRAVEL_DEFAULT_LEAVE_BUFFER_MIN = 30;
+const TRAVEL_WALK_KMH = 4.5; // same pace as the route optimizer's own straight-line fallback (haversineTable)
+function computeLeaveBy(departDT, walkMinutes){
+  const lead = walkMinutes!=null ? walkMinutes+TRAVEL_STATION_BUFFER_MIN : TRAVEL_DEFAULT_LEAVE_BUFFER_MIN;
+  return new Date(departDT.getTime() - lead*60000);
+}
+// Reuses the app's existing geocoding (geocodePlace, Nominatim-backed,
+// cached in the same geocodeCache as Nearby/route-optimizer) rather than
+// a new API - a straight-line estimate at a fixed walking pace, exactly
+// like the route optimizer's own offline fallback, not a live-routing
+// call on every itinerary render.
+async function estimateWalkMinutes(fromPlace, toPlace, city){
+  try {
+    const a = await geocodePlace(fromPlace, city);
+    const b = await geocodePlace(toPlace, city);
+    if(!a || !b) return null;
+    const km = haversineKm(a.lat, a.lon, b.lat, b.lon);
+    return Math.max(1, Math.round((km/TRAVEL_WALK_KMH)*60));
+  } catch(e){ return null; }
+}
+
+const TRAVEL_DAY_CHECKLIST_ITEMS = ['Passport','Wallet','Phone','Charger','Ticket/booking','Water/snacks','Check room','Check bathroom','Check under bed'];
+const OVERNIGHT_CHECKLIST_ITEMS = ['Water/snacks','Charger','Ticket','Set arrival alarm'];
+
+// Deliberately its own small localStorage blob (namespaced 'travel-
+// checklist', distinct from every 'packing:*' key) so ticking a box here
+// can never touch the traveler's real packing list - see loadPackingState/
+// packingCustomItems for that separate, permanent list.
+let travelChecklistState = {};
+async function loadTravelChecklist(){
+  try {
+    const r = await store.get('travel-checklist');
+    travelChecklistState = r && r.value ? JSON.parse(r.value) : {};
+  } catch(e){ travelChecklistState = {}; }
+}
+function persistTravelChecklist(){ store.set('travel-checklist', JSON.stringify(travelChecklistState)); }
+function travelChecklistKey(journeyId, role, item){ return `${journeyId}:${role}:${checklistSlug(item)}`; }
+
+// Session-only expand state for the checklist toggle, exactly like
+// openGuides/openDays elsewhere in this file - its own Set rather than
+// reusing openGuideSections (a different feature's state) since this
+// toggle lives in the Itinerary tab, wired by wireTravelDayCards below,
+// not by renderCountryGuides.
+let openTravelChecklists = new Set();
+function travelChecklistHtml(journeyId, role, items){
+  const openKey = `${journeyId}:${role}`;
+  const isOpen = openTravelChecklists.has(openKey);
+  const label = role.includes('overnight') ? 'OVERNIGHT REMINDERS' : 'DEPARTURE CHECKLIST';
+  return `
+    <div class="travel-checklist${isOpen ? ' open':''}">
+      <button class="travel-checklist-toggle" type="button" data-act="toggle-travel-checklist" data-checklist-key="${escapeHtml(openKey)}">
+        <span>✓ ${label}</span><span class="travel-checklist-chevron">▾</span>
+      </button>
+      <div class="travel-checklist-body">
+        ${items.map(item=>{
+          const key = travelChecklistKey(journeyId, role, item);
+          const checked = !!travelChecklistState[key];
+          return `<label class="travel-checklist-item${checked?' checked':''}"><input type="checkbox" data-travel-check="${escapeHtml(key)}" ${checked?'checked':''}> ${escapeHtml(item)}</label>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// The one full "what do I need to do about this specific leg" row -
+// reuses the exact same .segment/.seg-*/.flag-tag markup and
+// trainSegLinksHtml button row as the Transport tab, plus a "STATION" map
+// pin the Transport tab doesn't need (there, DIRECTIONS already covers
+// it). `stationPlace` is whichever end of this leg is next-relevant
+// (origin before boarding, destination while riding/transferring).
+function travelSegmentDetailHtml(seg, journeyDateLabel, stationPlace, stationLabel){
+  return `
+    <div class="segment">
+      <div class="seg-flag ${seg.flag}"></div>
+      <div class="seg-body">
+        <span class="flag-tag ${seg.flag}">${seg.flagLabel}</span>
+        <div class="seg-title">${escapeHtml(seg.title)}</div>
+        <div class="seg-meta">
+          <span class="seg-station">${escapeHtml(seg.from.name)} ${seg.departDT?fmtHM12(seg.departDT):''}</span>
+          <span class="seg-meta-arrow">→</span>
+          <span class="seg-station">${escapeHtml(seg.to.name)} ${seg.arriveDT?fmtHM12(seg.arriveDT):''}</span>
+          · ${escapeHtml(seg.duration)}
+        </div>
+        <div class="seg-note" data-travel-reservation="${escapeHtml(seg.id)}" data-travel-flag="${escapeHtml(seg.flag)}">${escapeHtml(seg.note||'')}</div>
+        <div class="seg-links">
+          ${stationPlace ? `<a class="pill-link secondary" href="${placeUrl(stationPlace)}" target="_blank" title="${escapeHtml(stationLabel||'Station')}">📍 STATION</a>` : ''}
+          ${trainSegLinksHtml(seg, seg.from, seg.to, journeyDateLabel)}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// In-memory only (never persisted) - a straight-line walk-time estimate
+// per journey, resolved once via the app's existing cached geocoder and
+// then reused on every re-render/live refresh without repeating the
+// lookup. Kept separate from geocodeCache itself since this stores a
+// derived minutes figure, not raw coordinates. `pendingTravelWalkFetches`
+// is drained right after each render (see wireTravelDayCards) - a plain
+// object rather than a Set/Map so it survives the same way the rest of
+// this file's simple caches do.
+let travelWalkEstimates = {};
+let pendingTravelWalkFetches = {};
+
+function travelDayCardHtml(ctx, day, now, originStayPlace){
+  const {journey, schedule, role} = ctx;
+  const dateForRole = role==='departure' ? ctx.departureDate : ctx.arrivalDate;
+  const journeyDateLabel = formatItineraryDate(dateForRole);
+  const routeLabel = `${journey.from} <span class="travel-arrow">&#8594;</span> ${journey.to}`;
+  const checklistKeyBase = role==='departure' ? journey.id+':depart' : journey.id+':arrive';
+  const state = travelPhase(schedule, now);
+
+  // The departure-day card's one job is "get you on the train tonight" -
+  // once boarding has actually happened (any phase past pre-departure),
+  // full live tracking becomes the arrival day's card's job instead (see
+  // role==='arrival' below), so this collapses to one calm confirmation
+  // line instead of duplicating that same live card on two different
+  // day-cards at once.
+  if(role==='departure' && state.phase!=='pre-departure'){
+    const statusLine = state.phase==='arrived' ? `Arrived in ${journey.to}.`
+      : state.phase==='transfer' ? `Transferring at ${schedule[state.idx].to.name}.`
+      : segmentDayOffset(schedule[state.idx])===1 ? `On the overnight train to ${journey.to}.`
+      : `En route to ${journey.to}.`;
+    const compactBanner = state.phase==='arrived' ? '✅ ARRIVED' : '✅ ON YOUR WAY';
+    return `
+      <div class="journey travel-day-card travel-day-compact">
+        <div class="journey-head travel-day-head">
+          <div class="travel-day-banner">${compactBanner}</div>
+          <div class="journey-route travel-route">${routeLabel}</div>
+        </div>
+        <div class="travel-day-body">
+          <div class="travel-next-step-detail">${escapeHtml(statusLine)}</div>
+          <div class="travel-next-step-sub">See the ${escapeHtml(journey.to)} arrival card for live status.</div>
+        </div>
+      </div>
+    `;
+  }
+  let banner, badgeHtml = '', stepLabel = null, stepDetail = '', activeSeg = null, stationPlace = null, stationLabel = '', upcomingHtml = '';
+
+  if(state.phase==='pre-departure'){
+    activeSeg = schedule[0];
+    stationPlace = activeSeg.from.place; stationLabel = activeSeg.from.name;
+    banner = '🚆 TRAVEL DAY';
+    const walkKey = `walk:${journey.id}`;
+    const cachedWalk = travelWalkEstimates[walkKey];
+    if(cachedWalk===undefined && originStayPlace){
+      pendingTravelWalkFetches[walkKey] = {from: originStayPlace, to: activeSeg.from.place, city: journey.from};
+    }
+    const leaveBy = computeLeaveBy(activeSeg.departDT, cachedWalk);
+    const msToLeave = leaveBy - now, msToDepart = activeSeg.departDT - now;
+    if(msToLeave > 24*60*60*1000){
+      badgeHtml = `<div class="travel-badge calm">DEPARTURE IN ${fmtDuration(msToDepart)}</div>`;
+    } else if(now < leaveBy){
+      stepLabel = 'Check out of your accommodation';
+      badgeHtml = `<div class="travel-badge calm">DEPARTURE IN ${fmtDuration(msToDepart)}</div>`;
+    } else if(msToDepart > 5*60000){
+      stepLabel = `Leave for ${activeSeg.from.name}`;
+      stepDetail = cachedWalk!=null ? `🚶 ${cachedWalk} min · Leave by ${fmtHM12(leaveBy)}` : `Leave by ${fmtHM12(leaveBy)}`;
+      badgeHtml = `<div class="travel-badge warn" data-travel-leaveby="${escapeHtml(walkKey)}">LEAVE NOW</div>`;
+    } else {
+      stepLabel = `Board your ${activeSeg.title}`;
+      stepDetail = `Departs ${fmtHM12(activeSeg.departDT)}`;
+      badgeHtml = `<div class="travel-badge urgent">🚨 LEAVE NOW</div>`;
+    }
+    if(schedule.length>1) upcomingHtml = `<div class="travel-upcoming">Then: ${escapeHtml(schedule[1].title)} to ${escapeHtml(schedule[1].to.name)} · ${fmtHM12(schedule[1].departDT)}</div>`;
+  } else if(state.phase==='riding'){
+    activeSeg = schedule[state.idx];
+    const overnight = segmentDayOffset(activeSeg)===1;
+    stationPlace = activeSeg.to.place; stationLabel = activeSeg.to.name;
+    banner = overnight ? '🌙 OVERNIGHT JOURNEY' : '🚆 IN TRANSIT';
+    const isLast = state.idx===schedule.length-1;
+    stepLabel = isLast ? `Ride to ${activeSeg.to.name}` : `Ride to ${activeSeg.to.name}, then transfer`;
+    stepDetail = `Arrives ${fmtHM12(activeSeg.arriveDT)}`;
+    if(overnight){
+      upcomingHtml = travelChecklistHtml(journey.id, checklistKeyBase+':overnight', OVERNIGHT_CHECKLIST_ITEMS);
+    }
+  } else if(state.phase==='transfer'){
+    const arrivedSeg = schedule[state.idx], nextSeg = schedule[state.nextIdx];
+    activeSeg = nextSeg;
+    stationPlace = arrivedSeg.to.place; stationLabel = arrivedSeg.to.name;
+    banner = '🔄 TRANSFER';
+    const connectionMin = Math.round((nextSeg.departDT - arrivedSeg.arriveDT)/60000);
+    stepLabel = `Transfer at ${arrivedSeg.to.name}`;
+    stepDetail = `${connectionMin} min connection`;
+    if(connectionMin < 20) badgeHtml = `<div class="travel-badge warn">⚠ TIGHT CONNECTION</div>`;
+  } else { // arrived - only reachable for role==='arrival' (see the
+    // unified departure-role handoff above, which intercepts every other
+    // phase - including 'arrived' - before this point is ever reached)
+    const country = CITY_COUNTRY[journey.to];
+    const flag = country && COUNTRY_GUIDES[country.toLowerCase()] ? COUNTRY_GUIDES[country.toLowerCase()].flag : '';
+    const stay = dayStayState[day.id] || day.stay;
+    const stops = dayStopsState[day.id] || [];
+    return `
+      <div class="journey travel-day-card">
+        <div class="journey-head travel-day-head">
+          <div class="travel-day-banner">WELCOME TO ${escapeHtml(journey.to.toUpperCase())} ${flag}</div>
+        </div>
+        <div class="travel-day-body">
+          <div class="travel-welcome-label">ACCOMMODATION</div>
+          <a class="travel-welcome-name" href="${placeUrl(stay.place)}" target="_blank">${escapeHtml(stay.name)}</a>
+          <div class="travel-welcome-address">📍 ${escapeHtml(stay.place)}</div>
+          ${stay.checkIn ? `<div class="travel-welcome-checkin">Check-in: ${escapeHtml(stay.checkIn)}</div>` : ''}
+          <a class="pill-link secondary" href="${placeUrl(stay.place)}" target="_blank" style="margin-top:8px;display:inline-flex;">OPEN IN GOOGLE MAPS</a>
+          ${stops.length ? `
+            <div class="travel-welcome-next">
+              <div class="travel-welcome-label">NEXT UP</div>
+              <div class="travel-welcome-next-name">${escapeHtml(stops[0].name)}</div>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="journey travel-day-card">
+      <div class="journey-head travel-day-head">
+        <div class="travel-day-banner">${banner}</div>
+        <div class="journey-route travel-route">${routeLabel}</div>
+        <div class="journey-date">${escapeHtml(journeyDateLabel)}${journey.via ? ' · '+escapeHtml(journey.via) : ''}</div>
+        ${badgeHtml}
+      </div>
+      <div class="travel-day-body">
+        ${stepLabel ? `
+          <div class="travel-next-step">
+            <div class="travel-next-step-label">NEXT STEP</div>
+            <div class="travel-next-step-detail">${escapeHtml(stepLabel)}</div>
+            ${stepDetail ? `<div class="travel-next-step-sub">${escapeHtml(stepDetail)}</div>` : ''}
+          </div>
+        ` : ''}
+        ${activeSeg ? travelSegmentDetailHtml(activeSeg, journeyDateLabel, stationPlace, stationLabel) : ''}
+        ${upcomingHtml}
+        ${state.phase==='pre-departure' ? travelChecklistHtml(journey.id, checklistKeyBase, TRAVEL_DAY_CHECKLIST_ITEMS) : ''}
+      </div>
+    </div>
+  `;
+}
+
+// Resolves whatever walk-time estimates the render just found missing
+// (collected into pendingTravelWalkFetches by travelDayCardHtml above),
+// one geocodePlace pair per journey, using the app's existing cached
+// Nominatim lookup - never a new network dependency, and a cache hit
+// resolves instantly with no visible flicker. Each journey is fetched at
+// most once per page load: as soon as an estimate lands in
+// travelWalkEstimates, the next render finds it already cached and stops
+// adding it back to the pending list, so this can't loop.
+async function resolvePendingTravelWalkFetches(){
+  const entries = Object.entries(pendingTravelWalkFetches);
+  pendingTravelWalkFetches = {};
+  if(!entries.length) return;
+  let changed = false;
+  await Promise.all(entries.map(async ([walkKey, {from,to,city}])=>{
+    const minutes = await estimateWalkMinutes(from, to, city);
+    if(minutes!=null){ travelWalkEstimates[walkKey] = minutes; changed = true; }
+  }));
+  if(changed) renderItinerary();
+}
+
+// Live-updates the countdown/state/next-step bits of already-rendered
+// Travel Day cards on a timer, without a full page reload - re-running
+// renderItinerary() is safe here since nothing in it depends on
+// mid-edit UI state (open inputs, etc.) surviving a re-render; every
+// other edit flow already calls renderItinerary() itself for the same
+// reason. Skipped entirely on days with no Travel Day card so a normal
+// trip with no travel today never re-renders on a timer at all.
+function refreshTravelDayLiveBits(){
+  if(!document.querySelector('.travel-day-card')) return;
+  renderItinerary();
+}
+
+function wireTravelDayCards(container){
+  container.querySelectorAll('[data-act="toggle-travel-checklist"]').forEach(btn=>{
+    if(btn.dataset.wired) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const key = btn.dataset.checklistKey;
+      if(openTravelChecklists.has(key)) openTravelChecklists.delete(key); else openTravelChecklists.add(key);
+      btn.closest('.travel-checklist').classList.toggle('open');
+    });
+  });
+  container.querySelectorAll('[data-travel-check]').forEach(cb=>{
+    if(cb.dataset.wired) return;
+    cb.dataset.wired = '1';
+    cb.addEventListener('change', (e)=>{
+      e.stopPropagation();
+      const key = cb.dataset.travelCheck;
+      travelChecklistState[key] = cb.checked;
+      persistTravelChecklist();
+      cb.closest('.travel-checklist-item').classList.toggle('checked', cb.checked);
+    });
+  });
+  resolvePendingTravelWalkFetches();
+
+  // Reads (never writes) the exact same 'booked:<segId>' key the
+  // Transport tab's own BOOKED checkbox already owns, so a leg checked
+  // off there shows as booked here too - no second "is this booked"
+  // state, just a read of the existing one.
+  container.querySelectorAll('[data-travel-reservation]:not([data-wired])').forEach(el=>{
+    el.dataset.wired = '1';
+    const segId = el.dataset.travelReservation;
+    const flag = el.dataset.travelFlag;
+    const originalNote = el.textContent;
+    store.get('booked:'+segId).then(r=>{
+      const booked = r && r.value === '1';
+      const prefix = booked ? '✓ Booked — ' : (flag==='red' ? '⚠ Not yet booked — ' : '');
+      if(prefix) el.textContent = prefix + originalNote;
+    }).catch(()=>{});
+  });
+}
+
 function renderItinerary(){
   const el = document.getElementById('panel-itinerary');
   const days = buildEffectiveDays();
   const flashKey = justSavedKey;
   justSavedKey = null;
+  const travelNow = new Date();
+  const cityTransitions = computeCityTransitions(days);
 
   el.innerHTML = days.map((d,i)=>{
     const stops = dayStopsState[d.id] || [];
@@ -4669,6 +5194,16 @@ function renderItinerary(){
     const title = dayTitleState[d.id] || d.title;
     const prevStay = i>0 ? (dayStayState[days[i-1].id] || days[i-1].stay) : stay;
     let cursor = d.arrivalPlace || prevStay.place;
+
+    // Travel Day card(s) - only present on the 1 or 2 days (of the whole
+    // trip) that actually involve intercity transportation; every other
+    // day's `travelCtxs` is empty and this renders nothing at all.
+    const travelCtxs = travelContextsForDay(cityTransitions, i);
+    const travelDayHtml = travelCtxs.map(ctx=>{
+      const originDay = days[ctx.departureIdx];
+      const originStay = dayStayState[originDay.id] || originDay.stay;
+      return travelDayCardHtml(ctx, d, travelNow, originStay.place);
+    }).join('');
 
     const stopsHtml = stops.map((s,si)=>{
       const lastStop = cursor;
@@ -4755,6 +5290,7 @@ function renderItinerary(){
           </div>
           <span class="day-chevron">&#9660;</span>
         </div>
+        ${travelDayHtml ? `<div class="travel-day-slot">${travelDayHtml}</div>` : ''}
         <div class="day-detail">
           ${stayHtml}
           <div class="nearby-row">
@@ -5061,6 +5597,7 @@ function renderItinerary(){
 
   wireNearbyButtons(el);
   wireBookingButtons(el);
+  wireTravelDayCards(el);
 
   // Keep an open optimize preview visible across an unrelated re-render
   // (e.g. adding a suggested restaurant re-renders the whole itinerary).
@@ -5157,12 +5694,18 @@ async function init(){
   renderTransport();
   await loadItineraryState();
   await loadTravelerTips();
+  await loadTravelChecklist();
   renderItinerary();
   renderCountryGuides();
   await loadPackingState();
   renderChecklist();
   renderRouteLine();
   updateCountdown();
+  // Ticks the Travel Day card's live countdown/state forward while the
+  // page stays open - a plain quiet DOM refresh (see
+  // refreshTravelDayLiveBits), not a notification, and a no-op on every
+  // day with nothing to show.
+  setInterval(refreshTravelDayLiveBits, 60000);
 }
 init().catch(e=>{
   console.error('INIT ERROR:', e);

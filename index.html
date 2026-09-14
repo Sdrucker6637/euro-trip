@@ -3138,54 +3138,85 @@ async function optimizeDayRoute(stops, stay, city, mode){
   };
 }
 
-// Finds the best restaurant "along the way" for one leg: reuses the
-// existing Overpass-backed fetchNearby search (same one behind the
-// FOOD NEARBY button) centered on the leg's midpoint, then scores
-// candidates by actual detour (via-the-restaurant distance minus the
-// direct distance) rather than raw distance from the midpoint, so a
-// restaurant that requires backtracking loses even if it's technically
-// closer to the midpoint. Never fabricates rating/price - only whatever
-// Overpass/OSM actually has (usually just name + cuisine).
-const REST_DETOUR_MAX_MIN = 15;
-async function suggestRestaurantForLeg(leg){
-  let candidates;
-  try {
-    candidates = await fetchNearby((leg.fromCoords.lat+leg.toCoords.lat)/2, (leg.fromCoords.lon+leg.toCoords.lon)/2, 'food');
-  } catch(e){ return null; }
-  if(!candidates || !candidates.length) return null;
-  const directKm = haversineKm(leg.fromCoords.lat, leg.fromCoords.lon, leg.toCoords.lat, leg.toCoords.lon);
-  const WALK_KMH = 4.5;
-  let best = null, bestDetour = Infinity;
-  for(const c of candidates){
-    const viaKm = haversineKm(leg.fromCoords.lat, leg.fromCoords.lon, c.lat, c.lon)
-                + haversineKm(c.lat, c.lon, leg.toCoords.lat, leg.toCoords.lon);
-    const detourMin = ((viaKm - directKm)/WALK_KMH)*60;
-    if(detourMin < bestDetour){ bestDetour = detourMin; best = c; }
+// Same OSM tags as fetchNearby's 'food' branch, but returns every raw
+// element (name/kind/desc/coords) with no per-point cap or round-robin
+// grouping - fetchNearby's diversify() is built for showing one place a
+// short "6 diverse nearby things" list, not for scoring a whole pool of
+// candidates against several different legs.
+function extractFoodElements(elements){
+  const seen = new Set();
+  const out = [];
+  for(const e of (elements||[])){
+    if(!e.tags || !e.tags.name || e.lat==null || e.lon==null) continue;
+    if(seen.has(e.tags.name)) continue;
+    seen.add(e.tags.name);
+    const kind = kindOfTags(e.tags);
+    out.push({name:e.tags.name, desc:describeKind(kind, e.tags), lat:e.lat, lon:e.lon});
   }
-  if(!best || bestDetour > REST_DETOUR_MAX_MIN) return null;
-  return {name:best.name, desc:best.desc, lat:best.lat, lon:best.lon, detourMin: Math.max(0, Math.round(bestDetour))};
+  return out;
 }
 
-// Checks every leg of the route (not just a position-guessed "lunch" /
-// "dinner" gap - there are no activity times to guess a meal position
+// One Overpass call covering every leg's midpoint at once (a single query
+// can union multiple around() filters) instead of one call per leg - both
+// cheaper and safer against the free public Overpass server's rate limit
+// on quick back-to-back requests, which a per-leg loop could trip on a
+// day with several stops.
+async function fetchRouteFoodCandidates(midpoints){
+  const clauses = midpoints.map(m=>`node["amenity"~"restaurant|cafe|bar|pub|fast_food"](around:900,${m.lat},${m.lon});`).join('\n      ');
+  const query = `[out:json][timeout:25];(${clauses});out body 100;`;
+  const res = await fetch('https://overpass-api.de/api/interpreter', {method:'POST', body: query});
+  if(!res.ok) throw new Error('overpass status '+res.status);
+  const data = await res.json();
+  return extractFoodElements(data.elements);
+}
+
+// Scores every leg against that one shared candidate pool (via-the-
+// restaurant distance minus the direct distance, so a restaurant that
+// requires backtracking loses even if it's technically close), and keeps
+// the 1-2 lowest-detour matches anywhere on the route, in route order -
+// there are no activity times to guess a "lunch" or "dinner" position
 // from, and a route's real geography decides where a good stop actually
-// is, not its index in the list) and keeps the 1-2 lowest-detour
-// suggestions found, in route order. Each leg is one more Overpass call,
-// same free/keyless search as everywhere else, still only run once per
-// explicit "Optimize Route" tap - never automatically.
+// is, not its index in the list. Never fabricates rating/price - only
+// whatever Overpass/OSM actually has (usually just name + cuisine).
+//
+// Distinguishes "the search itself failed" (network error, the public
+// server rate-limiting or erroring) from "it succeeded but nothing was
+// close enough to suggest" - conflating the two would misreport a real
+// outage as "no restaurants here", which is obviously wrong for e.g.
+// central Paris.
+const REST_DETOUR_MAX_MIN = 15;
 async function suggestRestaurantsForLegs(legs){
-  const scored = [];
-  for(let i=0;i<legs.length;i++){
-    try {
-      const sug = await suggestRestaurantForLeg(legs[i]);
-      if(sug) scored.push({legIdx:i, ...sug});
-    } catch(e){ /* one bad leg's search should never block the others */ }
+  if(!legs.length) return {restaurants:{}, searchFailed:false};
+  const midpoints = legs.map(l=>({lat:(l.fromCoords.lat+l.toCoords.lat)/2, lon:(l.fromCoords.lon+l.toCoords.lon)/2}));
+  let candidates;
+  try {
+    candidates = await fetchRouteFoodCandidates(midpoints);
+  } catch(e){
+    console.error('Restaurant search (Overpass) failed:', e);
+    return {restaurants:{}, searchFailed:true};
   }
+  if(!candidates.length) return {restaurants:{}, searchFailed:false};
+
+  const WALK_KMH = 4.5;
+  const scored = [];
+  legs.forEach((leg, i)=>{
+    const directKm = haversineKm(leg.fromCoords.lat, leg.fromCoords.lon, leg.toCoords.lat, leg.toCoords.lon);
+    let best = null, bestDetour = Infinity;
+    for(const c of candidates){
+      const viaKm = haversineKm(leg.fromCoords.lat, leg.fromCoords.lon, c.lat, c.lon)
+                  + haversineKm(c.lat, c.lon, leg.toCoords.lat, leg.toCoords.lon);
+      const detourMin = ((viaKm - directKm)/WALK_KMH)*60;
+      if(detourMin < bestDetour){ bestDetour = detourMin; best = c; }
+    }
+    if(best && bestDetour <= REST_DETOUR_MAX_MIN){
+      scored.push({legIdx:i, name:best.name, desc:best.desc, lat:best.lat, lon:best.lon, detourMin:Math.max(0, Math.round(bestDetour))});
+    }
+  });
   scored.sort((a,b)=>a.detourMin-b.detourMin);
   const picked = scored.slice(0,2).sort((a,b)=>a.legIdx-b.legIdx);
   const restaurants = {};
   picked.forEach((p,i)=>{ restaurants[p.legIdx] = {...p, mealLabel: picked.length>1 ? (i===0?'Lunch':'Dinner') : 'a Meal'}; });
-  return restaurants;
+  return {restaurants, searchFailed:false};
 }
 
 function fmtMinutes(min){
@@ -3215,10 +3246,17 @@ async function runRouteOptimization(dayId, city, stops, stay){
   let restaurantNote = null;
   if(result.ok && ui.restaurants){
     if(result.legs.length){
-      try { restaurants = await suggestRestaurantsForLegs(result.legs); }
-      catch(e){ restaurants = {}; }
-      if(!Object.keys(restaurants).length){
-        restaurantNote = "No nearby restaurant found close enough to this route to suggest.";
+      try {
+        const found = await suggestRestaurantsForLegs(result.legs);
+        restaurants = found.restaurants;
+        if(found.searchFailed){
+          restaurantNote = "Restaurant search is unavailable right now - try again in a moment.";
+        } else if(!Object.keys(restaurants).length){
+          restaurantNote = "No nearby restaurant found close enough to this route to suggest.";
+        }
+      } catch(e){
+        console.error('Restaurant suggestion step failed:', e);
+        restaurantNote = "Restaurant search is unavailable right now - try again in a moment.";
       }
     } else {
       restaurantNote = "Not enough located stops to suggest a restaurant stop.";

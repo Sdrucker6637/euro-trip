@@ -253,10 +253,15 @@
   .guide-chevron{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
   .guide-card.open .guide-chevron{transform:rotate(180deg);}
   .guide-detail{display:none;padding:0 13px 13px;}
-  .guide-card.open .guide-detail{display:block;border-top:1px dashed var(--glass-line);padding-top:11px;}
-  .guide-section{margin-bottom:12px;}
-  .guide-section:last-of-type{margin-bottom:0;}
-  .guide-section-head{display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.03em;color:var(--amber);margin-bottom:6px;}
+  .guide-card.open .guide-detail{display:block;border-top:1px dashed var(--glass-line);padding-top:2px;}
+  .guide-section{border-bottom:1px dashed var(--glass-line);}
+  .guide-section:last-of-type{border-bottom:none;}
+  .guide-section-head{display:flex;align-items:center;gap:6px;width:100%;background:none;border:none;padding:9px 0;cursor:pointer;font-family:var(--font-mono);font-size:10px;font-weight:600;letter-spacing:0.03em;color:var(--amber);text-align:left;}
+  .guide-section-title{flex:1;}
+  .guide-section-chevron{font-size:9px;color:var(--muted);transition:transform .2s;flex-shrink:0;}
+  .guide-section.open .guide-section-chevron{transform:rotate(180deg);}
+  .guide-section-body{display:none;padding-bottom:10px;}
+  .guide-section.open .guide-section-body{display:block;}
   .guide-list-items{margin:0;padding:0;list-style:none;}
   .guide-list-items li{position:relative;padding-left:13px;font-size:12px;line-height:1.45;color:var(--cream);margin-bottom:5px;}
   .guide-list-items li:last-child{margin-bottom:0;}
@@ -2118,7 +2123,10 @@ const COUNTRY_GUIDES = {
     transit: [
       'Tap in AND tap out on trams/buses/metro with your card - forgetting to tap out charges you the maximum possible fare.',
       'Bike lanes are effectively a separate traffic system - look both ways before stepping into one, even on a green pedestrian light.',
-      'Escalators: stand right, walk left.'
+      'Escalators: stand right, walk left.',
+      'Tram/bus doors don’t open automatically at a stop - press the button beside the door yourself, even at the very last stop.',
+      'A day pass (dagkaart) on GVB usually beats tapping in/out per ride if you’ll take more than 3-4 tram/bus/metro rides in one day.',
+      'Trains split into "Sprinter" (stops everywhere) and "Intercity" (skips stations) - check the departure board for which one you’re boarding, not just the platform number, since both can share a platform at different times.'
     ],
     etiquette: [
       'Directness is cultural, not rudeness - blunt opinions aren’t meant personally.',
@@ -2206,7 +2214,10 @@ const COUNTRY_GUIDES = {
     transit: [
       'Metro: keep your ticket until you exit - RER regional lines require it again at the exit gate.',
       'RER/regional trains need paper tickets validated in the small yellow "Composteur" machines before boarding, unlike the plain metro - skipping it risks a fine.',
-      'Let people off before boarding - orderly, quiet boarding is expected.'
+      'Let people off before boarding - orderly, quiet boarding is expected.',
+      'The Metro shuts down around 1am (2am Fri/Sat and before public holidays) - check the last-train time before a late dinner across town, since night buses ("Noctilien") run a much sparser network.',
+      'A carnet of 10 tickets or a Navigo Easy pass (tap card) is cheaper per ride than buying single tickets one at a time.',
+      'Several Metro lines split into branches near their ends (e.g. Line 7, Line 13) - check the specific final destination shown on the train itself, not just the line number.'
     ],
     etiquette: [
       'Say "Bonjour"/"Bonsoir" entering any shop and "Au revoir" leaving, even buying nothing - skipping it before a request is considered ruder than the request itself.',
@@ -2294,7 +2305,10 @@ const COUNTRY_GUIDES = {
       'No ticket gates anywhere - it runs on an honor system, so buy your ticket via the SBB Mobile app or a machine before boarding; random inspections carry a real on-the-spot fine (~100 CHF).',
       'Trains leave exactly on time, not a "few minutes late" buffer like many countries - arrive a couple minutes early.',
       'Trains are quiet by default system-wide, not just in a designated car - take phone calls in the vestibule.',
-      'Escalators: stand right, walk left.'
+      'Escalators: stand right, walk left.',
+      'A Swiss Travel Pass or Eurail pass covers most trains, lake boats, and even city trams/buses in participating cities - check the pass’s coverage map before buying a separate local ticket you don’t need.',
+      'Long platforms are split into lettered sectors (A, B, C...) so a specific train car stops at a specific sector - the departure board or platform screens show which sector to stand at for your class/car.',
+      'Scenic/mountain trains (Jungfraujoch, Golden Pass) often need a separate reservation or supplement even with a rail pass - check the specific route before assuming the pass covers it fully.'
     ],
     etiquette: [
       'Punctuality is taken seriously for any plan, not just business.',
@@ -2381,7 +2395,10 @@ const COUNTRY_GUIDES = {
     transit: [
       'U-Bahn/tram network has no ticket gates - it’s honor-system, but random inspections carry a real fine (€70+) for an unvalidated/invalid ticket.',
       'Paper tickets must be stamped at the small machines at the platform entrance before boarding, even if bought in advance.',
-      'Escalators: stand right, walk left - taken seriously in Vienna’s deep U-Bahn stations.'
+      'Escalators: stand right, walk left - taken seriously in Vienna’s deep U-Bahn stations.',
+      'The U-Bahn runs all night on Friday, Saturday, and the night before a public holiday - no need to rush for a "last train" on those specific nights.',
+      'A 24/48/72-hour ticket is cheaper than buying single tickets if making more than 3-4 trips in a day, and skips having to find a validation machine each time.',
+      'In outer areas, some trams and buses only stop when requested - watch for a request button inside or be ready to signal the driver, unlike the always-stop pattern in the city center.'
     ],
     etiquette: [
       'Formality matters more here than in the Netherlands - use titles ("Herr/Frau") with anyone you don’t know well.',
@@ -2468,7 +2485,10 @@ const COUNTRY_GUIDES = {
     transit: [
       'Metro/tram tickets must be validated at the small orange machines when boarding - Budapest is known for stricter-than-average fare inspection with real on-the-spot fines.',
       'Metro Line 1 (one of the oldest in the world) has very short, closely-spaced trains - don’t expect subway-scale cars.',
-      'Escalators: stand right, walk left, especially in the very deep Soviet-era stations.'
+      'Escalators: stand right, walk left, especially in the very deep Soviet-era stations.',
+      'A 24- or 72-hour travel pass is usually cheaper than single tickets if you’re taking more than a few rides a day, and skips validating a ticket every single ride.',
+      'Night buses (marked with black-on-yellow numbers, e.g. 907/908) cover key routes after the metro closes around midnight - check the BKK app before assuming a taxi is the only late option.',
+      'Trams 4 and 6 running the Grand Boulevard ring operate 24/7 and are a reliable, cheap way to see central Pest lit up at night without a dedicated tour.'
     ],
     etiquette: [
       'Never clink beer glasses when toasting - a 19th-century tradition (tied to the 1848-49 revolution) still widely observed; clink wine or spirits instead, or just say "Egészségedre" without clinking beer.',
@@ -2558,7 +2578,10 @@ const COUNTRY_GUIDES = {
     transit: [
       'Metro/bus tickets must be validated by stamping them at the platform or on board - an unvalidated ticket, even one that’s paid for, can mean a fine as if you had none.',
       'Buses board through any door, but you must validate immediately, not just carry a ticket.',
-      'Escalators: stand right, walk left, though it’s less consistently observed in Rome than further north.'
+      'Escalators: stand right, walk left, though it’s less consistently observed in Rome than further north.',
+      'Rome’s metro is only two full lines (A and B, plus the newer partial C) - buses and trams cover most of the historic center, so don’t map the city with a metro-only mindset like Paris or London.',
+      'A single ticket (BIT) is valid 100 minutes across bus/tram/metro but only one metro ride - useful for a one-direction trip with a bus-to-metro transfer, not for looping back.',
+      'Regional trains (to/from Termini or other stations) use separate small yellow or green validation machines, distinct from metro turnstiles - a paper regional ticket still needs its own stamp.'
     ],
     etiquette: [
       'Greet shopkeepers with "Buongiorno"/"Buonasera" before asking anything, similar to French custom.',
@@ -2577,6 +2600,11 @@ const COUNTRY_GUIDES = {
 // Session-only expand state for guide cards, exactly like openTips/openDays -
 // all collapsed by default so the modal opens compact, not a wall of text.
 let openGuides = new Set();
+// Same idea one level deeper: each subsection (TIPPING, TRANSIT, etc.) inside
+// an opened country card is its own collapsible, keyed 'slug:sectionKey' -
+// so opening a country doesn't dump all 11 sections at once, and a traveler
+// who just wants TRANSIT can skip straight to it.
+let openGuideSections = new Set();
 
 function guideBulletsHtml(items, extraClass){
   if(!items || !items.length) return '';
@@ -2602,9 +2630,19 @@ function guidePhrasesHtml(groups){
   `).join('');
 }
 
-function guideSectionHtml(icon, title, bodyHtml){
+function guideSectionHtml(icon, title, bodyHtml, slug, key){
   if(!bodyHtml) return '';
-  return `<div class="guide-section"><div class="guide-section-head">${icon} ${title}</div>${bodyHtml}</div>`;
+  const sectionKey = `${slug}:${key}`;
+  const isOpen = openGuideSections.has(sectionKey);
+  return `
+    <div class="guide-section${isOpen ? ' open' : ''}">
+      <div class="guide-section-head" data-act="toggle-guide-section" data-section-key="${escapeHtml(sectionKey)}">
+        <span class="guide-section-title">${icon} ${title}</span>
+        <span class="guide-section-chevron">▾</span>
+      </div>
+      <div class="guide-section-body">${bodyHtml}</div>
+    </div>
+  `;
 }
 
 function countryGuideCardHtml(slug){
@@ -2622,17 +2660,17 @@ function countryGuideCardHtml(slug){
         <span class="guide-chevron">▾</span>
       </div>
       <div class="guide-detail">
-        ${guideSectionHtml('💶', 'TIPPING', guideBulletsHtml(g.tipping))}
-        ${guideSectionHtml('👕', 'WHAT TO WEAR', guideBulletsHtml(g.clothing))}
-        ${guideSectionHtml('🗣️', 'USEFUL PHRASES', guidePhrasesHtml(g.phrases))}
-        ${guideSectionHtml('💧', 'WATER', guideBulletsHtml(g.water))}
-        ${guideSectionHtml('🍽️', 'FOOD & RESTAURANT CUSTOMS', guideBulletsHtml(g.food))}
-        ${guideSectionHtml('💳', 'PAYMENTS', guideBulletsHtml(g.payments))}
-        ${guideSectionHtml('🚻', 'BATHROOMS', guideBulletsHtml(g.bathrooms))}
-        ${guideSectionHtml('🚆', 'TRANSIT', guideBulletsHtml(g.transit))}
-        ${guideSectionHtml('🧠', 'CULTURAL ETIQUETTE', guideBulletsHtml(g.etiquette))}
-        ${guideSectionHtml('⚠️', 'WATCH OUTS', guideBulletsHtml(g.watchouts, 'guide-watchouts'))}
-        ${guideSectionHtml('⭐', 'LOCAL TIP', `<div class="guide-local-tip">${escapeHtml(g.localTip)}</div>`)}
+        ${guideSectionHtml('💶', 'TIPPING', guideBulletsHtml(g.tipping), slug, 'tipping')}
+        ${guideSectionHtml('👕', 'WHAT TO WEAR', guideBulletsHtml(g.clothing), slug, 'clothing')}
+        ${guideSectionHtml('🗣️', 'USEFUL PHRASES', guidePhrasesHtml(g.phrases), slug, 'phrases')}
+        ${guideSectionHtml('💧', 'WATER', guideBulletsHtml(g.water), slug, 'water')}
+        ${guideSectionHtml('🍽️', 'FOOD & RESTAURANT CUSTOMS', guideBulletsHtml(g.food), slug, 'food')}
+        ${guideSectionHtml('💳', 'PAYMENTS', guideBulletsHtml(g.payments), slug, 'payments')}
+        ${guideSectionHtml('🚻', 'BATHROOMS', guideBulletsHtml(g.bathrooms), slug, 'bathrooms')}
+        ${guideSectionHtml('🚆', 'TRANSIT', guideBulletsHtml(g.transit), slug, 'transit')}
+        ${guideSectionHtml('🧠', 'CULTURAL ETIQUETTE', guideBulletsHtml(g.etiquette), slug, 'etiquette')}
+        ${guideSectionHtml('⚠️', 'WATCH OUTS', guideBulletsHtml(g.watchouts, 'guide-watchouts'), slug, 'watchouts')}
+        ${guideSectionHtml('⭐', 'LOCAL TIP', `<div class="guide-local-tip">${escapeHtml(g.localTip)}</div>`, slug, 'localTip')}
         <div class="guide-meta">Last reviewed ${escapeHtml(g.lastReviewed)}</div>
       </div>
     </div>
@@ -2666,6 +2704,13 @@ function renderCountryGuides(){
       const key = head.dataset.key;
       if(openGuides.has(key)) openGuides.delete(key); else openGuides.add(key);
       head.closest('.guide-card').classList.toggle('open');
+    });
+  });
+  el.querySelectorAll('[data-act="toggle-guide-section"]').forEach(head=>{
+    head.addEventListener('click', ()=>{
+      const key = head.dataset.sectionKey;
+      if(openGuideSections.has(key)) openGuideSections.delete(key); else openGuideSections.add(key);
+      head.closest('.guide-section').classList.toggle('open');
     });
   });
 }

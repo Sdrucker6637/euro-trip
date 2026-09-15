@@ -3631,9 +3631,9 @@ async function fetchWalkTable(coordsList){
 // routing call fails - keeps the feature working, clearly marked as
 // approximate, rather than blocking the whole optimization on one flaky
 // network request.
+const WALK_KMH = 4.5;
 function haversineTable(coordsList){
   const n = coordsList.length;
-  const WALK_KMH = 4.5;
   const durations = [], distances = [];
   for(let i=0;i<n;i++){
     durations.push([]); distances.push([]);
@@ -3647,11 +3647,31 @@ function haversineTable(coordsList){
   return {durations, distances};
 }
 
+// OSRM's public walking-profile table can return a duration that is
+// internally inconsistent with its own reported distance for a given cell
+// (observed live: a real ~63km Versailles<->Giverny pair reported as a
+// ~53min walk - roughly 71 km/h, physically impossible on foot). Rather than
+// trusting every OSRM cell blindly or discarding the whole table over one
+// bad cell, sanity-check each walking cell's implied speed and replace only
+// that cell with the same haversine-pace estimate already used when OSRM is
+// unavailable entirely (see haversineTable above) - reusing WALK_KMH so
+// there's one walking-pace constant, not two.
+const MAX_WALK_SPEED_KMH = 12; // generous ceiling - well above any real walking pace, so a genuinely fast walk is never second-guessed; only catches physically impossible results.
+function sanitizedWalkMinutes(durationSeconds, distanceMeters){
+  const hasDistance = Number.isFinite(distanceMeters) && distanceMeters > 0;
+  const hasDuration = Number.isFinite(durationSeconds) && durationSeconds > 0;
+  const fallbackMinutes = hasDistance ? (distanceMeters/1000/WALK_KMH)*60 : 0;
+  if(!hasDuration) return fallbackMinutes; // missing/zero/invalid duration - never surface NaN/Infinity/a silent free ride
+  if(!hasDistance) return durationSeconds/60; // no distance to sanity-check against - trust OSRM's duration as-is
+  const impliedSpeedKmh = (distanceMeters/durationSeconds) * 3.6;
+  return impliedSpeedKmh > MAX_WALK_SPEED_KMH ? fallbackMinutes : durationSeconds/60;
+}
+
 const TRANSIT_WALK_THRESHOLD_M = 900;
 const TRANSIT_AVG_KMH = 18;
 const TRANSIT_OVERHEAD_MIN = 8;
 function legMinutesForMode(mode, walkSeconds, distanceMeters){
-  const walkMin = walkSeconds/60;
+  const walkMin = sanitizedWalkMinutes(walkSeconds, distanceMeters);
   if(mode==='walk') return {minutes: walkMin, label:'walk'};
   const transitMin = distanceMeters <= TRANSIT_WALK_THRESHOLD_M
     ? walkMin
@@ -5855,6 +5875,111 @@ document.getElementById('booking-modal-close').addEventListener('click', ()=>{
 document.getElementById('booking-modal').addEventListener('click', (e)=>{
   if(e.target.id === 'booking-modal') e.target.classList.remove('open');
 });
+
+// DEV/DEBUG ONLY - route-optimizer walking-duration sanity-check tests
+// (sanitizedWalkMinutes / legMinutesForMode / buildCostMatrix). Pure
+// function tests, no network calls, so unlike the ?devtest=ask smoke test
+// above these just run immediately - no button, no request budget to
+// protect. Hidden from every normal visitor: only runs with ?devtest=route
+// in the URL.
+function runRouteSanityTests(){
+  const results = [];
+  function check(name, pass, detail){ results.push({name, pass: !!pass, detail}); }
+
+  // 1. A normal OSRM walking result is used unchanged.
+  {
+    const r = legMinutesForMode('walk', 900, 1200); // 1.2km in 900s = 4.8km/h, a normal walking pace
+    check('normal OSRM walking result used unchanged', Math.abs(r.minutes - 15) < 1e-9, `got ${r.minutes} min`);
+  }
+
+  // 2. An OSRM result implying >12 km/h falls back to the haversine walking estimate.
+  {
+    const distanceMeters = 10000, durationSeconds = 1800; // 10km in 30min = 20km/h - invalid
+    const r = legMinutesForMode('walk', durationSeconds, distanceMeters);
+    const expected = (distanceMeters/1000/WALK_KMH)*60;
+    check('implausible OSRM speed (20 km/h) falls back to the haversine estimate', Math.abs(r.minutes - expected) < 1e-9, `got ${r.minutes.toFixed(2)} min, expected ${expected.toFixed(2)}`);
+  }
+
+  // 3. The real captured Versailles -> Monet case: 62807.5m / 3166.9s (~71.4 km/h)
+  // must now use the WALK_KMH-based fallback, not the raw ~52.8min OSRM duration.
+  {
+    const distanceMeters = 62807.5, durationSeconds = 3166.9;
+    const r = legMinutesForMode('walk', durationSeconds, distanceMeters);
+    const expected = (distanceMeters/1000/WALK_KMH)*60; // ~837 min
+    const rawOsrmMinutes = durationSeconds/60; // ~52.8 min - must NOT be what's returned
+    check('Versailles→Monet (71.4 km/h) uses the WALK_KMH fallback, not ~53min',
+      Math.abs(r.minutes - expected) < 1e-6 && Math.abs(r.minutes - rawOsrmMinutes) > 100,
+      `got ${r.minutes.toFixed(1)} min (raw OSRM was ${rawOsrmMinutes.toFixed(1)} min, fallback is ${expected.toFixed(1)} min)`);
+  }
+
+  // 4. Transit behavior is unaffected by a bad OSRM walking duration - it never
+  // reads walkSeconds for a leg over the walk threshold, only distance.
+  {
+    const distanceMeters = 62807.5, durationSeconds = 3166.9; // the same bogus OSRM pair
+    const r = legMinutesForMode('transit', durationSeconds, distanceMeters);
+    const expected = (distanceMeters/1000)/TRANSIT_AVG_KMH*60 + TRANSIT_OVERHEAD_MIN;
+    check('transit still uses the distance-based formula, untouched by the walking fix', Math.abs(r.minutes - expected) < 1e-9 && r.label === 'transit (est.)', `got ${r.minutes.toFixed(1)} min`);
+  }
+
+  // 5a. A short (<=900m) transit hop still reports as a walk leg, and that walk
+  // duration is itself sanitized (a bogus fast OSRM number shouldn't leak
+  // through the transit/mixed short-hop path either).
+  {
+    const r = legMinutesForMode('transit', 120, 500); // 500m in 120s = 15km/h - invalid
+    const expected = (500/1000/WALK_KMH)*60;
+    check('short-hop transit leg also gets a sanitized walking duration', Math.abs(r.minutes - expected) < 1e-9 && r.label === 'walk', `got ${r.minutes.toFixed(2)} min`);
+  }
+
+  // 5b. buildCostMatrix on a fully valid table leaves every cell exactly as
+  // OSRM reported it - existing behavior for good data is unchanged.
+  {
+    const table = {distances:[[0,1200],[1200,0]], durations:[[0,900],[900,0]]};
+    const cost = buildCostMatrix(table, 'walk');
+    check('buildCostMatrix leaves a fully valid table unchanged', Math.abs(cost.minutes[0][1]-15)<1e-9 && Math.abs(cost.minutes[1][0]-15)<1e-9, JSON.stringify(cost.minutes));
+  }
+
+  // 5c. In a table with one bad cell among several good ones, only the bad
+  // cell is replaced - proves this never falls back for the whole table.
+  {
+    const table = {
+      distances:[[0,1200,62807.5],[1200,0,5000],[62807.5,5000,0]],
+      durations:[[0,900,3166.9],[900,0,3600],[3166.9,3600,0]]
+    };
+    const cost = buildCostMatrix(table, 'walk');
+    const goodLegUntouched = Math.abs(cost.minutes[0][1]-15)<1e-9;
+    const otherGoodLegUntouched = Math.abs(cost.minutes[1][2]-60)<1e-9; // 5km/3600s = 5km/h, plausible
+    const badLegFixed = Math.abs(cost.minutes[0][2] - (62807.5/1000/WALK_KMH)*60) < 1e-6;
+    check('only the single bad cell is replaced; other cells in the same table are untouched', goodLegUntouched && otherGoodLegUntouched && badLegFixed, JSON.stringify(cost.minutes));
+  }
+
+  // 6. Missing/zero/invalid duration or distance never produces NaN, Infinity,
+  // or a silently-accepted OSRM number.
+  {
+    const a = legMinutesForMode('walk', null, 5000);
+    const b = legMinutesForMode('walk', 0, 5000);
+    const c = legMinutesForMode('walk', 900, null);
+    const expectedFallback = (5000/1000/WALK_KMH)*60;
+    check('missing/zero OSRM duration falls back safely (no NaN/Infinity)',
+      Number.isFinite(a.minutes) && Math.abs(a.minutes-expectedFallback)<1e-9 &&
+      Number.isFinite(b.minutes) && Math.abs(b.minutes-expectedFallback)<1e-9 &&
+      Number.isFinite(c.minutes) && c.minutes === 900/60,
+      `null-duration=${a.minutes}, zero-duration=${b.minutes}, null-distance=${c.minutes}`);
+  }
+
+  const passCount = results.filter(r=>r.pass).length;
+  console.log(`[route-tests] ${passCount}/${results.length} passed`, results);
+  const panel = document.createElement('div');
+  panel.style.cssText = 'position:fixed;inset:0;background:#0b0f14;color:#dbe4ee;font:12px/1.5 "IBM Plex Mono",monospace;padding:16px;z-index:999999;overflow:auto;';
+  panel.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">`
+    + `<h2 style="margin:0;font-size:14px;color:${passCount===results.length?'#5fcb8b':'#e0655a'}">Route sanity-check tests: ${passCount}/${results.length} passed</h2>`
+    + `<button id="dev-route-close-btn" style="background:#2a323d;color:#dbe4ee;border:none;border-radius:6px;padding:6px 10px;font-family:inherit;">CLOSE</button></div>`
+    + results.map(r=>`<div style="margin:4px 0;color:${r.pass?'#5fcb8b':'#e0655a'}">${r.pass?'✓':'✗'} ${escapeHtml(r.name)}${r.detail?' — '+escapeHtml(r.detail):''}</div>`).join('');
+  document.body.appendChild(panel);
+  document.getElementById('dev-route-close-btn').addEventListener('click', ()=>panel.remove());
+}
+if(new URLSearchParams(location.search).get('devtest') === 'route'){
+  runRouteSanityTests();
+}
 
 async function init(){
   await loadGeocodeCache();

@@ -5487,8 +5487,8 @@ function renderItinerary(){
           </div>
           <div class="nearby-results" id="nearby-${d.id}"></div>
           ${stopsHtml}
-          ${stops.length>=2 ? routeOptimizeRowHtml(d.id) : ''}
           <button class="add-stop-btn" data-id="${d.id}" data-city="${escapeHtml(d.city)}">+ ADD STOP</button>
+          ${stops.length>=2 ? routeOptimizeRowHtml(d.id) : ''}
           ${stayLengthHtml}
         </div>
       </div>

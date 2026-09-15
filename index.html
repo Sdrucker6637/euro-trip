@@ -199,6 +199,7 @@
   .stop-name{display:block;font-size:14px;font-weight:600;color:var(--cream);text-decoration:none;}
   .stop-name:hover,.stop-name:active{text-decoration:underline;}
   .stop-desc{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.45;}
+  .stop-location{font-size:10.5px;color:var(--muted);opacity:.85;margin-top:3px;font-family:var(--font-mono);letter-spacing:0.01em;}
   .stop-flight-date{display:flex;align-items:center;gap:6px;margin-top:6px;font-family:var(--font-mono);font-size:10.5px;}
   .stop-flight-date-label{color:var(--amber);letter-spacing:0.03em;}
   .stop-flight-date-value{color:var(--cream);}
@@ -2887,6 +2888,627 @@ async function searchTrainStations(query, lat, lon, countryIso){
   return out.slice(0, 8);
 }
 
+// ============================================================================
+// Place search & enrichment pipeline (used by createPlaceSearchForm's "add a
+// stop" search and by the nearby-search "+ ADD" flow above). Replaces a
+// single exact-string Nominatim lookup with several progressively broader
+// strategies, a general name/alt-name matcher (no per-place hardcoding), and
+// an enrichment step that turns a bare geocoder hit into a real name +
+// description + human-readable location, while keeping raw coordinates only
+// as internal data (see formatPlaceLocation/placeResultToItineraryItem).
+//
+// Pipeline: normalizePlaceQuery -> buildNominatimQueries (with itinerary-city
+// context) -> searchNominatimRaw (progressively broadened) -> if still weak,
+// searchOverpassByName (a general name/alt_name/name:en substring search
+// across a wide radius around the itinerary city, category-filtered) ->
+// mergePlaceResults -> dedupePlaceResults -> scorePlaceResult/rankPlaceResults
+// -> enrichPlaceResult (Wikipedia summary when available, else a structured
+// fallback) -> placeResultToItineraryItem.
+//
+// Debug logging: add ?devtest=search to the URL (same convention as the
+// existing ?devtest=ask panel) to see every stage in the console. Silent
+// otherwise - never runs in normal use.
+// ============================================================================
+const SEARCH_DEBUG = new URLSearchParams(location.search).get('devtest') === 'search';
+function debugLog(...args){ if(SEARCH_DEBUG) console.log('[place-search]', ...args); }
+
+// ---- Normalization --------------------------------------------------------
+function stripDiacritics(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,''); }
+function normalizePlaceQuery(q){
+  return stripDiacritics(String(q||''))
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[-–—]/g, ' ')
+    .replace(/['".,!?()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+// A small, general (not place-specific) stopword list covering the
+// articles/prepositions most likely to appear in this trip's six countries'
+// languages - just enough to compare the *meaningful* words of two names
+// without ever dropping a word that carries real meaning.
+const PLACE_STOPWORDS = new Set([
+  'the','a','an','of','and',
+  'de','du','des','la','le','les','et',
+  'der','die','das','und','von','zum','zur',
+  'il','lo','gli','delle','della','dei','degli','e',
+  'van','het','en'
+]);
+function placeQueryTokens(q){
+  return normalizePlaceQuery(q).split(' ').filter(t=>t.length>=2 && !PLACE_STOPWORDS.has(t));
+}
+function singularize(t){ return t.length>3 && t.endsWith('s') ? t.slice(0,-1) : t; }
+function levenshtein(a, b){
+  const m = a.length, n = b.length;
+  if(!m) return n;
+  if(!n) return m;
+  let prev = Array.from({length:n+1}, (_,i)=>i);
+  for(let i=1;i<=m;i++){
+    const cur = [i];
+    for(let j=1;j<=n;j++){
+      cur[j] = a[i-1]===b[j-1] ? prev[j-1] : 1+Math.min(prev[j-1], prev[j], cur[j-1]);
+    }
+    prev = cur;
+  }
+  return prev[n];
+}
+// Two tokens "match" if identical, or close enough by edit distance to be a
+// plausible typo (allowance scales with word length) - this is what lets a
+// deliberately misspelled/abbreviated query ("Colloseum") still match the
+// real word ("Colosseum") without any hardcoded corrections list. Skipped
+// for very short tokens, where a 1-letter edit would just match unrelated
+// words.
+function tokensFuzzyMatch(a, b){
+  if(a===b) return true;
+  const maxLen = Math.max(a.length, b.length);
+  if(maxLen < 4) return false;
+  const allowed = maxLen <= 6 ? 1 : (maxLen <= 10 ? 2 : 3);
+  return levenshtein(a,b) <= allowed;
+}
+// General token-overlap similarity (Jaccard-ish over normalized, stopword-
+// stripped, naively-singularized tokens, with fuzzy/typo-tolerant matching
+// per token) - used both to rank candidates against the typed query and to
+// sanity-check an alternate name or a Wikipedia title before trusting it.
+function namesSimilarity(a, b){
+  const ta = placeQueryTokens(a).map(singularize);
+  const tb = placeQueryTokens(b).map(singularize);
+  if(!ta.length || !tb.length) return 0;
+  let common = 0;
+  for(const t of ta){ if(tb.some(u=>tokensFuzzyMatch(t,u))) common++; }
+  return common / Math.max(ta.length, tb.length);
+}
+function looksLikeRawCoords(s){
+  return typeof s === 'string' && /^\s*-?\d{1,3}(\.\d+)?\s*,\s*-?\d{1,3}(\.\d+)?\s*$/.test(s);
+}
+
+// ---- Human-readable location (the fix for raw lat/lon showing as the
+// primary "location") ------------------------------------------------------
+// Chooses, in order: a street address, a neighborhood + city, a city +
+// country, or whatever other human-readable context is available. Never
+// returns a raw coordinate string - coordinates stay available on the item
+// as separate lat/lon fields for maps/routing/nearby search, but are only
+// ever a last-resort *internal* fallback, never the displayed text.
+function formatPlaceLocation(item){
+  if(!item) return '';
+  if(item.location && !looksLikeRawCoords(item.location)) return item.location;
+  const addr = item.address || {};
+  const road = addr.road || addr.pedestrian || addr.footway || addr.square;
+  const houseNum = addr.house_number;
+  const neighborhood = addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district;
+  const cityName = addr.city || addr.town || addr.village || addr.municipality || item.city;
+  const postcode = addr.postcode;
+  const country = addr.country || item.country;
+
+  if(road){
+    const line1 = houseNum ? `${road} ${houseNum}` : road;
+    const cityPart = postcode && cityName ? `${postcode} ${cityName}` : (cityName || '');
+    return cityPart ? `${line1}, ${cityPart}` : line1;
+  }
+  if(neighborhood && cityName) return `${neighborhood}, ${cityName}`;
+  if(cityName && country) return `${cityName}, ${country}`;
+  if(cityName) return cityName;
+  if(country) return country;
+  if(item.displayName && typeof item.displayName === 'string'){
+    const parts = item.displayName.split(',').map(s=>s.trim()).filter(Boolean);
+    if(parts.length > 1) return parts.slice(1, Math.min(4, parts.length)).join(', ');
+    if(parts.length === 1 && !looksLikeRawCoords(parts[0])) return parts[0];
+  }
+  if(typeof item.place === 'string' && item.place.trim() && !looksLikeRawCoords(item.place)) return item.place;
+  return '';
+}
+
+// ---- Description fallback --------------------------------------------------
+function withIndefiniteArticle(word){
+  return /^[aeiou]/i.test(word) ? `An ${word}` : `A ${word}`;
+}
+// Last-resort description generator (tier 4 of the fallback hierarchy - see
+// enrichPlaceResult). Reuses the existing KIND_DESC catalog where the
+// category maps to one of its keys, and always folds in the resolved
+// location, so even the fallback says something specific rather than
+// generic ("A garden. Located in Giverny, France." vs "A popular tourist
+// attraction").
+function buildPlaceDescription(candidate, cityCtx){
+  const kind = candidate.category;
+  const loc = (candidate.location && !looksLikeRawCoords(candidate.location)) ? candidate.location : ((cityCtx && cityCtx.city) || '');
+  if(kind && KIND_DESC[kind]){
+    const base = KIND_DESC[kind];
+    return loc ? `${base} Located in ${loc}.` : base;
+  }
+  const readableKind = kind ? String(kind).replace(/_/g,' ') : null;
+  if(readableKind && loc) return `${withIndefiniteArticle(readableKind)} in ${loc}.`;
+  if(readableKind) return `${withIndefiniteArticle(readableKind)}.`;
+  if(loc) return `A notable place to visit in ${loc}.`;
+  return 'Added stop.';
+}
+function trimToSentences(text, maxSentences, maxChars){
+  maxSentences = maxSentences || 2; maxChars = maxChars || 240;
+  if(!text) return text;
+  const sentences = String(text).match(/[^.!?]+[.!?]+(\s|$)/g) || [String(text)];
+  let out = sentences.slice(0, maxSentences).join('').trim();
+  if(out.length > maxChars){ out = out.slice(0, maxChars).replace(/\s+\S*$/, '').trim() + '…'; }
+  return out;
+}
+
+// ---- Nominatim: normalization + progressively-broadened queries -----------
+// Maps a Nominatim class/type pair onto the same category keys KIND_DESC
+// already uses (tourism=museum, leisure=garden, etc.) so descriptions and
+// nearby-search results read consistently regardless of which provider
+// found the place.
+function categoryKeyForNominatim(hit){
+  const cls = hit.class, type = hit.type;
+  if(cls==='tourism') return type;
+  if(cls==='historic') return 'historic';
+  if(cls==='leisure' && (type==='park'||type==='garden')) return type;
+  if(cls==='amenity' && ['theatre','cinema','marketplace','restaurant','cafe','bar','pub','fast_food','place_of_worship'].includes(type)) return type;
+  if(cls==='shop' && type==='mall') return 'mall';
+  if(cls==='railway' && (type==='station'||type==='halt')) return 'station';
+  if(cls==='natural' && (type==='peak'||type==='viewpoint')) return 'viewpoint';
+  return type || cls || null;
+}
+const NOMINATIM_ATTRACTION_CLASSES = new Set(['tourism','historic','leisure','amenity','shop','natural','man_made','building']);
+const NOMINATIM_NON_ATTRACTION_CLASSES = new Set(['highway','boundary','place','landuse','waterway','administrative']);
+function isAttractionCategory(c){
+  if(c.source==='overpass') return true; // already category-filtered upstream
+  return NOMINATIM_ATTRACTION_CLASSES.has(c.class);
+}
+function isGenericAdminCategory(c){
+  if(c.source==='overpass') return false;
+  if(c.class==='railway' && (c.type==='station'||c.type==='halt')) return false;
+  return NOMINATIM_NON_ATTRACTION_CLASSES.has(c.class);
+}
+async function searchNominatimRaw(q, opts){
+  opts = opts || {};
+  let url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&namedetails=1&extratags=1&limit=8&q=${encodeURIComponent(q)}`;
+  if(opts.viewboxCoords){
+    // A soft bias (bounded=0), not a hard filter - a legitimate day-trip
+    // destination outside this box can still be found and ranked in, it just
+    // doesn't get the proximity boost near-city results get.
+    const {lat, lon} = opts.viewboxCoords;
+    const d = 1.3;
+    url += `&viewbox=${lon-d},${lat+d},${lon+d},${lat-d}&bounded=0`;
+  }
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), 8000);
+  try {
+    const res = await fetch(url, {signal: ctrl.signal});
+    if(!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch(e){ return []; }
+  finally { clearTimeout(timer); }
+}
+function normalizeNominatimHit(hit){
+  const nd = (hit.namedetails && typeof hit.namedetails === 'object') ? hit.namedetails : {};
+  const et = (hit.extratags && typeof hit.extratags === 'object') ? hit.extratags : {};
+  const altNames = Object.entries(nd)
+    .filter(([k])=>k==='name'||k.indexOf('name:')===0||k==='alt_name'||k==='old_name'||k==='int_name')
+    .map(([,v])=>v).filter(v=>typeof v==='string');
+  return {
+    source:'nominatim',
+    osmId: hit.osm_type && hit.osm_id!=null ? `${hit.osm_type}/${hit.osm_id}` : null,
+    name: (typeof hit.name === 'string' && hit.name) || nd.name || (typeof hit.display_name==='string' ? hit.display_name.split(',')[0].trim() : ''),
+    altNames,
+    lat: hit.lat!=null ? +hit.lat : null,
+    lon: hit.lon!=null ? +hit.lon : null,
+    address: (hit.address && typeof hit.address==='object') ? hit.address : {},
+    displayName: hit.display_name || '',
+    class: hit.class || '', type: hit.type || '',
+    category: categoryKeyForNominatim(hit),
+    importance: typeof hit.importance === 'number' ? hit.importance : 0,
+    wikidata: et.wikidata || null,
+    wikipedia: et.wikipedia || null
+  };
+}
+// "search with itinerary destination context" -> "broader" -> bare query, in
+// that order - never fires a query that duplicates one already tried.
+function buildNominatimQueries(query, city, country){
+  const q = String(query).trim();
+  if(!q) return [];
+  const lower = q.toLowerCase();
+  const variants = [];
+  if(city && lower.indexOf(city.toLowerCase())===-1){
+    variants.push(country ? `${q}, ${city}, ${country}` : `${q}, ${city}`);
+  }
+  if(country && lower.indexOf(country.toLowerCase())===-1){
+    variants.push(`${q}, ${country}`);
+  }
+  variants.push(q);
+  return [...new Set(variants)];
+}
+
+// ---- Overpass: general name/alt-name broadening ----------------------------
+// The real fix for "the common/English name isn't the OSM `name` tag"
+// (Danube Tower vs Donauturm, Jardins de Monet vs Fondation Claude Monet):
+// query the actual name/alt_name/name:en/int_name tags directly, across a
+// wide radius around the itinerary city (generous enough to cover a
+// legitimate day-trip town), rather than relying on Nominatim's free-text
+// ranking to have indexed the alternate name well. Only runs when the
+// city/country-scoped Nominatim passes didn't already return a confident
+// match, so ordinary searches never pay for it.
+const GENERIC_POI_WORDS = new Set([
+  'garden','gardens','tower','museum','palace','church','market','house','castle','park',
+  'cathedral','basilica','gallery','monument','square','bridge','station','place','plein',
+  'platz','piazza','plaza','fountain','statue','centre','center','building','hall'
+]);
+const ATTRACTION_KIND_ALLOW = new Set([
+  'museum','gallery','viewpoint','attraction','artwork','zoo','theme_park','aquarium',
+  'park','garden','historic','theatre','cinema','marketplace','mall',
+  'restaurant','cafe','bar','pub','fast_food','place_of_worship','station',
+  'monument','memorial','castle','ruins','archaeological_site','fort'
+]);
+function classifyBroadPlace(tags){
+  if(tags.tourism) return tags.tourism;
+  if(tags.historic) return tags.historic;
+  if(tags.leisure) return tags.leisure;
+  if(tags.amenity) return tags.amenity;
+  if(tags.shop) return tags.shop;
+  if(tags.railway==='station' || tags.railway==='halt') return 'station';
+  if(tags.natural==='peak' || tags.natural==='viewpoint') return 'viewpoint';
+  return null;
+}
+async function searchOverpassByName(query, tokens, cityCoords){
+  if(!cityCoords) return [];
+  const phrase = escapeOverpassRegex(normalizePlaceQuery(query));
+  if(!phrase) return [];
+  // The one or two most distinctive words in the query (skipping generic
+  // category nouns like "garden"/"tower") - a substring match on just the
+  // primary `name` tag using these catches cases like "Jardins de Monet"
+  // finding "Fondation Claude Monet" (shares the distinctive word "monet")
+  // even when no alt-name tag exists at all.
+  const distinctiveTokens = tokens
+    .filter(t=>t.length>=4 && !GENERIC_POI_WORDS.has(t))
+    .sort((a,b)=>b.length-a.length)
+    .slice(0,2);
+  const nameKeys = ['name','name:en','alt_name','int_name','old_name','short_name'];
+  const radii = [50000, 100000];
+  for(const radius of radii){
+    const clauses = [];
+    for(const key of nameKeys){
+      clauses.push(`node["${key}"~"${phrase}",i](around:${radius},${cityCoords.lat},${cityCoords.lon});`);
+      clauses.push(`way["${key}"~"${phrase}",i](around:${radius},${cityCoords.lat},${cityCoords.lon});`);
+    }
+    for(const tok of distinctiveTokens){
+      const tokRe = escapeOverpassRegex(tok);
+      clauses.push(`node["name"~"${tokRe}",i](around:${radius},${cityCoords.lat},${cityCoords.lon});`);
+      clauses.push(`way["name"~"${tokRe}",i](around:${radius},${cityCoords.lat},${cityCoords.lon});`);
+    }
+    const overpassQuery = `[out:json][timeout:25];(${clauses.join('\n')});out center 60;`;
+    let elements = [];
+    try {
+      const data = await postOverpassQuery(overpassQuery);
+      elements = data.elements || [];
+    } catch(e){ debugLog('overpass name search failed', e); continue; }
+    const results = [];
+    const nQuery = normalizePlaceQuery(query);
+    for(const e of elements){
+      if(!e.tags || !e.tags.name) continue;
+      const kind = classifyBroadPlace(e.tags);
+      if(!kind || !ATTRACTION_KIND_ALLOW.has(kind)) continue;
+      const lat = e.lat!=null ? e.lat : (e.center && e.center.lat);
+      const lon = e.lon!=null ? e.lon : (e.center && e.center.lon);
+      if(lat==null || lon==null) continue;
+      const matchedPhrase = nameKeys.some(k=>e.tags[k] && normalizePlaceQuery(e.tags[k]).indexOf(nQuery)!==-1);
+      results.push({
+        source:'overpass', osmId:`${e.type}/${e.id}`, name: e.tags.name,
+        altNames:[e.tags['name:en'], e.tags.alt_name, e.tags.int_name, e.tags.old_name].filter(Boolean),
+        lat, lon, address:{}, displayName:'', class:'', type:'',
+        category: kind, importance: 0,
+        wikidata: e.tags.wikidata || null, wikipedia: e.tags.wikipedia || null,
+        weak: !matchedPhrase // a distinctive-token-only match, not a phrase/alt-name hit - scored lower
+      });
+    }
+    if(results.length) return results;
+  }
+  return [];
+}
+
+// ---- Merge, dedupe, score, rank ---------------------------------------------
+function mergePlaceResults(lists){
+  const out = [];
+  for(const list of lists){ if(Array.isArray(list)) out.push(...list); }
+  return out;
+}
+function richnessScore(c){
+  let s = 0;
+  if(c.wikidata) s += 3;
+  if(c.wikipedia) s += 3;
+  if(c.address && Object.keys(c.address).length) s += 2;
+  if(c.importance) s += c.importance;
+  if(!c.weak) s += 1;
+  return s;
+}
+function mergeCandidateInto(a, b){
+  const richer = richnessScore(b) > richnessScore(a) ? b : a;
+  const other = richer===a ? b : a;
+  return {
+    ...richer,
+    altNames: [...new Set([...(richer.altNames||[]), ...(other.altNames||[])])],
+    wikidata: richer.wikidata || other.wikidata,
+    wikipedia: richer.wikipedia || other.wikipedia,
+    weak: richer.weak && other.weak
+  };
+}
+// Different search strategies (different Nominatim query variants, the
+// Overpass broadening pass) can return the same real-world place - dedupe by
+// stable OSM id first, then coordinate proximity + name similarity, then
+// normalized-name + city, merging the richer metadata into one entry rather
+// than showing duplicates.
+function dedupePlaceResults(list){
+  const out = [];
+  for(const item of list){
+    let matchIdx = -1;
+    for(let i=0;i<out.length;i++){
+      const o = out[i];
+      if(item.osmId && o.osmId && item.osmId===o.osmId){ matchIdx=i; break; }
+      if(Number.isFinite(item.lat)&&Number.isFinite(item.lon)&&Number.isFinite(o.lat)&&Number.isFinite(o.lon)){
+        if(haversineKm(item.lat,item.lon,o.lat,o.lon) < 0.2 && namesSimilarity(item.name,o.name) >= 0.34){ matchIdx=i; break; }
+      }
+      if(normalizePlaceQuery(item.name) && normalizePlaceQuery(item.name)===normalizePlaceQuery(o.name)){
+        const itemCity = (item.address&&(item.address.city||item.address.town))||'';
+        const oCity = (o.address&&(o.address.city||o.address.town))||'';
+        if(!itemCity || !oCity || itemCity===oCity){ matchIdx=i; break; }
+      }
+    }
+    if(matchIdx===-1) out.push(item);
+    else out[matchIdx] = mergeCandidateInto(out[matchIdx], item);
+  }
+  return out;
+}
+// Deterministic scoring: exact/near-exact name match > strong normalized
+// match > alternate/common-name match > matching itinerary city/region >
+// recognized attraction category > proximity to the itinerary destination.
+function scorePlaceResult(candidate, ctx){
+  let score = 0;
+  const nName = normalizePlaceQuery(candidate.name||'');
+  if(nName && nName===ctx.normalized) score += 100;
+  else score += Math.round(namesSimilarity(candidate.name, ctx.query)*65);
+
+  let altBest = 0;
+  for(const alt of candidate.altNames||[]){
+    const nAlt = normalizePlaceQuery(alt);
+    if(nAlt && nAlt===ctx.normalized) altBest = Math.max(altBest, 48);
+    else altBest = Math.max(altBest, Math.round(namesSimilarity(alt, ctx.query)*42));
+  }
+  score += altBest;
+
+  const addr = candidate.address||{};
+  const addrCity = (addr.city||addr.town||addr.village||'').toLowerCase();
+  const addrCountry = (addr.country||'').toLowerCase();
+  if(ctx.city && addrCity===ctx.city.toLowerCase()) score += 20;
+  if(ctx.country && addrCountry===ctx.country.toLowerCase()) score += 10;
+
+  if(isAttractionCategory(candidate)) score += 15;
+  else if(isGenericAdminCategory(candidate)) score -= 20;
+
+  if(ctx.cityCoords && Number.isFinite(candidate.lat) && Number.isFinite(candidate.lon)){
+    const km = haversineKm(ctx.cityCoords.lat, ctx.cityCoords.lon, candidate.lat, candidate.lon);
+    score += Math.max(0, 15 - km/8);
+  }
+  if(candidate.source==='nominatim') score += 3;
+  if(candidate.weak) score -= 15;
+  return Math.round(score);
+}
+function rankPlaceResults(list, ctx){
+  return list.map(c=>({...c, score: scorePlaceResult(c, ctx)})).sort((a,b)=>b.score-a.score);
+}
+
+// ---- Orchestrator -----------------------------------------------------------
+const SEARCH_CONFIDENT_SCORE = 70;
+async function searchPlacesForAdd(query, city){
+  const q = String(query||'').trim();
+  if(q.length < 3) return [];
+  const normalized = normalizePlaceQuery(q);
+  const tokens = placeQueryTokens(q);
+  const country = CITY_COUNTRY[city] || null;
+  let cityCoords = null;
+  try { cityCoords = await geocodePlace(city, city); } catch(e){}
+  const ctx = {city, country, cityCoords, normalized, tokens, query:q};
+  debugLog('search start', {query:q, normalized, tokens, city, country, cityCoords});
+
+  const queries = buildNominatimQueries(q, city, country);
+  debugLog('nominatim query strategies', queries);
+  const nominatimHits = [];
+  for(const qq of queries){
+    const raw = await searchNominatimRaw(qq, {viewboxCoords: cityCoords});
+    nominatimHits.push(...raw.map(normalizeNominatimHit));
+    const soFar = rankPlaceResults(dedupePlaceResults(nominatimHits), ctx);
+    debugLog('after nominatim query', qq, soFar.map(r=>({name:r.name, score:r.score})));
+    if(soFar.length && soFar[0].score >= SEARCH_CONFIDENT_SCORE) break; // already confident - stop spending API calls
+  }
+  let merged = nominatimHits;
+  let ranked = rankPlaceResults(dedupePlaceResults(merged), ctx);
+
+  if(!ranked.length || ranked[0].score < SEARCH_CONFIDENT_SCORE){
+    try {
+      const broadened = await searchOverpassByName(q, tokens, cityCoords);
+      debugLog('overpass broadened results', broadened.map(r=>r.name));
+      merged = mergePlaceResults([merged, broadened]);
+      ranked = rankPlaceResults(dedupePlaceResults(merged), ctx);
+    } catch(e){ debugLog('overpass broadening failed', e); }
+  }
+  debugLog('final ranked results', ranked.map(r=>({name:r.name, score:r.score, source:r.source})));
+  return ranked.slice(0, 6);
+}
+
+// ---- Enrichment: Wikipedia summary, reverse geocoding, structured fallback -
+// Free, keyless, CORS-enabled (Wikimedia's REST API and MediaWiki API both
+// allow direct browser calls) - no new API keys or billing, consistent with
+// the rest of this app's provider choices.
+async function fetchWikipediaSummary(title, lang){
+  lang = lang || 'en';
+  try {
+    const url = `https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(String(title).replace(/ /g,'_'))}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), 7000);
+    const res = await fetch(url, {signal: ctrl.signal, headers:{'Accept':'application/json'}});
+    clearTimeout(timer);
+    if(!res.ok) return null;
+    const data = await res.json();
+    if(data.type==='disambiguation' || !data.extract) return null;
+    return {title: data.title, extract: data.extract};
+  } catch(e){ return null; }
+}
+async function searchWikipediaTitles(query){
+  try {
+    const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=3&srsearch=${encodeURIComponent(query)}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), 7000);
+    const res = await fetch(url, {signal: ctrl.signal});
+    clearTimeout(timer);
+    if(!res.ok) return [];
+    const data = await res.json();
+    return (data.query && data.query.search) || [];
+  } catch(e){ return []; }
+}
+// Description fallback hierarchy, tiers 2-3 (tier 1 - an existing curated
+// description - is handled by callers, which only invoke this when the
+// description field is still empty; tier 4 is buildPlaceDescription above).
+// Tries, in order: the exact Wikipedia article Nominatim/Overpass tagged the
+// place with, a direct title guess, then a validated search - each hit is
+// checked against the candidate's own name via namesSimilarity before being
+// trusted, so an unrelated article never gets attached to the wrong place.
+async function resolveWikipediaDescription(candidate, cityCtx){
+  if(candidate.wikipedia){
+    const m = /^([a-zA-Z-]+):(.+)$/.exec(candidate.wikipedia);
+    if(m){
+      const summary = await fetchWikipediaSummary(m[2], m[1]);
+      if(summary && summary.extract) return {text: summary.extract, source:'wikipedia-tagged'};
+    }
+  }
+  const direct = await fetchWikipediaSummary(candidate.name, 'en');
+  if(direct && direct.extract && namesSimilarity(direct.title, candidate.name) >= 0.4){
+    return {text: direct.extract, source:'wikipedia-direct'};
+  }
+  const searchQuery = `${candidate.name} ${(cityCtx && cityCtx.city) || ''}`.trim();
+  const hits = await searchWikipediaTitles(searchQuery);
+  for(const h of hits){
+    if(namesSimilarity(h.title, candidate.name) < 0.4) continue;
+    const summary = await fetchWikipediaSummary(h.title, 'en');
+    if(summary && summary.extract) return {text: summary.extract, source:'wikipedia-search'};
+  }
+  return null;
+}
+// Persisted (localStorage, versioned key prefix) the same way as the app's
+// other free-lookup caches (see askLookupCache) - a place resolved once
+// never re-fetches, and bumping the "v1" prefix in a future change would
+// cleanly stop any old/malformed cached entries from being reused.
+async function getPlaceDescriptionFromWikipedia(candidate, cityCtx){
+  const cacheKey = 'wiki-desc-v1:' + (candidate.wikidata || candidate.osmId || (slugify(candidate.name||'')+'|'+slugify((cityCtx&&cityCtx.city)||'')));
+  try {
+    const stored = await store.get(cacheKey);
+    if(stored) return JSON.parse(stored.value);
+  } catch(e){}
+  let result = null;
+  try { result = await resolveWikipediaDescription(candidate, cityCtx); } catch(e){ debugLog('wikipedia lookup failed', e); }
+  try { await store.set(cacheKey, JSON.stringify(result)); } catch(e){}
+  return result;
+}
+function reverseGeocodeCacheKey(lat, lon){
+  return Math.round(lat*2000)+','+Math.round(lon*2000); // ~50m grid
+}
+// Reverse geocoding - used when a candidate has coordinates but no address
+// (e.g. an Overpass-sourced nearby-search result) so formatPlaceLocation
+// still has real address parts to work with instead of falling back to the
+// bare name/city.
+async function reverseGeocode(lat, lon){
+  if(!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  const cacheKey = 'reverse-geocode-v1:'+reverseGeocodeCacheKey(lat, lon);
+  try {
+    const stored = await store.get(cacheKey);
+    if(stored) return JSON.parse(stored.value);
+  } catch(e){}
+  let result = null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(()=>ctrl.abort(), 7000);
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lon}`, {signal: ctrl.signal});
+    clearTimeout(timer);
+    if(res.ok){
+      const data = await res.json();
+      if(data && data.address) result = {address: data.address, displayName: data.display_name || ''};
+    }
+  } catch(e){}
+  try { await store.set(cacheKey, JSON.stringify(result)); } catch(e){}
+  return result;
+}
+// The enrichment step: turns a ranked search candidate into clean name +
+// useful description + human-readable location + city/country/category,
+// keeping lat/lon as plain internal data. Never called for an existing
+// curated stop being re-rendered - only at the moment a place is selected/
+// added, so an existing manually-written description is never touched.
+async function enrichPlaceResult(candidate, cityCtx){
+  debugLog('enrich start', candidate.name, candidate.source);
+  let address = candidate.address || {};
+  if((!address || !Object.keys(address).length) && Number.isFinite(candidate.lat) && Number.isFinite(candidate.lon)){
+    const rev = await reverseGeocode(candidate.lat, candidate.lon);
+    if(rev && rev.address) address = rev.address;
+  }
+  const location = formatPlaceLocation({address, displayName: candidate.displayName, city: cityCtx && cityCtx.city});
+
+  let description = null, descSource = null;
+  const wiki = await getPlaceDescriptionFromWikipedia(candidate, cityCtx);
+  if(wiki && wiki.text){ description = trimToSentences(wiki.text); descSource = wiki.source; }
+  if(!description){
+    description = buildPlaceDescription({category: candidate.category, location}, cityCtx);
+    descSource = 'structured-fallback';
+  }
+
+  const city = address.city || address.town || address.village || (cityCtx && cityCtx.city) || null;
+  const country = address.country || (cityCtx && cityCtx.country) || null;
+
+  const enriched = {
+    name: candidate.name, desc: description, location,
+    lat: candidate.lat, lon: candidate.lon, city, country,
+    category: candidate.category || null,
+    source: candidate.source + (candidate.osmId ? ':'+candidate.osmId : ''),
+    descSource
+  };
+  debugLog('enrich done', enriched);
+  return enriched;
+}
+// Converts an enriched result into the shape stored on a day's stops array.
+// `place` stays a geocodable string (used by placeUrl/directionsUrl and by
+// resolveStopCoords as a fallback) but now prefers "Name, human location"
+// over a bare coordinate pair, so a map link opens on a labeled pin instead
+// of an anonymous point. lat/lon are stored explicitly and separately so
+// internal geo features (route optimizer, nearby search) never need to
+// parse or re-geocode place text for a freshly-added stop.
+function placeResultToItineraryItem(enriched, userDesc){
+  const hasLoc = enriched.location && !looksLikeRawCoords(enriched.location);
+  const hasCoords = Number.isFinite(enriched.lat) && Number.isFinite(enriched.lon);
+  const place = hasLoc ? `${enriched.name}, ${enriched.location}` : (hasCoords ? `${enriched.lat},${enriched.lon}` : enriched.name);
+  const item = {
+    name: enriched.name,
+    desc: (userDesc && userDesc.trim()) || enriched.desc || 'Added stop',
+    place
+  };
+  if(hasCoords){ item.lat = enriched.lat; item.lon = enriched.lon; }
+  if(hasLoc) item.location = enriched.location;
+  if(enriched.category) item.category = enriched.category;
+  if(enriched.source) item.source = enriched.source;
+  return item;
+}
+
 function wireNearbyButtons(el){
   el.querySelectorAll('.nearby-btn').forEach(btn=>{
     btn.addEventListener('click', async ()=>{
@@ -2915,10 +3537,29 @@ function wireNearbyButtons(el){
           </div>
         `).join('');
         resultsEl.querySelectorAll('.nearby-add-btn').forEach(addBtn=>{
-          addBtn.addEventListener('click', ()=>{
+          addBtn.addEventListener('click', async ()=>{
             const it = items[+addBtn.dataset.idx];
+            const originalLabel = addBtn.textContent;
+            addBtn.disabled = true;
+            addBtn.textContent = 'ADDING…';
+            // Run the same enrichment as the search-and-add flow (Wikipedia
+            // summary when available, else a category+location fallback) so
+            // a nearby-added stop gets a real description and a human-
+            // readable location instead of the raw "lat,lon" this used to
+            // store directly as `place`.
+            const cityCtx = {city, country: CITY_COUNTRY[city] || null};
+            let enriched;
+            try {
+              enriched = await enrichPlaceResult({
+                source:'overpass', osmId:null, name: it.name, altNames:[],
+                lat: it.lat, lon: it.lon, address:{}, displayName:'', class:'', type:'',
+                category: it.kind, importance:0, wikidata:null, wikipedia:null
+              }, cityCtx);
+            } catch(e){
+              enriched = {name:it.name, desc:it.desc, location:'', lat:it.lat, lon:it.lon, city, country:cityCtx.country, category:it.kind, source:'overpass'};
+            }
             dayStopsState[id] = dayStopsState[id] || [];
-            dayStopsState[id].push({name: it.name, desc: it.desc, place: `${it.lat},${it.lon}`});
+            dayStopsState[id].push(placeResultToItineraryItem(enriched, null));
             justSavedKey = 'stop:'+id+':'+(dayStopsState[id].length-1);
             persistDay(id);
             openDays.add(id);
@@ -2956,8 +3597,18 @@ function parseLatLon(place){
   const m = /^\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*$/.exec(place||'');
   return m ? {lat:+m[1], lon:+m[2]} : null;
 }
-async function resolveStopCoords(place, city){
-  return parseLatLon(place) || await geocodePlace(place, city);
+// Accepts either a plain place string (existing behavior - parses a raw
+// "lat,lon" place field, then falls back to geocoding) or a stop/stay object
+// that carries explicit lat/lon fields (set by the enrichment pipeline above)
+// - in which case those are used directly, with no parsing or network call
+// at all. Keeps every existing caller that already passes a bare string
+// working unchanged.
+async function resolveStopCoords(stopOrPlace, city){
+  if(stopOrPlace && typeof stopOrPlace === 'object'){
+    if(Number.isFinite(stopOrPlace.lat) && Number.isFinite(stopOrPlace.lon)) return {lat:stopOrPlace.lat, lon:stopOrPlace.lon};
+    return resolveStopCoords(stopOrPlace.place, city);
+  }
+  return parseLatLon(stopOrPlace) || await geocodePlace(stopOrPlace, city);
 }
 
 const OSRM_FOOT_TABLE_URL = 'https://router.project-osrm.org/table/v1/foot/';
@@ -3097,7 +3748,7 @@ function solveOpenRoute(n, cost, fixedStartIdx){
 // whole day.
 async function optimizeDayRoute(stops, stay, city, mode){
   const resolved = await Promise.all(stops.map(async (s, idx)=>{
-    try { return {idx, stop:s, coords: await resolveStopCoords(s.place, city)}; }
+    try { return {idx, stop:s, coords: await resolveStopCoords(s, city)}; }
     catch(e){ return {idx, stop:s, coords:null}; }
   }));
   const locatable = resolved.filter(r=>r.coords);
@@ -3109,7 +3760,7 @@ async function optimizeDayRoute(stops, stay, city, mode){
 
   let hotelCoords = null;
   if(stay && stay.place){
-    try { hotelCoords = await resolveStopCoords(stay.place, city); } catch(e){ hotelCoords = null; }
+    try { hotelCoords = await resolveStopCoords(stay, city); } catch(e){ hotelCoords = null; }
   }
 
   const pointMeta = [];
@@ -3183,7 +3834,7 @@ function extractFoodElements(elements){
     if(seen.has(e.tags.name)) continue;
     seen.add(e.tags.name);
     const kind = kindOfTags(e.tags);
-    out.push({name:e.tags.name, desc:describeKind(kind, e.tags), lat:e.lat, lon:e.lon});
+    out.push({name:e.tags.name, desc:describeKind(kind, e.tags), lat:e.lat, lon:e.lon, kind});
   }
   return out;
 }
@@ -3244,7 +3895,7 @@ async function suggestRestaurantsForLegs(legs){
       if(detourMin < bestDetour){ bestDetour = detourMin; best = c; }
     }
     if(best && bestDetour <= REST_DETOUR_MAX_MIN){
-      scored.push({legIdx:i, name:best.name, desc:best.desc, lat:best.lat, lon:best.lon, detourMin:Math.max(0, Math.round(bestDetour))});
+      scored.push({legIdx:i, name:best.name, desc:best.desc, lat:best.lat, lon:best.lon, kind:best.kind, detourMin:Math.max(0, Math.round(bestDetour))});
     }
   });
   scored.sort((a,b)=>a.detourMin-b.detourMin);
@@ -3379,7 +4030,7 @@ function renderRoutePreview(dayId){
     </div>
   `;
   panel.querySelectorAll('.route-restaurant-add').forEach(btn=>{
-    btn.addEventListener('click', (e)=>{
+    btn.addEventListener('click', async (e)=>{
       e.stopPropagation();
       const id = btn.dataset.day;
       const legIdx = +btn.dataset.leg;
@@ -3387,10 +4038,25 @@ function renderRoutePreview(dayId){
       if(!st || !st.restaurants || !st.restaurants[legIdx]) return;
       const rest = st.restaurants[legIdx];
       const leg = st.result.legs[legIdx];
+      const originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'ADDING…';
+      const day = days.find(x=>x.id===id);
+      const cityCtx = {city: day && day.city, country: (day && CITY_COUNTRY[day.city]) || null};
+      let enriched;
+      try {
+        enriched = await enrichPlaceResult({
+          source:'overpass', osmId:null, name: rest.name, altNames:[],
+          lat: rest.lat, lon: rest.lon, address:{}, displayName:'', class:'', type:'',
+          category: rest.kind || 'restaurant', importance:0, wikidata:null, wikipedia:null
+        }, cityCtx);
+      } catch(err){
+        enriched = {name:rest.name, desc:rest.desc || 'Suggested restaurant stop', location:'', lat:rest.lat, lon:rest.lon, city:cityCtx.city, country:cityCtx.country, category:rest.kind||'restaurant', source:'overpass'};
+      }
       const dayStops = dayStopsState[id] = dayStopsState[id] || [];
       let insertAt = dayStops.indexOf(leg.from) + 1;
       if(insertAt <= 0) insertAt = dayStops.length;
-      const newStop = {name:rest.name, desc:rest.desc || 'Suggested restaurant stop', place:`${rest.lat},${rest.lon}`};
+      const newStop = placeResultToItineraryItem(enriched, null);
       dayStops.splice(insertAt, 0, newStop);
       justSavedKey = 'stop:'+id+':'+insertAt;
       persistDay(id);
@@ -3483,7 +4149,7 @@ function persistOriginalOrder(id){
 
 // Shared Nominatim-backed place search, used both for adding a stop and
 // for editing a day's accommodation.
-function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlaceholder='Search a place', descPlaceholder='One-line description (optional)', confirmLabel='ADD TO DAY', deriveDesc=null, onConfirm, onCancel, hostelBrowse=false }){
+function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlaceholder='Search a place', descPlaceholder='One-line description (optional)', confirmLabel='ADD TO DAY', onConfirm, onCancel, hostelBrowse=false }){
   const form = document.createElement('div');
   form.className = 'add-stop-form';
   const hostels = hostelBrowse ? (HOSTELS_BY_CITY[city] || []) : [];
@@ -3525,51 +4191,88 @@ function createPlaceSearchForm({ city, initialName='', initialDesc='', namePlace
     });
   });
   const resultsEl = form.querySelector('.search-results');
-  let selectedPlace = null;
+  const descField = form.querySelector('textarea');
+  // Holds the fields the enrichment pipeline resolved for whatever result
+  // the traveler last clicked (place/lat/lon/location/category/source) -
+  // null whenever nothing is picked yet, or the traveler edits the name
+  // again after picking (see the 'input' listener below), in which case
+  // confirming falls back to the plain "name, city" text search always did.
+  let selectedCandidate = null;
   let debounceTimer;
+  let requestSeq = 0;
+
+  // Cheap, no-network preview line for a not-yet-enriched candidate in the
+  // dropdown (full enrichment - Wikipedia lookup, reverse geocoding - only
+  // runs for the one result actually clicked, not all of them).
+  function quickPlaceSubtitle(candidate){
+    const loc = formatPlaceLocation(candidate);
+    if(loc) return loc;
+    if(candidate.category) return String(candidate.category).replace(/_/g,' ');
+    return '';
+  }
 
   nameInput.addEventListener('input', ()=>{
-    selectedPlace = null;
+    selectedCandidate = null;
     clearTimeout(debounceTimer);
     const q = nameInput.value.trim();
     if(q.length < 3){ resultsEl.innerHTML = ''; return; }
     resultsEl.innerHTML = '<div class="search-empty">Searching…</div>';
     debounceTimer = setTimeout(async ()=>{
+      const seq = ++requestSeq;
+      let results = [];
       try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q+', '+city)}`);
-        const data = await res.json();
-        if(!data.length){
-          resultsEl.innerHTML = '<div class="search-empty">No matches - will use what you typed</div>';
-          return;
-        }
-        resultsEl.innerHTML = data.map((r,i)=>`<div class="search-item" data-idx="${i}">${escapeHtml(r.display_name)}</div>`).join('');
-        resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
-          el2.addEventListener('click', ()=>{
-            const r = data[i];
-            selectedPlace = `${r.lat},${r.lon}`;
-            nameInput.value = r.display_name.split(',')[0];
-            const descField = form.querySelector('textarea');
-            if(deriveDesc && !descField.value.trim()){
-              const derived = deriveDesc(r);
-              if(derived) descField.value = derived;
-            }
-            resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${escapeHtml(r.display_name)}</div>`;
-          });
-        });
+        results = await searchPlacesForAdd(q, city);
       } catch(err){
-        resultsEl.innerHTML = '<div class="search-empty">Search unavailable right now - will use what you typed</div>';
+        if(seq === requestSeq) resultsEl.innerHTML = '<div class="search-empty">Search unavailable right now - will use what you typed</div>';
+        return;
       }
+      if(seq !== requestSeq) return; // a newer keystroke's search already superseded this one
+      if(!results.length){
+        resultsEl.innerHTML = '<div class="search-empty">No matches - will use what you typed</div>';
+        return;
+      }
+      resultsEl.innerHTML = results.map((r,i)=>{
+        const subtitle = quickPlaceSubtitle(r);
+        return `<div class="search-item" data-idx="${i}">
+          <div class="nearby-item-name">${escapeHtml(r.name)}</div>
+          ${subtitle ? `<div class="nearby-item-desc">${escapeHtml(subtitle)}</div>` : ''}
+        </div>`;
+      }).join('');
+      resultsEl.querySelectorAll('.search-item').forEach((el2,i)=>{
+        el2.addEventListener('click', async ()=>{
+          const r = results[i];
+          resultsEl.innerHTML = '<div class="search-empty">Loading details…</div>';
+          const cityCtx = {city, country: CITY_COUNTRY[city] || null};
+          let enriched;
+          try {
+            enriched = await enrichPlaceResult(r, cityCtx);
+          } catch(err){
+            enriched = {name:r.name, desc:'', location: quickPlaceSubtitle(r), lat:r.lat, lon:r.lon, city, country:cityCtx.country, category:r.category, source:r.source};
+          }
+          if(seq !== requestSeq) return; // a newer search started while enrichment was in flight
+          selectedCandidate = placeResultToItineraryItem(enriched, null);
+          nameInput.value = enriched.name;
+          if(!descField.value.trim() && enriched.desc){ descField.value = enriched.desc; }
+          const locLabel = (enriched.location && !looksLikeRawCoords(enriched.location)) ? ` — ${enriched.location}` : '';
+          resultsEl.innerHTML = `<div class="search-picked">✓ Matched: ${escapeHtml(enriched.name + locLabel)}</div>`;
+        });
+      });
     }, 450);
   });
 
   form.querySelector('.cancel').addEventListener('click', ()=>{ if(onCancel) onCancel(); });
   form.querySelector('.confirm').addEventListener('click', ()=>{
     const name = nameInput.value.trim();
-    const desc = form.querySelector('textarea').value.trim();
+    const desc = descField.value.trim();
     if(!name) return;
-    // Use the matched place if one was picked, otherwise fall back to "name, city"
-    const place = selectedPlace || `${name}, ${city}`;
-    onConfirm({name, desc, place});
+    if(selectedCandidate){
+      onConfirm({...selectedCandidate, name, desc});
+      return;
+    }
+    // Nothing matched (or the traveler kept typing after a match) - fall
+    // back to the plain text search this always used, which never stores a
+    // raw coordinate pair.
+    onConfirm({name, desc, place: `${name}, ${city}`});
   });
 
   return form;
@@ -4678,6 +5381,7 @@ function renderItinerary(){
           <div class="stop-info">
             <a class="stop-name${flashKey==='stop:'+d.id+':'+si?' flash-save':''}" href="${placeUrl(s.place)}" target="_blank">${escapeHtml(s.name)}</a>
             <div class="stop-desc">${escapeHtml(s.desc)}</div>
+            ${s.location && !looksLikeRawCoords(s.location) ? `<div class="stop-location">📍 ${escapeHtml(s.location)}</div>` : ''}
             ${s.flightDate !== undefined ? `
               <div class="stop-flight-date">
                 <span class="stop-flight-date-label">DATE</span>
@@ -4886,8 +5590,10 @@ function renderItinerary(){
         descPlaceholder: 'Stay type (e.g. Hostel · 2 nights)',
         confirmLabel: 'SAVE',
         hostelBrowse: true,
-        onConfirm: ({name, desc, place})=>{
+        onConfirm: ({name, desc, place, lat, lon, location})=>{
           const newStay = {name, type: desc || current.type, place};
+          if(Number.isFinite(lat) && Number.isFinite(lon)){ newStay.lat = lat; newStay.lon = lon; }
+          if(location) newStay.location = location;
           const applyTo = (ids)=>{
             for(const dId of ids){
               dayStayState[dId] = {...newStay};
@@ -4924,14 +5630,14 @@ function renderItinerary(){
         namePlaceholder: 'Search a place (e.g. Louvre Museum)',
         descPlaceholder: 'One-line description (optional)',
         confirmLabel: 'ADD TO DAY',
-        deriveDesc: (r)=>{
-          const kind = (r.type||r.class||'').replace(/_/g,' ');
-          if(!kind) return null;
-          return kind.charAt(0).toUpperCase()+kind.slice(1)+' - '+r.display_name.split(',').slice(1,3).join(',').trim();
-        },
-        onConfirm: ({name, desc, place})=>{
+        onConfirm: ({name, desc, place, lat, lon, location, category, source})=>{
           dayStopsState[id] = dayStopsState[id] || [];
-          dayStopsState[id].push({name, desc: desc || 'Added stop', place});
+          const newStop = {name, desc: desc || 'Added stop', place};
+          if(Number.isFinite(lat) && Number.isFinite(lon)){ newStop.lat = lat; newStop.lon = lon; }
+          if(location) newStop.location = location;
+          if(category) newStop.category = category;
+          if(source) newStop.source = source;
+          dayStopsState[id].push(newStop);
           justSavedKey = 'stop:'+id+':'+(dayStopsState[id].length-1);
           persistDay(id);
           openDays.add(id);

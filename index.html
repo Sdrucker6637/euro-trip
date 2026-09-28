@@ -460,14 +460,14 @@ window.addEventListener('unhandledrejection', function(e){
       </div>
       <div class="modal-body">
         <h2>Between countries</h2>
-        <p>Your Eurail pass covers most inter-city legs - just show it (or the Eurail Rail Planner app) on board, no ticket needed. Three legs need a separate paid reservation booked directly with the operator, regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV Lyria), and <b>Vienna→Rome</b> (Nightjet sleeper). Book those as early as you can - they have limited seats/berths. Everything else (Basel→Interlaken, Interlaken→Zurich, Zurich→Vienna, Vienna→Budapest) is hop-on with no booking - just open the Eurail app for schedules.</p>
+        <p>Your Eurail pass covers most inter-city legs - just show it (or the Eurail Rail Planner app) on board, no ticket needed. Five legs need a separate paid reservation, regardless of the pass: <b>Amsterdam→Paris</b> (Eurostar), <b>Paris→Basel</b> (TGV Lyria), <b>Zurich→Vienna</b> (Nightjet EN 467, overnight Oct 18), <b>Vienna→Bologna</b> (Nightjet NJ 40233, overnight Oct 24), and <b>Bologna→Rome</b> (Frecciarossa FR 9505, Oct 25). Everything else (Basel→Interlaken, Interlaken→Zurich, Vienna→Budapest, Budapest→Vienna) needs no booking - seat reservations there are optional - just open the Eurail app for schedules.</p>
         <h2>Inside each city</h2>
         <p><b>Amsterdam & Rome & Budapest:</b> tap your card or Apple Pay directly on trams/metro/buses - no ticket needed.</p>
         <p><b>Paris:</b> no direct tap yet - add a Navigo Easy pass to Apple Wallet instead.</p>
         <p><b>Vienna:</b> contactless isn't confirmed - buy through the WienMobil app to be safe.</p>
         <p><b>Switzerland (Interlaken):</b> no gates at all - it's honor-based. Use the SBB Mobile app (EasyRide) or your Eurail pass.</p>
         <h2>Apps worth having</h2>
-        <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, and Nightjet for the 3 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
+        <p><b>Eurail Rail Planner</b> covers every inter-city leg. On top of that: Eurostar, TGV Lyria/SNCF Connect, Nightjet, and Trenitalia for the 5 legs that need a separate reservation, plus WienMobil, BudapestGO, and Moovit/Citymapper for city navigation.</p>
       </div>
     </div>
   </div>
@@ -1085,16 +1085,16 @@ const JOURNEYS = [
     ]
   },
   {
-    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Mon Oct 19', via:'via Zurich',
+    id:'j3', from:'Interlaken', to:'Vienna', fromCode:'INT', toCode:'VIE', date:'Sun Oct 18', via:'via Zurich, overnight',
     segments:[
       {id:'s4',flag:'green',flagLabel:'HOP-ON',title:'SBB domestic',duration:'~2h',
        note:'No reservation needed.',
        from:{name:'Interlaken Ost',place:'Interlaken Ost, Interlaken, Switzerland'},to:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},
        book:'https://www.sbb.ch/en', transitApp:'sbb'},
-      {id:'s5',flag:'amber',flagLabel:'RESERVE SEAT',title:'ÖBB Railjet',duration:'~8h',
-       note:'Long day - reservation optional but worth it for comfort.',
+      {id:'s5',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet EN 467',duration:'20:57–07:58, ~11h',
+       note:'Booked - Interrail/Eurail reservation, 2nd class. Departs Zürich HB 20:57 Sun Oct 18, arrives Wien Hbf 07:58 Mon Oct 19.',
        from:{name:'Zurich HB',place:'Zürich Hauptbahnhof, Zurich, Switzerland'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
-       book:'https://www.oebb.at/en/'}
+       book:'https://www.nightjet.com/en', bookLabel:'Nightjet'}
     ]
   },
   {
@@ -1107,16 +1107,20 @@ const JOURNEYS = [
     ]
   },
   {
-    id:'j5', from:'Budapest', to:'Rome', fromCode:'BUD', toCode:'ROM', date:'Fri Oct 23', via:'via Vienna, overnight',
+    id:'j5', from:'Budapest', to:'Rome', fromCode:'BUD', toCode:'ROM', date:'Sat Oct 24', via:'via Vienna + Bologna, overnight',
     segments:[
-      {id:'s7',flag:'green',flagLabel:'HOP-ON',title:'Railjet',duration:'~2h40m',
-       note:'Connects to the overnight sleeper in Vienna.',
-       from:{name:'Budapest Keleti',place:'Budapest Keleti, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
+      {id:'s7',flag:'amber',flagLabel:'RESERVE SEAT',title:'EC 148 Lehár Ferenc (EuroCity)',duration:'16:55–19:20, 2h25',
+       note:'Seat reservation optional. 45-min transfer at Wien Hbf (19:20–20:05) to the Nightjet.',
+       from:{name:'Budapest-Kelenföld',place:'Budapest-Kelenföld railway station, Budapest'},to:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},
        book:'https://www.oebb.at/en/'},
-      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet (sleeper)',duration:'19:30–09:30, ~14h',
-       note:'Fewest berths of any leg - historically sells out 60+ days ahead. Book earliest of all.',
-       from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
-       book:'https://www.nightjet.com/en', bookLabel:'Nightjet'}
+      {id:'s8',flag:'red',flagLabel:'BOOK NOW',title:'ÖBB Nightjet NJ 40233',duration:'20:05–05:38, 10h33',
+       note:'Booked - required reservation. Arrives Bologna Centrale 05:38 Sun Oct 25; 49-min transfer (05:38–06:27) to the Frecciarossa.',
+       from:{name:'Vienna Hbf',place:'Vienna Hauptbahnhof, Vienna'},to:{name:'Bologna Centrale',place:'Bologna Centrale, Bologna, Italy'},
+       book:'https://www.nightjet.com/en', bookLabel:'Nightjet'},
+      {id:'s9',flag:'red',flagLabel:'BOOK NOW',title:'Frecciarossa FR 9505',duration:'06:27–09:05, 2h38',
+       note:'Booked - required reservation. Arrives Roma Termini 09:05 Sun Oct 25.',
+       from:{name:'Bologna Centrale',place:'Bologna Centrale, Bologna, Italy'},to:{name:'Roma Termini',place:'Roma Termini, Rome'},
+       book:'https://www.trenitalia.com/en.html', bookLabel:'Trenitalia'}
     ]
   }
 ];
@@ -1370,7 +1374,7 @@ const ITINERARY = [
      {name:'Albert Cuyp Markt',desc:"Amsterdam's biggest street market - stroopwafels, herring, clothes stalls.",place:'Albert Cuyp Markt, Amsterdam'}
    ],
    stay:{name:'The Flying Pig Downtown Hostel',type:'Hostel · 2 nights',place:'The Flying Pig Downtown Hostel, Amsterdam'}},
-  {id:'d3',date:'Mon Oct 12',city:'Amsterdam',title:'City day, then Eurostar to Paris',
+  {id:'d3',date:'Mon Oct 12',city:'Amsterdam',title:'City day',
    stops:[
      {name:'Jordaan & Negen Straatjes',desc:'Boutique-lined canal streets, the most charming shopping quarter.',place:'Negen Straatjes, Amsterdam'}
    ],
@@ -1387,7 +1391,7 @@ const ITINERARY = [
      {name:'Palace of Versailles',desc:"Louis XIV's opulent palace and gardens, a short train ride out.",place:'Palace of Versailles, Versailles, France'}
    ],
    stay:{name:'The People – Paris Bercy',type:'Hostel · 3 nights',place:'The People - Paris Bercy, Paris, France'}},
-  {id:'d6',date:'Thu Oct 15',city:'Paris',title:'Latin Quarter, then train to Switzerland',
+  {id:'d6',date:'Thu Oct 15',city:'Paris',title:'Latin Quarter + Notre-Dame',
    stops:[
      {name:'Latin Quarter + Notre-Dame',desc:'Historic student quarter and the newly restored Gothic cathedral.',place:'Notre-Dame Cathedral, Paris'}
    ],
@@ -1402,11 +1406,11 @@ const ITINERARY = [
      {name:'Männlichen',desc:'Ridge-top viewpoint with panoramic views of the Eiger and Jungfrau.',place:'Männlichen, Switzerland'}
    ],
    stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
-  {id:'d8b',date:'Sun Oct 18',city:'Interlaken',title:'Kleine Scheidegg, then train to Vienna',
+  {id:'d8b',date:'Sun Oct 18',city:'Interlaken',title:'Kleine Scheidegg, then Nightjet to Vienna',
    stops:[
      {name:'Kleine Scheidegg',desc:"Alpine pass and classic photo spot below the Eiger's north face.",place:'Kleine Scheidegg, Switzerland'}
    ],
-   stay:{name:'Backpackers Villa Sonnenhof',type:'Hostel · 2 nights',place:'Backpackers Villa Sonnenhof, Interlaken'}},
+   stay:{name:'ÖBB Nightjet EN 467',type:'On board · overnight',place:'Zürich Hauptbahnhof, Zurich, Switzerland'}},
   {id:'d9',date:'Mon Oct 19',city:'Vienna',title:'Schönbrunn, MuseumsQuartier + Freud Museum',
    arrivalPlace:'Vienna Hauptbahnhof, Vienna',
    stops:[
@@ -1414,45 +1418,45 @@ const ITINERARY = [
      {name:'MuseumsQuartier + Albertina',desc:"Vienna's museum district and a major graphic art / Monet collection.",place:'Albertina Museum, Vienna'},
      {name:'Sigmund Freud Museum',desc:"Freud's former home and office, now a museum on his life and work.",place:'Sigmund Freud Museum, Vienna'}
    ],
-   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
-  {id:'d11',date:'Tue Oct 20',city:'Vienna',title:'Naschmarkt, then train to Budapest',
+   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 2 nights',place:'Hostel Ruthensteiner, Vienna'}},
+  {id:'d11',date:'Tue Oct 20',city:'Vienna',title:'Naschmarkt, Belvedere + Stephansdom',
    stops:[
      {name:'Naschmarkt',desc:"Vienna's long-running food market, good for a lunch crawl.",place:'Naschmarkt, Vienna'},
      {name:'Belvedere Palace',desc:"Baroque palace holding Klimt's The Kiss and other Austrian art.",place:'Belvedere Palace, Vienna'},
      {name:'Stephansdom',desc:"Vienna's Gothic cathedral with a famous tiled roof, right in the center.",place:'Stephansdom, Vienna'}
    ],
-   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 3 nights',place:'Hostel Ruthensteiner, Vienna'}},
+   stay:{name:'Vienna Hostel Ruthensteiner',type:'Hostel · 2 nights',place:'Hostel Ruthensteiner, Vienna'}},
   {id:'d12',date:'Wed Oct 21',city:'Budapest',title:'Buda Castle',
    arrivalPlace:'Budapest Keleti, Budapest',
    stops:[
      {name:"Fisherman's Bastion + Buda Castle",desc:'Neo-Gothic terraces and the old royal castle, sweeping Danube views.',place:"Fisherman's Bastion, Budapest"}
    ],
-   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 1 night',place:'Maverick Hostel Central Market, Budapest'}},
-  {id:'d13',date:'Thu Oct 22',city:'Budapest',title:'Thermal baths, Parliament + Central Market, then overnight to Rome',
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
+  {id:'d13',date:'Thu Oct 22',city:'Budapest',title:'Thermal baths + Parliament',
    stops:[
      {name:'Széchenyi Thermal Bath',desc:'Grand outdoor and indoor thermal pools, a Budapest institution.',place:'Széchenyi Thermal Bath, Budapest'},
-     {name:'Hungarian Parliament',desc:'Riverside neo-Gothic landmark - view from outside or book a tour.',place:'Hungarian Parliament Building, Budapest'},
+     {name:'Hungarian Parliament',desc:'Riverside neo-Gothic landmark - view from outside or book a tour.',place:'Hungarian Parliament Building, Budapest'}
+   ],
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
+  {id:'d14',date:'Fri Oct 23',city:'Budapest',title:'Free day in Budapest',
+   stops:[],
+   stay:{name:'Maverick Central Market Hostel',type:'Hostel · 3 nights',place:'Maverick Hostel Central Market, Budapest'}},
+  {id:'d15',date:'Sat Oct 24',city:'Budapest',title:'Central Market, then 16:55 overnight to Rome',
+   stops:[
      {name:'Central Market Hall',desc:"Budapest's largest indoor market, paprika and produce stalls galore.",place:'Central Market Hall, Budapest'}
    ],
    stay:{name:'ÖBB Nightjet sleeper',type:'On board · overnight',place:'Vienna Hauptbahnhof, Vienna'}},
-  {id:'d16',date:'Fri Oct 23',city:'Rome',title:'Colosseum + Roman Forum',
+  {id:'d16',date:'Sun Oct 25',city:'Rome',title:'Arrive 09:05 - Colosseum, Forum, Pantheon + Trevi',
    arrivalPlace:'Roma Termini, Rome',
    stops:[
-     {name:'Colosseum + Roman Forum',desc:"Ancient Rome's arena and the ruins of its political heart.",place:'Colosseum, Rome'}
-   ],
-   stay:{name:'The RomeHello',type:'Hostel · 3 nights',place:'The RomeHello, Rome'}},
-  {id:'d17',date:'Sat Oct 24',city:'Rome',title:'Vatican, Pantheon, Trevi',
-   stops:[
-     {name:"St Peter's Basilica",desc:"The Vatican's grand basilica, with Michelangelo's dome and Pietà.",place:"St Peter's Basilica, Vatican City"},
+     {name:'Colosseum + Roman Forum',desc:"Ancient Rome's arena and the ruins of its political heart.",place:'Colosseum, Rome'},
      {name:'Pantheon',desc:'Best-preserved Roman temple, famous for its oculus-lit dome.',place:'Pantheon, Rome'},
      {name:'Trevi Fountain',desc:"Rome's most famous fountain - toss a coin for good luck.",place:'Trevi Fountain, Rome'}
    ],
-   stay:{name:'The RomeHello',type:'Hostel · 3 nights',place:'The RomeHello, Rome'}},
-  {id:'d17b',date:'Sun Oct 25',city:'Rome',title:'Free day in Rome',
-   stops:[],
-   stay:{name:'The RomeHello',type:'Hostel · 3 nights',place:'The RomeHello, Rome'}},
-  {id:'d18',date:'Mon Oct 26',city:'Rome',title:'Trastevere, final night',
+   stay:{name:'No accommodation booked',type:'Night of Oct 25 · hotel/hostel not booked yet',place:'Roma Termini, Rome'}},
+  {id:'d18',date:'Mon Oct 26',city:'Rome',title:'Vatican + Trastevere, final night',
    stops:[
+     {name:"St Peter's Basilica",desc:"The Vatican's grand basilica, with Michelangelo's dome and Pietà.",place:"St Peter's Basilica, Vatican City"},
      {name:'Trastevere',desc:'Cobblestoned neighborhood full of trattorias - final Italian meal.',place:'Trastevere, Rome'}
    ],
    stay:{name:'Yes Hotel Rome',type:'Hotel · last night',place:'Yes Hotel Rome'}},
@@ -5814,7 +5818,7 @@ function renderRouteLine(){
     {city:'Interlaken', date:new Date('2026-10-16')},
     {city:'Vienna', date:new Date('2026-10-19')},
     {city:'Budapest', date:new Date('2026-10-21')},
-    {city:'Rome', date:new Date('2026-10-23')}
+    {city:'Rome', date:new Date('2026-10-25')}
   ];
   const dotsEl = document.getElementById('route-dots');
   dotsEl.innerHTML = cityStarts.map(c=>`<div class="route-dot" style="background:${CITY_COLOR[c.city]}" title="${c.city}"></div>`).join('');
